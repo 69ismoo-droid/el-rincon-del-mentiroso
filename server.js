@@ -35,7 +35,9 @@ function normalizeEmail(email) {
 
 function isAllowedEmailDomain(email) {
   const normalized = normalizeEmail(email);
-  return normalized.endsWith("@cusco.coar.edu.pe") || normalized === "cruel@admin";
+  // Solo aceptar correos que terminen exactamente en @coar.edu.pe
+  // Y también el administrador cruel@admin
+  return normalized.endsWith("@coar.edu.pe") || normalized === "cruel@admin";
 }
 
 function isOwner(userId, ownerId) {
@@ -880,7 +882,10 @@ app.get("*", (req, res) => {
 });
 
 database.connect()
-  .then(() => {
+  .then(async () => {
+    // Asegurar que el administrador exista
+    await ensureAdminExists();
+    
     // Cleanup uploads and news (best effort) on startup and periodically
     cleanupOldUploads().catch(() => {});
     cleanupOldNews().catch(() => {});
@@ -902,4 +907,32 @@ database.connect()
     console.error("Error al iniciar:", err);
     process.exit(1);
   });
+
+// Función para asegurar que el admin exista
+async function ensureAdminExists() {
+  try {
+    const existingAdmin = await getUserByEmail("cruel@admin");
+    
+    if (!existingAdmin) {
+      console.log("Creando usuario administrador por defecto...");
+      const passwordHash = await bcrypt.hash("123456789", 10);
+      
+      const adminUser = {
+        id: crypto.randomUUID(),
+        email: "cruel@admin",
+        inviteCode: "ADMIN001",
+        passwordHash,
+        displayName: "Administrador",
+        createdAt: new Date().toISOString(),
+      };
+
+      await database.createUser(adminUser);
+      console.log("✅ Usuario administrador creado: cruel@admin / 123456789");
+    } else {
+      console.log("✅ Usuario administrador ya existe: cruel@admin");
+    }
+  } catch (err) {
+    console.error("Error al crear usuario administrador:", err);
+  }
+}
 
