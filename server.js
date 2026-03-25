@@ -39,7 +39,9 @@ function isAllowedEmailDomain(email) {
   const normalized = normalizeEmail(email);
   // Solo aceptar correos que terminen exactamente en @cusco.coar.edu.pe
   // Y también el administrador cruel@admin
-  return normalized.endsWith("@cusco.coar.edu.pe") || normalized === "cruel@admin";
+  const allowed = normalized.endsWith("@cusco.coar.edu.pe") || normalized === "cruel@admin";
+  console.log(`🔍 Email validation: ${email} -> ${allowed ? 'ALLOWED' : 'BLOCKED'}`);
+  return allowed;
 }
 
 function isOwner(userId, ownerId) {
