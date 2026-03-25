@@ -2,9 +2,9 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Usar disco persistente en Render (/mnt/data) o /tmp como fallback
+// Usar /tmp en Render para compatibilidad o path relativo local
 const dbPath = process.env.RENDER ? 
-  path.join('/mnt/data', 'database.sqlite') : 
+  path.join('/tmp', 'database.sqlite') : 
   path.join(__dirname, 'data', 'database.sqlite');
 
 // Asegurar que el directorio de la base de datos exista

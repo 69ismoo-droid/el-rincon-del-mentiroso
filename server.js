@@ -21,7 +21,7 @@ const publicDir = path.join(rootDir, "public");
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : process.env.RENDER
-    ? path.join('/mnt/data', 'uploads')
+    ? path.join('/tmp', 'uploads')
     : path.join(rootDir, "uploads");
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(rootDir, "data");
 const dbPath = path.join(dataDir, "db.json");
