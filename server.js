@@ -182,6 +182,7 @@ const upload = multer({
 });
 
 app.post("/api/auth/signup", async (req, res) => {
+  console.log(`📝 Signup attempt: ${req.body?.email}`);
   try {
     const { email, password, displayName, inviteCode } = req.body || {};
 
@@ -191,10 +192,13 @@ app.post("/api/auth/signup", async (req, res) => {
       });
     }
 
+    console.log(`🔍 Validating email: ${email}`);
     if (!isAllowedEmailDomain(email)) {
+      console.log(`❌ Email blocked: ${email}`);
       return res.status(403).json({ error: "Correo no autorizado." });
     }
 
+    console.log(`✅ Email allowed: ${email}`);
     const normalizedInviteCode = String(inviteCode).trim();
     if (!normalizedInviteCode) {
       return res.status(400).json({ error: "El código personal no puede estar vacío." });
@@ -226,13 +230,14 @@ app.post("/api/auth/signup", async (req, res) => {
     };
 
     await database.createUser(user);
+    console.log(`👤 User created: ${email}`);
 
     return res.status(201).json({
       message: "Cuenta creada correctamente",
       user: { id: user.id, email: user.email, displayName: user.displayName },
     });
   } catch (err) {
-    console.error('Signup error:', err);
+    console.error('❌ Signup error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
