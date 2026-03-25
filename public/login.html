@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar sesión - el rincon del mentiroso</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="topbar">
+        <div class="brand">el rincon del mentiroso</div>
+        <div class="muted" style="font-size:13px">Acceso requerido</div>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 420px;">
+        <div class="card">
+          <h2 class="title">Bienvenido</h2>
+          <div class="muted" style="margin-bottom:10px">
+            Sitio de noticias y foros. Para acceder necesitas una cuenta autorizada.
+          </div>
+          <div class="muted" style="font-size:12px">Si intentas entrar con un correo no autorizado, se rechazará.</div>
+        </div>
+
+        <div class="card">
+          <h2 class="title">Iniciar sesión</h2>
+          <div id="alert" class="alert err" style="display:none"></div>
+          <form id="loginForm">
+            <div class="field">
+              <label for="email">Correo institucional</label>
+              <input id="email" name="email" type="email" required placeholder="Ingresa tu correo" />
+            </div>
+            <div class="field">
+              <label for="password">Contraseña</label>
+              <input id="password" name="password" type="password" required minlength="6" />
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn primary" id="submitBtn" type="submit">Ingresar</button>
+              <a class="btn" href="/signup.html" style="text-decoration:none">Crear cuenta</a>
+            </div>
+
+            <div class="muted" style="margin-top:12px;font-size:12px">
+              Al continuar, aceptas los
+              <a href="/terms.html" target="_blank" rel="noopener">Términos y Condiciones</a>.
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="/login.js"></script>
+  </body>
+</html>
+
