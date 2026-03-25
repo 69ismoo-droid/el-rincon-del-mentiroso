@@ -38,7 +38,14 @@ function formatDate(iso) {
 // --- API ---
 async function api(path, options = {}) {
   const token = localStorage.getItem("token");
-  const res = await fetch(path, {
+  
+  // Detectar si estamos en producción y construir URL completa
+  let fullPath = path;
+  if (window.location.hostname !== 'localhost' && !path.startsWith('http')) {
+    fullPath = `${window.location.origin}${path}`;
+  }
+  
+  const res = await fetch(fullPath, {
     ...options,
     headers: {
       ...options.headers,
