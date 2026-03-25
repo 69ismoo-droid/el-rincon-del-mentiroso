@@ -904,6 +904,7 @@ database.connect()
       console.log(`Retención de noticias: ${NEWS_RETENTION_DAYS} días`);
       console.log(`✅ Dominio permitido: @cusco.coar.edu.pe`);
       console.log(`✅ Admin: cruel@admin`);
+      console.log(`🚀 Deployment: ${new Date().toISOString()}`);
     });
   })
   .catch((err) => {
