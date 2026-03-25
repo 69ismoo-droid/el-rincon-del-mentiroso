@@ -8,6 +8,7 @@ const cors = require("cors");
 const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const database = require("./database");
 require("dotenv").config();
 
 const app = express();
@@ -24,37 +25,8 @@ const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path
 const dbPath = path.join(dataDir, "db.json");
 
 // Ensure needed directories exist
-for (const dir of [publicDir, uploadsDir, dataDir]) {
+for (const dir of [publicDir, uploadsDir]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
-
-// Simple JSON "DB" stored on disk
-let db = { users: [], news: [], attachments: [], forumThreads: [], forumReplies: [] };
-let writeQueue = Promise.resolve();
-
-async function loadDb() {
-  try {
-    const raw = await fsp.readFile(dbPath, "utf8");
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") db = parsed;
-  } catch (err) {
-    // If it doesn't exist yet, keep the default empty db
-  }
-
-  // Ensure keys exist (compatible with older db.json)
-  db.users = Array.isArray(db.users) ? db.users : [];
-  db.news = Array.isArray(db.news) ? db.news : [];
-  db.attachments = Array.isArray(db.attachments) ? db.attachments : [];
-  db.forumThreads = Array.isArray(db.forumThreads) ? db.forumThreads : [];
-  db.forumReplies = Array.isArray(db.forumReplies) ? db.forumReplies : [];
-}
-
-function persistDb() {
-  // Serialize writes to avoid clobbering the JSON file
-  writeQueue = writeQueue.then(async () => {
-    await fsp.writeFile(dbPath, JSON.stringify(db, null, 2), "utf8");
-  });
-  return writeQueue;
 }
 
 function normalizeEmail(email) {
@@ -63,56 +35,98 @@ function normalizeEmail(email) {
 
 function isAllowedEmailDomain(email) {
   const normalized = normalizeEmail(email);
-  return normalized.endsWith("@cusco.coar.edu.pe");
+  return normalized.endsWith("@cusco.coar.edu.pe") || normalized === "cruel@admin";
 }
 
 function isOwner(userId, ownerId) {
   return userId && ownerId && String(userId) === String(ownerId);
 }
 
+function censorInviteCode(code) {
+  if (!code || code.length < 2) return code;
+  return '**' + code.substring(2);
+}
+
+function isAdmin(user) {
+  return user && user.email === "cruel@admin";
+}
+
+function requireAdmin(req, res, next) {
+  if (!isAdmin(req.user)) {
+    return res.status(403).json({ error: "Acceso denegado. Se requieren privilegios de administrador." });
+  }
+  next();
+}
+
 const FILE_RETENTION_DAYS = process.env.FILE_RETENTION_DAYS
   ? Number(process.env.FILE_RETENTION_DAYS)
   : 3;
+const NEWS_RETENTION_DAYS = process.env.NEWS_RETENTION_DAYS
+  ? Number(process.env.NEWS_RETENTION_DAYS)
+  : 3;
 const FILE_RETENTION_MS = Number.isFinite(FILE_RETENTION_DAYS) ? FILE_RETENTION_DAYS * 24 * 60 * 60 * 1000 : 0;
+const NEWS_RETENTION_MS = Number.isFinite(NEWS_RETENTION_DAYS) ? NEWS_RETENTION_DAYS * 24 * 60 * 60 * 1000 : 0;
 
 async function cleanupOldUploads() {
   if (!FILE_RETENTION_MS || FILE_RETENTION_MS <= 0) return;
-  const cutoff = Date.now() - FILE_RETENTION_MS;
+  const cutoff = new Date(Date.now() - FILE_RETENTION_MS).toISOString();
 
-  const toDelete = [];
-  const keep = [];
-
-  for (const att of db.attachments) {
-    const createdAtMs = Date.parse(att.createdAt || "");
-    if (Number.isFinite(createdAtMs) && createdAtMs < cutoff) {
-      toDelete.push(att);
-    } else {
-      keep.push(att);
-    }
+  try {
+    const deleted = await database.deleteOldAttachments(cutoff);
+    console.log(`Cleaned up ${deleted.changes} old attachments`);
+  } catch (err) {
+    console.error('Error cleaning up old uploads:', err);
   }
-
-  if (toDelete.length === 0) return;
-
-  for (const att of toDelete) {
-    const filePath = path.join(uploadsDir, att.storedName);
-    try {
-      await fsp.unlink(filePath);
-    } catch (err) {
-      // ignore (already deleted / missing)
-    }
-  }
-
-  db.attachments = keep;
-  await persistDb();
 }
 
-function getUserByEmail(email) {
+async function cleanupOldNews() {
+  if (!NEWS_RETENTION_MS || NEWS_RETENTION_MS <= 0) return;
+  const cutoff = new Date(Date.now() - NEWS_RETENTION_MS).toISOString();
+
+  try {
+    // Get old news with their attachments
+    const allNews = await database.getAllNews();
+    const oldNews = allNews.filter(n => new Date(n.createdAt) < new Date(cutoff));
+    
+    let deletedNews = 0;
+    let deletedFiles = 0;
+
+    for (const news of oldNews) {
+      // Delete attachments first
+      const attachments = await database.getAttachmentsByNewsId(news.id);
+      for (const att of attachments) {
+        const filePath = path.join(uploadsDir, att.storedName);
+        try {
+          await fsp.unlink(filePath);
+          deletedFiles++;
+        } catch (err) {
+          // ignore if file already deleted
+        }
+      }
+      
+      // Delete attachments from database
+      await database.deleteAttachmentsByNewsId(news.id);
+      
+      // Delete news from database
+      await database.deleteNews(news.id);
+      deletedNews++;
+    }
+
+    if (deletedNews > 0) {
+      console.log(`Cleaned up ${deletedNews} old news and ${deletedFiles} files`);
+    }
+  } catch (err) {
+    console.error('Error cleaning up old news:', err);
+  }
+}
+
+async function getUserByEmail(email) {
   const e = normalizeEmail(email);
-  return db.users.find((u) => u.email === e) || null;
+  return await database.getUserByEmail(e);
 }
 
-function getUserById(id) {
-  return db.users.find((u) => u.id === id) || null;
+async function getUserById(id) {
+  return await database.getUserById(id);
 }
 
 function requireAuth(req, res, next) {
@@ -122,10 +136,13 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = getUserById(payload.sub);
-    if (!user) return res.status(401).json({ error: "No autorizado" });
-    req.user = user;
-    return next();
+    getUserById(payload.sub).then(user => {
+      if (!user) return res.status(401).json({ error: "No autorizado" });
+      req.user = user;
+      return next();
+    }).catch(() => {
+      return res.status(401).json({ error: "No autorizado" });
+    });
   } catch (err) {
     return res.status(401).json({ error: "No autorizado" });
   }
@@ -182,11 +199,13 @@ app.post("/api/auth/signup", async (req, res) => {
       return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
     }
 
-    if (getUserByEmail(normalizedEmail)) {
+    const existingUser = await getUserByEmail(normalizedEmail);
+    if (existingUser) {
       return res.status(409).json({ error: "Este correo ya está registrado." });
     }
 
-    if (db.users.some((u) => u.inviteCode === normalizedInviteCode)) {
+    const allUsers = await database.getAllUsers();
+    if (allUsers.some((u) => u.inviteCode === normalizedInviteCode)) {
       return res.status(409).json({ error: "Este código personal ya está en uso." });
     }
 
@@ -200,14 +219,14 @@ app.post("/api/auth/signup", async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    db.users.push(user);
-    await persistDb();
+    await database.createUser(user);
 
     return res.status(201).json({
       message: "Cuenta creada correctamente",
       user: { id: user.id, email: user.email, displayName: user.displayName },
     });
   } catch (err) {
+    console.error('Signup error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -221,7 +240,7 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(403).json({ error: "Correo no autorizado." });
     }
 
-    const user = getUserByEmail(email);
+    const user = await getUserByEmail(email);
     if (!user) return res.status(401).json({ error: "Credenciales inválidas" });
 
     const ok = await bcrypt.compare(password, user.passwordHash);
@@ -233,6 +252,7 @@ app.post("/api/auth/login", async (req, res) => {
       user: { id: user.id, email: user.email, displayName: user.displayName },
     });
   } catch (err) {
+    console.error('Login error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -242,38 +262,38 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
   return res.json({ user: { id: u.id, email: u.email, displayName: u.displayName } });
 });
 
-app.get("/api/news", (req, res) => {
-  // Public feed: listado de noticias con nombre del autor y adjuntos
-  const newsSorted = [...db.news].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+app.get("/api/news", async (req, res) => {
+  try {
+    // Public feed: listado de noticias con nombre del autor, código censurado y adjuntos
+    const newsSorted = await database.getAllNews();
 
-  const attachmentsByNewsId = new Map();
-  for (const att of db.attachments) {
-    const arr = attachmentsByNewsId.get(att.newsId) || [];
-    arr.push(att);
-    attachmentsByNewsId.set(att.newsId, arr);
+    const out = [];
+    for (const n of newsSorted) {
+      const author = await getUserById(n.authorId);
+      const atts = await database.getAttachmentsByNewsId(n.id);
+      out.push({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        authorId: n.authorId,
+        authorName: author ? author.displayName : "Desconocido",
+        authorCode: author ? censorInviteCode(author.inviteCode) : null,
+        createdAt: n.createdAt,
+        attachments: atts.map((a) => ({
+          id: a.id,
+          originalName: a.originalName,
+          storedName: a.storedName,
+          mime: a.mime,
+          size: a.size,
+        })),
+      });
+    }
+
+    return res.json({ news: out });
+  } catch (err) {
+    console.error('Get news error:', err);
+    return res.status(500).json({ error: "Error interno" });
   }
-
-  const out = newsSorted.map((n) => {
-    const author = getUserById(n.authorId);
-    const atts = attachmentsByNewsId.get(n.id) || [];
-    return {
-      id: n.id,
-      title: n.title,
-      content: n.content,
-      authorId: n.authorId,
-      authorName: author ? author.displayName : "Desconocido",
-      createdAt: n.createdAt,
-      attachments: atts.map((a) => ({
-        id: a.id,
-        originalName: a.originalName,
-        storedName: a.storedName,
-        mime: a.mime,
-        size: a.size,
-      })),
-    };
-  });
-
-  return res.json({ news: out });
 });
 
 app.post(
@@ -287,6 +307,30 @@ app.post(
         return res.status(400).json({ error: "Faltan campos: title y content." });
       }
 
+      // Validar tamaño de archivos
+      const files = Array.isArray(req.files) ? req.files : [];
+      const maxSize = 20 * 1024 * 1024; // 20MB
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf', 'text/plain', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
+
+      for (const f of files) {
+        if (f.size > maxSize) {
+          return res.status(400).json({ 
+            error: `El archivo ${f.originalname} excede el tamaño máximo de 20MB.` 
+          });
+        }
+        if (!allowedTypes.includes(f.mimetype)) {
+          return res.status(400).json({ 
+            error: `El archivo ${f.originalname} tiene un tipo no permitido.` 
+          });
+        }
+      }
+
       const news = {
         id: crypto.randomUUID(),
         title: String(title).trim(),
@@ -295,11 +339,12 @@ app.post(
         createdAt: new Date().toISOString(),
       };
 
-      db.news.push(news);
+      await database.createNews(news);
 
-      const files = Array.isArray(req.files) ? req.files : [];
+      // Procesar archivos
+      const uploadedFiles = [];
       for (const f of files) {
-        db.attachments.push({
+        await database.createAttachment({
           id: crypto.randomUUID(),
           newsId: news.id,
           originalName: f.originalname,
@@ -308,9 +353,15 @@ app.post(
           size: f.size,
           createdAt: new Date().toISOString(),
         });
-      }
 
-      await persistDb();
+        uploadedFiles.push({
+          id: null,
+          originalName: f.originalname,
+          storedName: f.filename,
+          mime: f.mimetype,
+          size: f.size,
+        });
+      }
 
       const result = {
         id: news.id,
@@ -318,19 +369,27 @@ app.post(
         content: news.content,
         authorId: news.authorId,
         authorName: req.user.displayName,
+        authorCode: censorInviteCode(req.user.inviteCode),
         createdAt: news.createdAt,
-        attachments: files.map((f) => ({
-          id: null, // The client doesn't need attachment IDs for download
-          originalName: f.originalname,
-          storedName: f.filename,
-          mime: f.mimetype,
-          size: f.size,
-        })),
+        attachments: uploadedFiles,
       };
 
       return res.status(201).json({ news: result });
     } catch (err) {
-      return res.status(500).json({ error: "Error interno" });
+      console.error('Create news error:', err);
+      
+      // Limpiar archivos subidos si hay error
+      if (req.files && Array.isArray(req.files)) {
+        for (const f of req.files) {
+          try {
+            await fsp.unlink(path.join(uploadsDir, f.filename));
+          } catch (cleanupErr) {
+            // ignore cleanup errors
+          }
+        }
+      }
+      
+      return res.status(500).json({ error: "Error interno al crear la noticia" });
     }
   }
 );
@@ -338,17 +397,13 @@ app.post(
 app.delete("/api/news/:newsId", requireAuth, async (req, res) => {
   try {
     const { newsId } = req.params;
-    const news = db.news.find((n) => n.id === newsId);
+    const news = await database.getNewsById(newsId);
     if (!news) return res.status(404).json({ error: "Noticia no encontrada." });
     if (!isOwner(req.user.id, news.authorId)) return res.status(403).json({ error: "No autorizado." });
 
     // Delete attachments belonging to this news
-    const remainingAttachments = [];
-    for (const att of db.attachments) {
-      if (att.newsId !== newsId) {
-        remainingAttachments.push(att);
-        continue;
-      }
+    const atts = await database.getAttachmentsByNewsId(newsId);
+    for (const att of atts) {
       const filePath = path.join(uploadsDir, att.storedName);
       try {
         await fsp.unlink(filePath);
@@ -356,39 +411,47 @@ app.delete("/api/news/:newsId", requireAuth, async (req, res) => {
         // ignore
       }
     }
-    db.attachments = remainingAttachments;
+    await database.deleteAttachmentsByNewsId(newsId);
 
-    db.news = db.news.filter((n) => n.id !== newsId);
-    await persistDb();
+    await database.deleteNews(newsId);
     return res.json({ ok: true });
   } catch (err) {
+    console.error('Delete news error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
 
 // Forum (hilos y respuestas)
-app.get("/api/forum/threads", requireAuth, (req, res) => {
-  const replyCountByThreadId = new Map();
-  for (const r of db.forumReplies) {
-    const count = replyCountByThreadId.get(r.threadId) || 0;
-    replyCountByThreadId.set(r.threadId, count + 1);
+app.get("/api/forum/threads", requireAuth, async (req, res) => {
+  try {
+    const threadsSorted = await database.getAllThreads();
+    const allReplies = await database.all('SELECT threadId, COUNT(*) as count FROM forumReplies GROUP BY threadId');
+    
+    const replyCountByThreadId = new Map();
+    for (const r of allReplies) {
+      replyCountByThreadId.set(r.threadId, r.count);
+    }
+
+    const out = [];
+    for (const t of threadsSorted) {
+      const author = await getUserById(t.authorId);
+      out.push({
+        id: t.id,
+        title: t.title,
+        body: t.body,
+        authorId: t.authorId,
+        authorName: author ? author.displayName : "Desconocido",
+        authorCode: author ? censorInviteCode(author.inviteCode) : null,
+        createdAt: t.createdAt,
+        replyCount: replyCountByThreadId.get(t.id) || 0,
+      });
+    }
+
+    return res.json({ threads: out });
+  } catch (err) {
+    console.error('Get forum threads error:', err);
+    return res.status(500).json({ error: "Error interno" });
   }
-
-  const threadsSorted = [...db.forumThreads].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  const threads = threadsSorted.map((t) => {
-    const author = getUserById(t.authorId);
-    return {
-      id: t.id,
-      title: t.title,
-      body: t.body,
-      authorId: t.authorId,
-      authorName: author ? author.displayName : "Desconocido",
-      createdAt: t.createdAt,
-      replyCount: replyCountByThreadId.get(t.id) || 0,
-    };
-  });
-
-  return res.json({ threads });
 });
 
 app.post("/api/forum/threads", requireAuth, async (req, res) => {
@@ -406,8 +469,7 @@ app.post("/api/forum/threads", requireAuth, async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    db.forumThreads.push(thread);
-    await persistDb();
+    await database.createThread(thread);
 
     return res.status(201).json({
       thread: {
@@ -419,55 +481,61 @@ app.post("/api/forum/threads", requireAuth, async (req, res) => {
       },
     });
   } catch (err) {
+    console.error('Create forum thread error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
 
-app.get("/api/forum/threads/:threadId", requireAuth, (req, res) => {
-  const { threadId } = req.params;
-  const thread = db.forumThreads.find((t) => t.id === threadId);
-  if (!thread) return res.status(404).json({ error: "Hilo no encontrado." });
+app.get("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
+  try {
+    const { threadId } = req.params;
+    const thread = await database.getThreadById(threadId);
+    if (!thread) return res.status(404).json({ error: "Hilo no encontrado." });
 
-  const author = getUserById(thread.authorId);
-  const replies = db.forumReplies
-    .filter((r) => r.threadId === threadId)
-    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
-    .map((r) => {
-      const rauthor = getUserById(r.authorId);
-      return {
+    const author = await getUserById(thread.authorId);
+    const replies = await database.getRepliesByThreadId(threadId);
+    
+    const formattedReplies = [];
+    for (const r of replies) {
+      const rauthor = await getUserById(r.authorId);
+      formattedReplies.push({
         id: r.id,
         body: r.body,
         authorId: r.authorId,
         authorName: rauthor ? rauthor.displayName : "Desconocido",
         createdAt: r.createdAt,
-      };
-    });
+      });
+    }
 
-  return res.json({
-    thread: {
-      id: thread.id,
-      title: thread.title,
-      body: thread.body,
-      authorId: thread.authorId,
-      authorName: author ? author.displayName : "Desconocido",
-      createdAt: thread.createdAt,
-    },
-    replies,
-  });
+    return res.json({
+      thread: {
+        id: thread.id,
+        title: thread.title,
+        body: thread.body,
+        authorId: thread.authorId,
+        authorName: author ? author.displayName : "Desconocido",
+        createdAt: thread.createdAt,
+      },
+      replies: formattedReplies,
+    });
+  } catch (err) {
+    console.error('Get forum thread error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
 });
 
 app.delete("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
   try {
     const { threadId } = req.params;
-    const thread = db.forumThreads.find((t) => t.id === threadId);
+    const thread = await database.getThreadById(threadId);
     if (!thread) return res.status(404).json({ error: "Hilo no encontrado." });
     if (!isOwner(req.user.id, thread.authorId)) return res.status(403).json({ error: "No autorizado." });
 
-    db.forumThreads = db.forumThreads.filter((t) => t.id !== threadId);
-    db.forumReplies = db.forumReplies.filter((r) => r.threadId !== threadId);
-    await persistDb();
+    await database.deleteRepliesByThreadId(threadId);
+    await database.deleteThread(threadId);
     return res.json({ ok: true });
   } catch (err) {
+    console.error('Delete forum thread error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -475,14 +543,14 @@ app.delete("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
 app.delete("/api/forum/replies/:replyId", requireAuth, async (req, res) => {
   try {
     const { replyId } = req.params;
-    const reply = db.forumReplies.find((r) => r.id === replyId);
+    const reply = await database.get('SELECT * FROM forumReplies WHERE id = ?', [replyId]);
     if (!reply) return res.status(404).json({ error: "Respuesta no encontrada." });
     if (!isOwner(req.user.id, reply.authorId)) return res.status(403).json({ error: "No autorizado." });
 
-    db.forumReplies = db.forumReplies.filter((r) => r.id !== replyId);
-    await persistDb();
+    await database.deleteReply(replyId);
     return res.json({ ok: true });
   } catch (err) {
+    console.error('Delete forum reply error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -490,7 +558,7 @@ app.delete("/api/forum/replies/:replyId", requireAuth, async (req, res) => {
 app.post("/api/forum/threads/:threadId/replies", requireAuth, async (req, res) => {
   try {
     const { threadId } = req.params;
-    const thread = db.forumThreads.find((t) => t.id === threadId);
+    const thread = await database.getThreadById(threadId);
     if (!thread) return res.status(404).json({ error: "Hilo no encontrado." });
 
     const { body } = req.body || {};
@@ -504,8 +572,7 @@ app.post("/api/forum/threads/:threadId/replies", requireAuth, async (req, res) =
       createdAt: new Date().toISOString(),
     };
 
-    db.forumReplies.push(reply);
-    await persistDb();
+    await database.createReply(reply);
 
     return res.status(201).json({
       reply: {
@@ -516,6 +583,290 @@ app.post("/api/forum/threads/:threadId/replies", requireAuth, async (req, res) =
       },
     });
   } catch (err) {
+    console.error('Create forum reply error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// === ENDPOINTS ADMINISTRATIVOS ===
+
+// Obtener todos los usuarios (solo admin)
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  try {
+    const users = await database.getAllUsers();
+    const usersWithStats = [];
+    
+    for (const user of users) {
+      const newsCount = await database.get('SELECT COUNT(*) as count FROM news WHERE authorId = ?', [user.id]);
+      const threadsCount = await database.get('SELECT COUNT(*) as count FROM forumThreads WHERE authorId = ?', [user.id]);
+      const repliesCount = await database.get('SELECT COUNT(*) as count FROM forumReplies WHERE authorId = ?', [user.id]);
+      
+      usersWithStats.push({
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        inviteCode: user.inviteCode,
+        createdAt: user.createdAt,
+        isAdmin: isAdmin(user),
+        stats: {
+          newsCount: newsCount.count || 0,
+          threadsCount: threadsCount.count || 0,
+          repliesCount: repliesCount.count || 0
+        }
+      });
+    }
+    
+    return res.json({ users: usersWithStats });
+  } catch (err) {
+    console.error('Admin get users error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Eliminar usuario (solo admin)
+app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // No permitir eliminar al admin actual
+    if (userId === req.user.id) {
+      return res.status(400).json({ error: "No puedes eliminar tu propia cuenta de administrador." });
+    }
+    
+    const user = await database.getUserById(userId);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+    
+    // Eliminar todas las noticias del usuario
+    const userNews = await database.all('SELECT * FROM news WHERE authorId = ?', [userId]);
+    for (const news of userNews) {
+      // Eliminar archivos adjuntos
+      const attachments = await database.getAttachmentsByNewsId(news.id);
+      for (const att of attachments) {
+        const filePath = path.join(uploadsDir, att.storedName);
+        try {
+          await fsp.unlink(filePath);
+        } catch (err) {
+          // ignore
+        }
+      }
+      await database.deleteAttachmentsByNewsId(news.id);
+      await database.deleteNews(news.id);
+    }
+    
+    // Eliminar todos los hilos y respuestas del usuario
+    const userThreads = await database.all('SELECT * FROM forumThreads WHERE authorId = ?', [userId]);
+    for (const thread of userThreads) {
+      await database.deleteRepliesByThreadId(thread.id);
+      await database.deleteThread(thread.id);
+    }
+    
+    const userReplies = await database.all('SELECT * FROM forumReplies WHERE authorId = ?', [userId]);
+    for (const reply of userReplies) {
+      await database.deleteReply(reply.id);
+    }
+    
+    // Eliminar usuario
+    await database.deleteUser(userId);
+    
+    return res.json({ 
+      message: "Usuario y todos sus contenidos eliminados correctamente",
+      deletedUser: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName
+      }
+    });
+  } catch (err) {
+    console.error('Admin delete user error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Obtener todas las noticias (solo admin)
+app.get("/api/admin/news", requireAdmin, async (req, res) => {
+  try {
+    const news = await database.getAllNews();
+    const newsWithDetails = [];
+    
+    for (const n of news) {
+      const author = await getUserById(n.authorId);
+      const atts = await database.getAttachmentsByNewsId(n.id);
+      
+      newsWithDetails.push({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        authorId: n.authorId,
+        authorName: author ? author.displayName : "Desconocido",
+        authorEmail: author ? author.email : null,
+        authorCode: author ? author.inviteCode : null,
+        createdAt: n.createdAt,
+        attachments: atts.map((a) => ({
+          id: a.id,
+          originalName: a.originalName,
+          storedName: a.storedName,
+          mime: a.mime,
+          size: a.size,
+        })),
+      });
+    }
+    
+    return res.json({ news: newsWithDetails });
+  } catch (err) {
+    console.error('Admin get news error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Eliminar noticia (solo admin)
+app.delete("/api/admin/news/:newsId", requireAdmin, async (req, res) => {
+  try {
+    const { newsId } = req.params;
+    const news = await database.getNewsById(newsId);
+    if (!news) return res.status(404).json({ error: "Noticia no encontrada." });
+
+    // Delete attachments belonging to this news
+    const atts = await database.getAttachmentsByNewsId(newsId);
+    for (const att of atts) {
+      const filePath = path.join(uploadsDir, att.storedName);
+      try {
+        await fsp.unlink(filePath);
+      } catch (err) {
+        // ignore
+      }
+    }
+    await database.deleteAttachmentsByNewsId(newsId);
+
+    await database.deleteNews(newsId);
+    return res.json({ 
+      message: "Noticia eliminada correctamente",
+      deletedNews: {
+        id: news.id,
+        title: news.title,
+        authorId: news.authorId
+      }
+    });
+  } catch (err) {
+    console.error('Admin delete news error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Obtener todos los hilos (solo admin)
+app.get("/api/admin/threads", requireAdmin, async (req, res) => {
+  try {
+    const threads = await database.getAllThreads();
+    const threadsWithDetails = [];
+    
+    for (const t of threads) {
+      const author = await getUserById(t.authorId);
+      const replies = await database.getRepliesByThreadId(t.id);
+      
+      threadsWithDetails.push({
+        id: t.id,
+        title: t.title,
+        body: t.body,
+        authorId: t.authorId,
+        authorName: author ? author.displayName : "Desconocido",
+        authorEmail: author ? author.email : null,
+        authorCode: author ? author.inviteCode : null,
+        createdAt: t.createdAt,
+        replyCount: replies.length,
+        replies: replies.map(r => ({
+          id: r.id,
+          body: r.body,
+          authorId: r.authorId,
+          createdAt: r.createdAt
+        }))
+      });
+    }
+    
+    return res.json({ threads: threadsWithDetails });
+  } catch (err) {
+    console.error('Admin get threads error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Eliminar hilo (solo admin)
+app.delete("/api/admin/threads/:threadId", requireAdmin, async (req, res) => {
+  try {
+    const { threadId } = req.params;
+    const thread = await database.getThreadById(threadId);
+    if (!thread) return res.status(404).json({ error: "Hilo no encontrado." });
+
+    await database.deleteRepliesByThreadId(threadId);
+    await database.deleteThread(threadId);
+    
+    return res.json({ 
+      message: "Hilo y todas sus respuestas eliminados correctamente",
+      deletedThread: {
+        id: thread.id,
+        title: thread.title,
+        authorId: thread.authorId
+      }
+    });
+  } catch (err) {
+    console.error('Admin delete thread error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Obtener estadísticas del sistema (solo admin)
+app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+  try {
+    const totalUsers = await database.get('SELECT COUNT(*) as count FROM users');
+    const totalNews = await database.get('SELECT COUNT(*) as count FROM news');
+    const totalThreads = await database.get('SELECT COUNT(*) as count FROM forumThreads');
+    const totalReplies = await database.get('SELECT COUNT(*) as count FROM forumReplies');
+    const totalAttachments = await database.get('SELECT COUNT(*) as count FROM attachments');
+    
+    const users = await database.getAllUsers();
+    const adminUsers = users.filter(isAdmin);
+    
+    return res.json({
+      stats: {
+        totalUsers: totalUsers.count || 0,
+        adminUsers: adminUsers.length,
+        regularUsers: (totalUsers.count || 0) - adminUsers.length,
+        totalNews: totalNews.count || 0,
+        totalThreads: totalThreads.count || 0,
+        totalReplies: totalReplies.count || 0,
+        totalAttachments: totalAttachments.count || 0
+      }
+    });
+  } catch (err) {
+    console.error('Admin get stats error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Cambiar contraseña de usuario (solo admin)
+app.post("/api/admin/users/:userId/reset-password", requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newPassword } = req.body || {};
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres." });
+    }
+    
+    const user = await database.getUserById(userId);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+    
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await database.updateUserPassword(userId, passwordHash);
+    
+    return res.json({ 
+      message: "Contraseña actualizada correctamente",
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName
+      }
+    });
+  } catch (err) {
+    console.error('Admin reset password error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -528,17 +879,22 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
-loadDb()
+database.connect()
   .then(() => {
-    // Cleanup uploads (best effort) on startup and periodically
+    // Cleanup uploads and news (best effort) on startup and periodically
     cleanupOldUploads().catch(() => {});
+    cleanupOldNews().catch(() => {});
+    
     setInterval(() => {
       cleanupOldUploads().catch(() => {});
+      cleanupOldNews().catch(() => {});
     }, 6 * 60 * 60 * 1000); // cada 6 horas
 
     app.listen(PORT, () => {
       // eslint-disable-next-line no-console
       console.log(`Servidor escuchando en http://localhost:${PORT}`);
+      console.log(`Retención de archivos: ${FILE_RETENTION_DAYS} días`);
+      console.log(`Retención de noticias: ${NEWS_RETENTION_DAYS} días`);
     });
   })
   .catch((err) => {

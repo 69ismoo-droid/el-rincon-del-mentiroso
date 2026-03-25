@@ -20,6 +20,9 @@
           <div class="muted" style="font-size:12px">
             Después de registrarte podrás iniciar sesión y publicar noticias con archivos.
           </div>
+          <div class="muted" style="font-size:12px; margin-top:8px; padding:8px; background:rgba(102, 126, 234, 0.1); border-radius:8px;">
+            💡 <strong>Importante:</strong> Tu código personal aparecerá como **XXxxxx** en tus publicaciones (primeros 2 dígitos ocultos).
+          </div>
         </div>
 
         <div class="card">
@@ -27,29 +30,29 @@
           <div id="alert" class="alert err" style="display:none"></div>
           <form id="signupForm">
             <div class="field">
-              <label for="displayName">Nombre del creador</label>
+              <label for="displayName">👤 Nombre del creador</label>
               <input id="displayName" name="displayName" type="text" required maxlength="80" placeholder="Ej: Juan Pérez" />
             </div>
             <div class="field">
-              <label for="email">Correo institucional</label>
-              <input id="email" name="email" type="email" required placeholder="Ingresa tu correo" />
+              <label for="email">📧 Correo institucional</label>
+              <input id="email" name="email" type="email" required placeholder="tu.correo@cusco.coar.edu.pe" />
             </div>
             <div class="field">
-              <label for="password">Contraseña</label>
-              <input id="password" name="password" type="password" required minlength="6" />
+              <label for="password">🔒 Contraseña</label>
+              <input id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
             </div>
             <div class="field">
-              <label for="inviteCode">Código personal único</label>
+              <label for="inviteCode">🔖 Código personal único</label>
               <input
                 id="inviteCode"
                 name="inviteCode"
                 type="text"
                 required
                 maxlength="20"
-                placeholder="Elige tu código único"
+                placeholder="Ej: ABC123"
               />
               <div class="muted" style="font-size:12px">
-                Crea tu clave única; no puede repetirse con otro usuario.
+                ⚠️ Este código identificará tus publicaciones. Aparecerá como **XXxxxx** (primeros 2 dígitos ocultos).
               </div>
             </div>
             <div class="row" style="margin-top:10px">

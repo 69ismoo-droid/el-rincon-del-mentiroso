@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel Administrativo - El Rincón del Mentiroso</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar">
+        <div class="brand">⚙️ Panel Administrativo</div>
+        <div class="row" style="gap:12px">
+          <div id="userBox" class="muted"></div>
+          <button class="btn secondary" id="logoutBtn" type="button">
+            🚪 Salir
+          </button>
+          <a href="/" class="btn" style="text-decoration:none">🏠 Inicio</a>
+        </div>
+      </header>
+
+      <div class="adminStats">
+        <div class="card">
+          <h2 class="title">📊 Estadísticas del Sistema</h2>
+          <div id="statsContainer" class="statsGrid">
+            <div class="loading">Cargando estadísticas...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <section>
+          <nav class="tabs">
+            <button class="btn active" id="tabUsers" type="button">👥 Usuarios</button>
+            <button class="btn" id="tabNews" type="button">📰 Noticias</button>
+            <button class="btn" id="tabThreads" type="button">💬 Hilos</button>
+          </nav>
+
+          <!-- Sección de Usuarios -->
+          <div id="usersSection">
+            <div class="card">
+              <h2 class="title">👥 Gestión de Usuarios</h2>
+              <div id="usersAlert" class="alert" style="display:none"></div>
+              <div id="usersList">
+                <div class="loading">Cargando usuarios...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sección de Noticias -->
+          <div id="newsSection" style="display:none">
+            <div class="card">
+              <h2 class="title">📰 Gestión de Noticias</h2>
+              <div id="newsAlert" class="alert" style="display:none"></div>
+              <div id="newsList">
+                <div class="loading">Cargando noticias...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sección de Hilos -->
+          <div id="threadsSection" style="display:none">
+            <div class="card">
+              <h2 class="title">💬 Gestión de Hilos</h2>
+              <div id="threadsAlert" class="alert" style="display:none"></div>
+              <div id="threadsList">
+                <div class="loading">Cargando hilos...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <!-- Card de información -->
+          <div class="card">
+            <h2 class="title">ℹ️ Panel Administrativo</h2>
+            <div class="muted" style="font-size:14px; line-height:1.6">
+              <p><strong>Acceso Exclusivo:</strong></p>
+              <ul style="margin:8px 0; padding-left:20px">
+                <li>� Usuario: cruel@admin</li>
+                <li>🔐 Contraseña: 123456789</li>
+                <li>⚙️ Control total del sistema</li>
+              </ul>
+              <p style="margin-top:12px"><strong>Funciones Administrativas:</strong></p>
+              <ul style="margin:8px 0; padding-left:20px">
+                <li>👥 Gestión de usuarios</li>
+                <li>🗑️ Eliminar cuentas y contenido</li>
+                <li>🔐 Cambiar contraseñas</li>
+                <li>📰 Gestionar noticias</li>
+                <li>💬 Gestionar hilos del foro</li>
+                <li>📊 Estadísticas completas</li>
+              </ul>
+              <p style="margin-top:12px"><strong>⚠️ Seguridad:</strong></p>
+              <p style="font-size:13px">Este panel está restringido al administrador autorizado únicamente.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Modal para cambiar contraseña -->
+    <div id="passwordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;padding:20px">
+      <div class="card" style="max-width:500px;width:100%">
+        <h2 class="title">🔐 Cambiar Contraseña</h2>
+        <form id="passwordForm">
+          <input type="hidden" id="passwordUserId" />
+          <div class="field">
+            <label for="newPassword">Nueva Contraseña</label>
+            <input id="newPassword" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+          </div>
+          <div class="field">
+            <label for="confirmPassword">Confirmar Contraseña</label>
+            <input id="confirmPassword" type="password" required minlength="6" placeholder="Repite la contraseña" />
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" type="submit">🔐 Cambiar</button>
+            <button class="btn secondary" type="button" onclick="closePasswordModal()">❌ Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

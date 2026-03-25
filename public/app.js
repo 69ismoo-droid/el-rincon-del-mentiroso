@@ -1,35 +1,14 @@
 // --- ESCUDO DE SEGURIDAD ---
 (function() {
   const token = localStorage.getItem('token');
-  // Si no hay token, redirigir al login inmediatamente
   if (!token) {
       window.location.href = '/login.html'; 
   }
 })();
-// ---------------------------
 
-// Aquí sigue el resto de tu código original...
+// --- UTILIDADES ---
 function $(id) {
   return document.getElementById(id);
-}
-
-const token = localStorage.getItem("token");
-
-if (!token) {
-  window.location.href = "/login.html";
-} else {
-  init();
-}
-
-async function api(path, options = {}) {
-  const res = await fetch(path, options);
-  const contentType = res.headers.get("content-type") || "";
-  const data = contentType.includes("application/json") ? await res.json() : await res.text();
-  if (!res.ok) {
-    const msg = data && data.error ? data.error : `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return data;
 }
 
 function escapeHtml(str) {
@@ -44,153 +23,584 @@ function escapeHtml(str) {
 function formatDate(iso) {
   try {
     const d = new Date(iso);
-    return d.toLocaleString();
+    return d.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   } catch {
     return iso;
   }
 }
 
-async function init() {
-  const alertEl = $("alert");
-  const postAlertEl = $("postAlert");
-  const newsListEl = $("newsList");
-  const forumAlertEl = $("forumAlert");
-  const threadListEl = $("threadList");
-  const threadDetailEl = $("threadDetail");
-  const replyListEl = $("replyList");
-  const userBoxEl = $("userBox");
-  const logoutBtn = $("logoutBtn");
-  const tabNewsBtn = $("tabNews");
-  const tabForumBtn = $("tabForum");
-  const newsSectionEl = $("newsSection");
-  const forumSectionEl = $("forumSection");
-  const newsCreateCardEl = $("newsCreateCard");
-  const forumCreateCardEl = $("forumCreateCard");
-  const termsOverlayEl = $("termsOverlay");
-  const acceptTermsCheckboxEl = $("acceptTerms");
-  const acceptTermsBtnEl = $("acceptTermsBtn");
+// --- API ---
+async function api(path, options = {}) {
+  const token = localStorage.getItem("token");
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json") ? await res.json() : await res.text();
+  
+  if (!res.ok) {
+    const msg = data && data.error ? data.error : `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
 
-  const threadAuthorEl = $("threadAuthor");
-  const threadDateEl = $("threadDate");
-  const threadTitleEl = $("threadTitle");
-  const threadBodyViewEl = $("threadBodyView");
+// --- APLICACIÓN PRINCIPAL ---
+class App {
+  constructor() {
+    this.token = localStorage.getItem("token");
+    this.currentUserId = null;
+    this.activeThreadId = null;
+    this.init();
+  }
 
-  let activeThreadId = null;
-  let currentUserId = null;
+  async init() {
+    // Elementos del DOM
+    this.elements = {
+      alert: $("alert"),
+      postAlert: $("postAlert"),
+      newsList: $("newsList"),
+      forumAlert: $("forumAlert"),
+      threadList: $("threadList"),
+      threadListView: $("threadListView"),
+      threadDetailView: $("threadDetailView"),
+      replyList: $("replyList"),
+      userBox: $("userBox"),
+      logoutBtn: $("logoutBtn"),
+      tabNews: $("tabNews"),
+      tabForum: $("tabForum"),
+      newsSection: $("newsSection"),
+      forumSection: $("forumSection"),
+      newsCreateCard: $("newsCreateCard"),
+      forumCreateCard: $("forumCreateCard"),
+      termsOverlay: $("termsOverlay"),
+      acceptTerms: $("acceptTerms"),
+      acceptTermsBtn: $("acceptTermsBtn"),
+      backToThreads: $("backToThreads"),
+      // Thread detail elements
+      threadAuthor: $("threadAuthor"),
+      threadDate: $("threadDate"),
+      threadTitle: $("threadTitle"),
+      threadBodyView: $("threadBodyView"),
+    };
 
-  async function ensureTermsAccepted() {
+    await this.ensureTermsAccepted();
+    await this.loadUser();
+    this.setupEventListeners();
+    this.activateTab("news");
+    await this.loadNews();
+    await this.loadThreads();
+  }
+
+  async ensureTermsAccepted() {
     const alreadyAccepted = localStorage.getItem("acceptedTerms") === "true";
     if (alreadyAccepted) return;
 
-    if (!termsOverlayEl || !acceptTermsCheckboxEl || !acceptTermsBtnEl) {
-      // Si por algún motivo falta el modal, no bloqueamos la app.
-      return;
-    }
+    const { termsOverlay, acceptTerms, acceptTermsBtn } = this.elements;
+    if (!termsOverlay || !acceptTerms || !acceptTermsBtn) return;
 
-    termsOverlayEl.style.display = "flex";
+    termsOverlay.style.display = "flex";
 
-    function syncButton() {
-      const ok = !!acceptTermsCheckboxEl.checked;
-      acceptTermsBtnEl.disabled = !ok;
-    }
+    const syncButton = () => {
+      acceptTermsBtn.disabled = !acceptTerms.checked;
+    };
 
-    acceptTermsCheckboxEl.addEventListener("change", syncButton);
+    acceptTerms.addEventListener("change", syncButton);
     syncButton();
 
     await new Promise((resolve) => {
-      acceptTermsBtnEl.addEventListener("click", () => {
+      acceptTermsBtn.addEventListener("click", () => {
         localStorage.setItem("acceptedTerms", "true");
-        termsOverlayEl.style.display = "none";
+        termsOverlay.style.display = "none";
         resolve();
       });
     });
   }
 
-  function setAlert(el, msg, kind) {
+  async loadUser() {
+    try {
+      const me = await api("/api/auth/me");
+      this.currentUserId = me.user.id;
+      this.currentUser = me.user;
+      this.elements.userBox.textContent = `👋 ${me.user.displayName}`;
+      this.elements.logoutBtn.style.display = "inline-block";
+      
+      // Mostrar enlace de admin solo para cruel@admin
+      if (me.user.email === "cruel@admin") {
+        const adminLink = document.createElement("a");
+        adminLink.href = "/admin.html";
+        adminLink.className = "btn secondary";
+        adminLink.style.textDecoration = "none";
+        adminLink.style.marginLeft = "8px";
+        adminLink.innerHTML = "⚙️ Admin";
+        this.elements.logoutBtn.parentNode.insertBefore(adminLink, this.elements.logoutBtn);
+      }
+    } catch (err) {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    }
+  }
+
+  setupEventListeners() {
+    const { logoutBtn, tabNews, tabForum, backToThreads } = this.elements;
+
+    logoutBtn?.addEventListener("click", () => {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    });
+
+    tabNews?.addEventListener("click", () => this.activateTab("news"));
+    tabForum?.addEventListener("click", () => this.activateTab("forum"));
+    
+    backToThreads?.addEventListener("click", () => {
+      this.showThreadList();
+    });
+
+    // Formularios
+    this.setupNewsForm();
+    this.setupThreadForm();
+    this.setupReplyForm();
+  }
+
+  setupNewsForm() {
+    const form = $("postForm");
+    if (!form) return;
+
+    // Manejo de archivos
+    const fileInput = $("files");
+    const fileInputContainer = $("fileInputContainer");
+    const fileInputText = $("fileInputText");
+    const filePreview = $("filePreview");
+    const titleInput = $("title");
+    const contentInput = $("content");
+
+    // Contadores de caracteres
+    this.setupCharacterCounter(titleInput, 140, "titleCounter");
+    this.setupCharacterCounter(contentInput, 2000, "contentCounter");
+
+    // Manejo de archivos
+    if (fileInput && fileInputContainer && fileInputText && filePreview) {
+      let selectedFiles = [];
+
+      fileInput.addEventListener("change", (e) => {
+        this.handleFileSelection(e.target.files);
+      });
+
+      // Drag and drop
+      const fileInputLabel = fileInputContainer.querySelector(".fileInputLabel");
+      if (fileInputLabel) {
+        fileInputLabel.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          fileInputLabel.style.borderColor = "var(--primary)";
+          fileInputLabel.style.background = "rgba(102, 126, 234, 0.2)";
+        });
+
+        fileInputLabel.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          fileInputLabel.style.borderColor = "";
+          fileInputLabel.style.background = "";
+        });
+
+        fileInputLabel.addEventListener("drop", (e) => {
+          e.preventDefault();
+          fileInputLabel.style.borderColor = "";
+          fileInputLabel.style.background = "";
+          this.handleFileSelection(e.dataTransfer.files);
+        });
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      
+      // Validar archivos antes de enviar
+      const files = Array.from(fileInput.files || []);
+      const maxSize = 20 * 1024 * 1024; // 20MB
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf', 'text/plain', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
+
+      for (const f of files) {
+        if (f.size > maxSize) {
+          this.setAlert(this.elements.postAlert, `❌ El archivo ${f.name} excede el tamaño máximo de 20MB.`, "err");
+          return;
+        }
+        if (!allowedTypes.includes(f.type)) {
+          this.setAlert(this.elements.postAlert, `❌ El archivo ${f.name} tiene un tipo no permitido.`, "err");
+          return;
+        }
+      }
+      
+      const submitBtn = $("submitBtn");
+      this.setButtonLoading(submitBtn, true);
+      
+      try {
+        await api("/api/news", {
+          method: "POST",
+          body: formData,
+        });
+        
+        form.reset();
+        this.clearFilePreview();
+        this.setAlert(this.elements.postAlert, "✅ Noticia publicada correctamente", "ok");
+        await this.loadNews();
+        
+        setTimeout(() => this.clearAlert(this.elements.postAlert), 3000);
+      } catch (err) {
+        this.setAlert(this.elements.postAlert, `❌ Error: ${err.message}`, "err");
+      } finally {
+        this.setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  setupCharacterCounter(input, maxLength, counterId) {
+    if (!input) return;
+    
+    // Crear contador si no existe
+    let counter = $(counterId);
+    if (!counter) {
+      counter = document.createElement("div");
+      counter.id = counterId;
+      counter.className = "charCount";
+      input.parentNode.appendChild(counter);
+    }
+
+    const updateCounter = () => {
+      const length = input.value.length;
+      const remaining = maxLength - length;
+      
+      counter.textContent = `${length}/${maxLength} caracteres`;
+      
+      counter.classList.remove("warning", "error");
+      if (remaining <= 10) {
+        counter.classList.add("error");
+      } else if (remaining <= 50) {
+        counter.classList.add("warning");
+      }
+    };
+
+    input.addEventListener("input", updateCounter);
+    updateCounter();
+  }
+
+  handleFileSelection(files) {
+    const fileInputContainer = $("fileInputContainer");
+    const fileInputText = $("fileInputText");
+    const filePreview = $("filePreview");
+    
+    if (!fileInputContainer || !fileInputText || !filePreview) return;
+
+    const fileArray = Array.from(files);
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'text/plain', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    // Validar archivos
+    for (const file of fileArray) {
+      if (file.size > maxSize) {
+        this.setAlert(this.elements.postAlert, `❌ El archivo ${file.name} excede el tamaño máximo de 20MB.`, "err");
+        return;
+      }
+      if (!allowedTypes.includes(file.type)) {
+        this.setAlert(this.elements.postAlert, `❌ El archivo ${file.name} tiene un tipo no permitido.`, "err");
+        return;
+      }
+    }
+
+    // Actualizar UI
+    if (fileArray.length > 0) {
+      fileInputContainer.classList.add("hasFiles");
+      fileInputText.textContent = `${fileArray.length} archivo(s) seleccionado(s)`;
+      
+      // Mostrar preview
+      filePreview.innerHTML = "";
+      fileArray.forEach((file, index) => {
+        const fileItem = document.createElement("div");
+        fileItem.className = "fileItem fadeIn";
+        
+        const fileInfo = document.createElement("div");
+        fileInfo.className = "fileInfo";
+        
+        const icon = this.getFileIcon(file.type);
+        const size = this.formatFileSize(file.size);
+        
+        fileInfo.innerHTML = `
+          <span>${icon}</span>
+          <span class="fileName">${file.name}</span>
+          <span class="fileSize">${size}</span>
+        `;
+        
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "removeFile";
+        removeBtn.textContent = "✕";
+        removeBtn.onclick = () => this.removeFile(index);
+        
+        fileItem.appendChild(fileInfo);
+        fileItem.appendChild(removeBtn);
+        filePreview.appendChild(fileItem);
+      });
+    } else {
+      this.clearFilePreview();
+    }
+  }
+
+  clearFilePreview() {
+    const fileInputContainer = $("fileInputContainer");
+    const fileInputText = $("fileInputText");
+    const filePreview = $("filePreview");
+    const fileInput = $("files");
+    
+    if (fileInputContainer) fileInputContainer.classList.remove("hasFiles");
+    if (fileInputText) fileInputText.textContent = "Haz clic para seleccionar archivos o arrástralos aquí";
+    if (filePreview) filePreview.innerHTML = "";
+    if (fileInput) fileInput.value = "";
+  }
+
+  removeFile(index) {
+    const fileInput = $("files");
+    if (!fileInput) return;
+    
+    const dt = new DataTransfer();
+    const files = Array.from(fileInput.files);
+    
+    files.forEach((file, i) => {
+      if (i !== index) {
+        dt.items.add(file);
+      }
+    });
+    
+    fileInput.files = dt.files;
+    this.handleFileSelection(fileInput.files);
+  }
+
+  getFileIcon(mimeType) {
+    const iconMap = {
+      'image/jpeg': '🖼️',
+      'image/png': '🖼️',
+      'image/gif': '🖼️',
+      'image/webp': '🖼️',
+      'application/pdf': '📄',
+      'text/plain': '📝',
+      'application/msword': '📄',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📄',
+      'application/vnd.ms-excel': '📊',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📊'
+    };
+    
+    return iconMap[mimeType] || '📎';
+  }
+
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  setButtonLoading(button, loading) {
+    if (!button) return;
+    
+    if (loading) {
+      button.classList.add("loading");
+      button.disabled = true;
+      const originalText = button.textContent;
+      button.setAttribute("data-original-text", originalText);
+      button.innerHTML = `<span class="loadingSpinner"></span> Publicando...`;
+    } else {
+      button.classList.remove("loading");
+      button.disabled = false;
+      const originalText = button.getAttribute("data-original-text");
+      if (originalText) {
+        button.textContent = originalText;
+        button.removeAttribute("data-original-text");
+      }
+    }
+  }
+
+  setupThreadForm() {
+    const form = $("threadForm");
+    if (!form) return;
+
+    const threadTitleInput = $("threadTitleInput");
+    const threadBodyInput = $("threadBodyInput");
+
+    // Contadores de caracteres
+    this.setupCharacterCounter(threadTitleInput, 140, "threadTitleCounter");
+    this.setupCharacterCounter(threadBodyInput, 3000, "threadBodyCounter");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const threadTitleInput = $("threadTitleInput");
+      const threadBodyInput = $("threadBodyInput");
+      
+      const submitBtn = $("threadSubmitBtn");
+      this.setButtonLoading(submitBtn, true);
+      
+      try {
+        await api("/api/forum/threads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: threadTitleInput.value,
+            body: threadBodyInput.value,
+          }),
+        });
+        
+        form.reset();
+        this.setAlert($("threadPostAlert"), "✅ Hilo creado correctamente", "ok");
+        await this.loadThreads();
+        
+        setTimeout(() => this.clearAlert($("threadPostAlert")), 3000);
+      } catch (err) {
+        this.setAlert($("threadPostAlert"), `❌ Error: ${err.message}`, "err");
+      } finally {
+        this.setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  setupReplyForm() {
+    const form = $("replyForm");
+    if (!form) return;
+
+    const replyBody = $("replyBody");
+    
+    // Contador de caracteres
+    this.setupCharacterCounter(replyBody, 2000, "replyCounter");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const replyBody = $("replyBody");
+      
+      if (!this.activeThreadId) return;
+      
+      const submitBtn = $("replySubmitBtn");
+      this.setButtonLoading(submitBtn, true);
+      
+      try {
+        await api(`/api/forum/threads/${this.activeThreadId}/replies`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            body: replyBody.value,
+          }),
+        });
+        
+        form.reset();
+        await this.loadThreadDetail(this.activeThreadId);
+      } catch (err) {
+        this.setAlert(this.elements.forumAlert, `❌ Error: ${err.message}`, "err");
+      } finally {
+        this.setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  activateTab(tab) {
+    const isNews = tab === "news";
+    const { tabNews, tabForum, newsSection, forumSection, newsCreateCard, forumCreateCard } = this.elements;
+
+    tabNews?.classList.toggle("active", isNews);
+    tabForum?.classList.toggle("active", !isNews);
+
+    newsSection.style.display = isNews ? "block" : "none";
+    forumSection.style.display = isNews ? "none" : "block";
+
+    newsCreateCard.style.display = isNews ? "block" : "none";
+    forumCreateCard.style.display = isNews ? "none" : "block";
+
+    if (isNews) {
+      this.showThreadList();
+    }
+  }
+
+  showThreadList() {
+    const { threadListView, threadDetailView } = this.elements;
+    threadListView.style.display = "block";
+    threadDetailView.style.display = "none";
+    this.activeThreadId = null;
+  }
+
+  showThreadDetail() {
+    const { threadListView, threadDetailView } = this.elements;
+    threadListView.style.display = "none";
+    threadDetailView.style.display = "block";
+  }
+
+  setAlert(el, msg, kind) {
     if (!el) return;
     el.style.display = "block";
-    el.classList.remove("ok", "err");
-    el.classList.add(kind === "ok" ? "ok" : "err");
+    el.classList.remove("ok", "err", "info");
+    el.classList.add(kind);
     el.textContent = msg;
   }
 
-  function clearAlert(el) {
+  clearAlert(el) {
     if (!el) return;
     el.style.display = "none";
     el.textContent = "";
   }
 
-  // Verify token and show current user
-  try {
-    const me = await api("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    currentUserId = me.user.id;
-    userBoxEl.textContent = `Hola, ${me.user.displayName}`;
-    logoutBtn.style.display = "inline-block";
-  } catch (err) {
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-    return;
-  }
+  async loadNews() {
+    const { newsList } = this.elements;
+    this.clearAlert(this.elements.alert);
+    newsList.innerHTML = "";
 
-  // Bloquea la app hasta que acepte términos
-  await ensureTermsAccepted();
-
-  logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("token");
-    // Si quieres volver a pedir términos al reiniciar sesión, descomenta:
-    // localStorage.removeItem("acceptedTerms");
-    window.location.href = "/login.html";
-  });
-
-  function activateTab(tab) {
-    const isNews = tab === "news";
-    if (tabNewsBtn) tabNewsBtn.classList.toggle("active", isNews);
-    if (tabForumBtn) tabForumBtn.classList.toggle("active", !isNews);
-
-    if (newsSectionEl) newsSectionEl.style.display = isNews ? "block" : "none";
-    if (forumSectionEl) forumSectionEl.style.display = isNews ? "none" : "block";
-
-    if (newsCreateCardEl) newsCreateCardEl.style.display = isNews ? "block" : "none";
-    if (forumCreateCardEl) forumCreateCardEl.style.display = isNews ? "none" : "block";
-  }
-
-  if (tabNewsBtn) tabNewsBtn.addEventListener("click", () => activateTab("news"));
-  if (tabForumBtn) tabForumBtn.addEventListener("click", () => activateTab("forum"));
-
-  activateTab("news");
-
-  // Load feed
-  async function loadNews() {
-    clearAlert(alertEl);
-    newsListEl.innerHTML = "";
     try {
       const data = await api("/api/news");
+      
       if (!data.news || data.news.length === 0) {
-        newsListEl.innerHTML = `<div class="muted">Aún no hay noticias publicadas.</div>`;
+        newsList.innerHTML = `
+          <div class="emptyState">
+            <h3>📭 No hay publicaciones aún</h3>
+            <p>Sé el primero en compartir algo con la comunidad.</p>
+          </div>
+        `;
         return;
       }
 
       for (const n of data.news) {
-        const canDelete = currentUserId && n.authorId && String(n.authorId) === String(currentUserId);
+        const canDelete = this.currentUserId === n.authorId;
         const atts = Array.isArray(n.attachments) ? n.attachments : [];
+        
         const attachmentsHtml = atts.length
           ? `<div class="attachmentList">
-              ${atts
-                .map(
-                  (a) =>
-                    `<a class="attachment" href="/uploads/${encodeURIComponent(
-                      a.storedName
-                    )}" target="_blank" rel="noopener">${escapeHtml(a.originalName)}</a>`
-                )
-                .join("")}
+              ${atts.map(a => `
+                <a class="attachment" href="/uploads/${encodeURIComponent(a.storedName)}" target="_blank" rel="noopener">
+                  📎 ${escapeHtml(a.originalName)}
+                </a>
+              `).join("")}
             </div>`
           : "";
 
         const actionsHtml = canDelete
-          ? `<div class="row" style="margin-top:10px;justify-content:flex-end">
-               <button class="btn danger" type="button" data-news-delete="${escapeHtml(n.id)}">Borrar</button>
+          ? `<div class="newsActions">
+               <button class="btn danger" data-news-delete="${n.id}">🗑️ Eliminar</button>
              </div>`
           : "";
 
@@ -198,306 +608,172 @@ async function init() {
         item.className = "newsItem";
         item.innerHTML = `
           <div class="newsMeta">
-            <div class="author">Por ${escapeHtml(n.authorName || "Desconocido")}</div>
-            <div class="muted" style="font-size:12px">${escapeHtml(formatDate(n.createdAt))}</div>
+            <div class="author">👤 ${escapeHtml(n.authorName || "Desconocido")}</div>
+            <div class="authorCode">🔖 ${escapeHtml(n.authorCode || "N/A")}</div>
+            <div class="muted">📅 ${escapeHtml(formatDate(n.createdAt))}</div>
           </div>
-          <h3 class="title" style="margin-top:0">${escapeHtml(n.title)}</h3>
-          <div class="muted" style="white-space:pre-wrap; font-size:14px; line-height:1.4">${escapeHtml(
-            n.content
-          )}</div>
+          <h3>${escapeHtml(n.title)}</h3>
+          <div class="newsContent">${escapeHtml(n.content)}</div>
           ${attachmentsHtml}
-          <div class="muted" style="margin-top:8px;font-size:12px">
-            Nota: los archivos adjuntos se eliminan automáticamente después de 3 días.
-          </div>
           ${actionsHtml}
         `;
+
         const delBtn = item.querySelector("button[data-news-delete]");
         if (delBtn) {
           delBtn.addEventListener("click", async (e) => {
             const id = e.currentTarget.getAttribute("data-news-delete");
-            if (!id) return;
-            if (!confirm("¿Borrar esta noticia? Esta acción no se puede deshacer.")) return;
+            if (!confirm("¿Eliminar esta noticia? Esta acción no se puede deshacer.")) return;
+            
             try {
-              await api(`/api/news/${encodeURIComponent(id)}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              await loadNews();
+              await api(`/api/news/${id}`, { method: "DELETE" });
+              await this.loadNews();
             } catch (err) {
-              setAlert(alertEl, err.message || "No se pudo borrar", "err");
+              this.setAlert(this.elements.alert, `❌ Error: ${err.message}`, "err");
             }
           });
         }
-        newsListEl.appendChild(item);
+
+        newsList.appendChild(item);
       }
     } catch (err) {
-      setAlert(alertEl, `No se pudo cargar: ${err.message}`, "err");
+      this.setAlert(this.elements.alert, `❌ Error cargando noticias: ${err.message}`, "err");
     }
   }
 
-  await loadNews();
-
-  // Forum: list threads and show details
-  async function loadThreads() {
-    clearAlert(forumAlertEl);
-    if (threadListEl) threadListEl.innerHTML = "";
-    activeThreadId = null;
-    if (threadDetailEl) threadDetailEl.style.display = "none";
+  async loadThreads() {
+    const { threadList } = this.elements;
+    this.clearAlert(this.elements.forumAlert);
+    threadList.innerHTML = "";
 
     try {
-      const data = await api("/api/forum/threads", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const data = await api("/api/forum/threads");
       const threads = Array.isArray(data.threads) ? data.threads : [];
-      if (!threadListEl) return;
 
       if (threads.length === 0) {
-        threadListEl.innerHTML = `<div class="muted">Aún no hay hilos en el foro.</div>`;
+        threadList.innerHTML = `
+          <div class="emptyState">
+            <h3>🗣️ No hay hilos de discusión</h3>
+            <p>Inicia una conversación interesante.</p>
+          </div>
+        `;
         return;
       }
 
       for (const t of threads) {
-        const canDeleteThread = currentUserId && t.authorId && String(t.authorId) === String(currentUserId);
+        const canDelete = this.currentUserId === t.authorId;
+        const preview = t.body.length > 100 ? t.body.substring(0, 100) + "..." : t.body;
+        
         const item = document.createElement("div");
         item.className = "threadItem";
         item.innerHTML = `
-          <div class="newsMeta" style="margin-bottom:6px">
-            <div class="author">Por ${escapeHtml(t.authorName || "Desconocido")}</div>
-            <div class="muted" style="font-size:12px">${escapeHtml(formatDate(t.createdAt))}</div>
+          <div class="threadMeta">
+            <div class="author">👤 ${escapeHtml(t.authorName || "Desconocido")}</div>
+            <div class="authorCode">🔖 ${escapeHtml(t.authorCode || "N/A")}</div>
+            <div class="muted">📅 ${escapeHtml(formatDate(t.createdAt))}</div>
           </div>
           <h3>${escapeHtml(t.title)}</h3>
-          <div class="muted" style="white-space:pre-wrap; font-size:14px; line-height:1.4">${escapeHtml(
-            t.body
-          )}</div>
-          <div class="row" style="margin-top:10px; justify-content:flex-start">
-            <button class="btn" type="button" data-thread-id="${t.id}">
-              Ver hilo (${t.replyCount || 0})
-            </button>
-            ${
-              canDeleteThread
-                ? `<button class="btn danger" type="button" data-thread-delete="${escapeHtml(t.id)}">Borrar</button>`
-                : ""
-            }
+          <div class="threadPreview">${escapeHtml(preview)}</div>
+          <div class="threadMeta">
+            <span class="replyCount">💬 ${t.replyCount || 0} respuestas</span>
+            <div class="row">
+              <button class="btn" data-thread-id="${t.id}">📖 Ver hilo</button>
+              ${canDelete ? `<button class="btn danger" data-thread-delete="${t.id}">🗑️ Eliminar</button>` : ""}
+            </div>
           </div>
         `;
 
-        const btn = item.querySelector("button[data-thread-id]");
-        if (btn) {
-          btn.addEventListener("click", async (e) => {
-            const id = e.currentTarget.getAttribute("data-thread-id");
-            if (!id) return;
-            await loadThreadDetail(id);
-            activateTab("forum");
-            if (threadDetailEl) threadDetailEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        const viewBtn = item.querySelector("button[data-thread-id]");
+        if (viewBtn) {
+          viewBtn.addEventListener("click", () => {
+            this.loadThreadDetail(t.id);
           });
         }
 
-        const delThreadBtn = item.querySelector("button[data-thread-delete]");
-        if (delThreadBtn) {
-          delThreadBtn.addEventListener("click", async (e) => {
-            const id = e.currentTarget.getAttribute("data-thread-delete");
-            if (!id) return;
-            if (!confirm("¿Borrar este hilo y todas sus respuestas?")) return;
+        const delBtn = item.querySelector("button[data-thread-delete]");
+        if (delBtn) {
+          delBtn.addEventListener("click", async () => {
+            if (!confirm("¿Eliminar este hilo y todas sus respuestas?")) return;
+            
             try {
-              await api(`/api/forum/threads/${encodeURIComponent(id)}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              await loadThreads();
+              await api(`/api/forum/threads/${t.id}`, { method: "DELETE" });
+              await this.loadThreads();
             } catch (err) {
-              setAlert(forumAlertEl, err.message || "No se pudo borrar", "err");
+              this.setAlert(this.elements.forumAlert, `❌ Error: ${err.message}`, "err");
             }
           });
         }
 
-        threadListEl.appendChild(item);
+        threadList.appendChild(item);
       }
     } catch (err) {
-      setAlert(forumAlertEl, `No se pudo cargar el foro: ${err.message}`, "err");
+      this.setAlert(this.elements.forumAlert, `❌ Error cargando hilos: ${err.message}`, "err");
     }
   }
 
-  async function loadThreadDetail(threadId) {
-    activeThreadId = threadId;
-    clearAlert(forumAlertEl);
-
-    const data = await api(`/api/forum/threads/${encodeURIComponent(threadId)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const t = data.thread || {};
-    const replies = Array.isArray(data.replies) ? data.replies : [];
-
-    if (threadAuthorEl) threadAuthorEl.textContent = `Por ${t.authorName || "Desconocido"}`;
-    if (threadDateEl) threadDateEl.textContent = formatDate(t.createdAt);
-    if (threadTitleEl) threadTitleEl.textContent = t.title || "";
-    if (threadBodyViewEl) threadBodyViewEl.textContent = t.body || "";
-
-    if (replyListEl) replyListEl.innerHTML = "";
-
-    if (!replyListEl) return;
-    if (replies.length === 0) {
-      replyListEl.innerHTML = `<div class="muted">Aún no hay respuestas.</div>`;
-    } else {
-      for (const r of replies) {
-        const canDeleteReply = currentUserId && r.authorId && String(r.authorId) === String(currentUserId);
-        const el = document.createElement("div");
-        el.className = "replyItem";
-        el.innerHTML = `
-          <div class="newsMeta" style="margin-bottom:6px">
-            <div class="author">Por ${escapeHtml(r.authorName || "Desconocido")}</div>
-            <div class="muted" style="font-size:12px">${escapeHtml(formatDate(r.createdAt))}</div>
-          </div>
-          <div class="muted" style="white-space:pre-wrap; font-size:14px; line-height:1.4">${escapeHtml(
-            r.body
-          )}</div>
-          ${
-            canDeleteReply
-              ? `<div class="row" style="margin-top:8px;justify-content:flex-end">
-                   <button class="btn danger" type="button" data-reply-delete="${escapeHtml(r.id)}">Borrar</button>
-                 </div>`
-              : ""
-          }
-        `;
-        const delReplyBtn = el.querySelector("button[data-reply-delete]");
-        if (delReplyBtn) {
-          delReplyBtn.addEventListener("click", async (e) => {
-            const rid = e.currentTarget.getAttribute("data-reply-delete");
-            if (!rid) return;
-            if (!confirm("¿Borrar esta respuesta?")) return;
-            try {
-              await api(`/api/forum/replies/${encodeURIComponent(rid)}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              await loadThreadDetail(activeThreadId);
-            } catch (err) {
-              setAlert(forumAlertEl, err.message || "No se pudo borrar", "err");
-            }
-          });
-        }
-        replyListEl.appendChild(el);
-      }
-    }
-
-    if (threadDetailEl) threadDetailEl.style.display = "block";
-  }
-
-  const threadForm = $("threadForm");
-  const threadSubmitBtn = $("threadSubmitBtn");
-  const threadPostAlertEl = $("threadPostAlert");
-
-  if (threadForm) {
-    threadForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      clearAlert(threadPostAlertEl);
-
-      const title = $("threadTitleInput").value.trim();
-      const body = $("threadBodyInput").value.trim();
-      if (!title || !body) return;
-
-      threadSubmitBtn.disabled = true;
-      threadSubmitBtn.textContent = "Publicando...";
-
-      try {
-        await api("/api/forum/threads", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ title, body }),
-        });
-
-        threadForm.reset();
-        await loadThreads();
-        setAlert(threadPostAlertEl, "Hilo publicado correctamente.", "ok");
-        activateTab("forum");
-      } catch (err) {
-        setAlert(threadPostAlertEl, err.message || "Error al publicar hilo", "err");
-      } finally {
-        threadSubmitBtn.disabled = false;
-        threadSubmitBtn.textContent = "Publicar hilo";
-      }
-    });
-  }
-
-  const replyForm = $("replyForm");
-  const replySubmitBtn = $("replySubmitBtn");
-
-  if (replyForm) {
-    replyForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!activeThreadId) return;
-
-      replySubmitBtn.disabled = true;
-      replySubmitBtn.textContent = "Enviando...";
-
-      try {
-        const body = $("replyBody").value.trim();
-        if (!body) return;
-
-        await api(`/api/forum/threads/${encodeURIComponent(activeThreadId)}/replies`, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ body }),
-        });
-
-        $("replyBody").value = "";
-        await loadThreadDetail(activeThreadId);
-      } catch (err) {
-        setAlert(forumAlertEl, err.message || "Error al responder", "err");
-      } finally {
-        replySubmitBtn.disabled = false;
-        replySubmitBtn.textContent = "Responder";
-      }
-    });
-  }
-
-  await loadThreads();
-
-  // Post form
-  const form = $("postForm");
-  const submitBtn = $("submitBtn");
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearAlert(postAlertEl);
-
-    const title = $("title").value.trim();
-    const content = $("content").value.trim();
-    const filesInput = $("files");
-
-    if (!title || !content) return;
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Publicando...";
+  async loadThreadDetail(threadId) {
+    this.activeThreadId = threadId;
+    this.showThreadDetail();
+    
+    const { threadAuthor, threadDate, threadTitle, threadBodyView, replyList } = this.elements;
 
     try {
-      const fd = new FormData();
-      fd.append("title", title);
-      fd.append("content", content);
-      const files = filesInput.files ? Array.from(filesInput.files) : [];
-      for (const f of files) fd.append("files", f);
+      const data = await api(`/api/forum/threads/${threadId}`);
+      const { thread, replies } = data;
 
-      await api("/api/news", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
+      threadAuthor.textContent = `👤 ${thread.authorName}`;
+      threadDate.textContent = `📅 ${formatDate(thread.createdAt)}`;
+      threadTitle.textContent = thread.title;
+      threadBodyView.textContent = thread.body;
 
-      form.reset();
-      await loadNews();
-      setAlert(postAlertEl, "Noticia publicada correctamente.", "ok");
+      // Cargar respuestas
+      const repliesArray = Array.isArray(replies) ? replies : [];
+      
+      if (repliesArray.length === 0) {
+        replyList.innerHTML = `
+          <div class="emptyState">
+            <p>📭 No hay respuestas aún. ¡Sé el primero en responder!</p>
+          </div>
+        `;
+      } else {
+        replyList.innerHTML = "";
+        
+        for (const r of repliesArray) {
+          const canDelete = this.currentUserId === r.authorId;
+          
+          const item = document.createElement("div");
+          item.className = "replyItem";
+          item.innerHTML = `
+            <div class="replyMeta">
+              <div class="author">👤 ${escapeHtml(r.authorName || "Desconocido")}</div>
+              <div class="muted">📅 ${escapeHtml(formatDate(r.createdAt))}</div>
+            </div>
+            <div class="replyContent">${escapeHtml(r.body)}</div>
+            ${canDelete ? `<button class="btn danger" data-reply-delete="${r.id}" style="margin-top:8px">🗑️ Eliminar</button>` : ""}
+          `;
+
+          const delBtn = item.querySelector("button[data-reply-delete]");
+          if (delBtn) {
+            delBtn.addEventListener("click", async () => {
+              if (!confirm("¿Eliminar esta respuesta?")) return;
+              
+              try {
+                await api(`/api/forum/replies/${r.id}`, { method: "DELETE" });
+                await this.loadThreadDetail(threadId);
+              } catch (err) {
+                this.setAlert(this.elements.forumAlert, `❌ Error: ${err.message}`, "err");
+              }
+            });
+          }
+
+          replyList.appendChild(item);
+        }
+      }
+
     } catch (err) {
-      setAlert(postAlertEl, err.message || "Error al publicar", "err");
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Publicar";
+      this.setAlert(this.elements.forumAlert, `❌ Error cargando hilo: ${err.message}`, "err");
     }
-  });
+  }
 }
 
+// Iniciar la aplicación
+new App();

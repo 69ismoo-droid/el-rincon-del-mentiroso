@@ -3,153 +3,200 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>el rincon del mentiroso</title>
+    <title>El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
   </head>
   <body>
     <div class="container">
-      <div class="topbar">
-        <div class="brand">el rincon del mentiroso</div>
-        <div class="row" style="gap:10px">
+      <header class="topbar">
+        <div class="brand">El Rincón del Mentiroso</div>
+        <div class="row" style="gap:12px">
           <div id="userBox" class="muted"></div>
-          <button class="btn" id="logoutBtn" type="button" style="display:none">Salir</button>
+          <button class="btn secondary" id="logoutBtn" type="button" style="display:none">
+            🚪 Salir
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div class="grid">
-        <div>
-          <div class="tabs">
-            <button class="btn active" id="tabNews" type="button">Noticias</button>
-            <button class="btn" id="tabForum" type="button">Foros</button>
-          </div>
+      <main class="grid">
+        <section>
+          <nav class="tabs">
+            <button class="btn active" id="tabNews" type="button">
+              📰 Noticias
+            </button>
+            <button class="btn" id="tabForum" type="button">
+              💬 Foros
+            </button>
+          </nav>
 
+          <!-- Sección de Noticias -->
           <div id="newsSection">
-            <h2 class="title">Publicaciones</h2>
-            <div id="alert" class="alert" style="display:none"></div>
-            <div id="newsList"></div>
-          </div>
-
-          <div id="forumSection" style="display:none">
-            <h2 class="title">Foros</h2>
-            <div id="forumAlert" class="alert err" style="display:none"></div>
-
-            <div id="threadList" class="threadList"></div>
-
-            <div id="threadDetail" style="display:none;margin-top:14px" class="card">
-              <div class="newsMeta" style="margin-bottom:8px">
-                <div class="author" id="threadAuthor">Por -</div>
-                <div class="muted" id="threadDate" style="font-size:12px">-</div>
-              </div>
-              <h3 class="title" id="threadTitle" style="margin-top:0"></h3>
-              <div class="muted" id="threadBodyView" style="white-space:pre-wrap;font-size:14px;line-height:1.4"></div>
-
-              <div style="margin-top:14px">
-                <div class="muted" style="margin-bottom:8px;font-size:13px">Respuestas</div>
-                <div id="replyList" class="replyList"></div>
-              </div>
-
-              <form id="replyForm" style="margin-top:10px">
-                <div class="field" style="margin-bottom:0">
-                  <label for="replyBody">Escribe tu respuesta</label>
-                  <textarea id="replyBody" required maxlength="2000"></textarea>
+            <div class="card">
+              <h2 class="title">📰 Publicaciones Recientes</h2>
+              <div id="alert" class="alert" style="display:none"></div>
+              <div id="newsList">
+                <div class="emptyState">
+                  <h3>📭 No hay publicaciones aún</h3>
+                  <p>Sé el primero en compartir algo con la comunidad.</p>
                 </div>
-                <div class="row" style="margin-top:10px">
-                  <button class="btn primary" id="replySubmitBtn" type="submit">Responder</button>
-                </div>
-              </form>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div>
+          <!-- Sección de Foros -->
+          <div id="forumSection" style="display:none">
+            <!-- Vista de lista de hilos -->
+            <div id="threadListView">
+              <div class="card">
+                <h2 class="title">💬 Hilos de Discusión</h2>
+                <div id="forumAlert" class="alert err" style="display:none"></div>
+                <div id="threadList">
+                  <div class="emptyState">
+                    <h3>🗣️ No hay hilos de discusión</h3>
+                    <p>Inicia una conversación interesante.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vista de detalle de hilo -->
+            <div id="threadDetailView" style="display:none">
+              <div class="backButton">
+                <button class="btn secondary" id="backToThreads" type="button">
+                  ← Volver a hilos
+                </button>
+              </div>
+              
+              <div class="card">
+                <div class="newsMeta" style="margin-bottom:12px">
+                  <div class="author" id="threadAuthor">Por -</div>
+                  <div class="muted" id="threadDate" style="font-size:13px">-</div>
+                </div>
+                <h3 class="title" id="threadTitle" style="margin-top:0"></h3>
+                <div class="muted" id="threadBodyView" style="white-space:pre-wrap;font-size:15px;line-height:1.6;margin-bottom:20px"></div>
+
+                <div style="margin-top:20px">
+                  <h4 style="margin-bottom:12px;color:var(--text)">💬 Respuestas</h4>
+                  <div id="replyList" class="replyList">
+                    <div class="emptyState">
+                      <p>📭 No hay respuestas aún. ¡Sé el primero en responder!</p>
+                    </div>
+                  </div>
+                </div>
+
+                <form id="replyForm" style="margin-top:20px">
+                  <div class="field">
+                    <label for="replyBody">✍️ Escribe tu respuesta</label>
+                    <textarea id="replyBody" required maxlength="2000" placeholder="Comparte tu opinión..."></textarea>
+                  </div>
+                  <div class="row" style="margin-top:12px">
+                    <button class="btn" id="replySubmitBtn" type="submit">
+                      📤 Enviar respuesta
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <!-- Card de crear noticia -->
           <div id="newsCreateCard" class="card">
-            <h2 class="title">Publicar noticia</h2>
+            <h2 class="title">📝 Publicar Noticia</h2>
             <div id="postAlert" class="alert err" style="display:none"></div>
             <form id="postForm">
               <div class="field">
-                <label for="title">Título</label>
-                <input id="title" name="title" type="text" required maxlength="140" />
+                <label for="title">📌 Título</label>
+                <input id="title" name="title" type="text" required maxlength="140" placeholder="Título llamativo..." />
               </div>
               <div class="field">
-                <label for="content">Contenido</label>
-                <textarea id="content" name="content" required maxlength="2000"></textarea>
+                <label for="content">📄 Contenido</label>
+                <textarea id="content" name="content" required maxlength="2000" placeholder="¿qué quieres compartir?"></textarea>
               </div>
               <div class="field">
-                <label for="files">Archivos (opcional)</label>
-                <input id="files" name="files" type="file" multiple />
-                <div class="muted" style="font-size:12px;margin-top:4px">
-                  Máximo 10 archivos, 20MB por archivo.
+                <label for="files">📎 Archivos (opcional)</label>
+                <div class="fileInput" id="fileInputContainer">
+                  <input id="files" name="files" type="file" multiple />
+                  <div class="fileInputLabel">
+                    <span>📁</span>
+                    <span id="fileInputText">Haz clic para seleccionar archivos o arrástralos aquí</span>
+                  </div>
+                </div>
+                <div class="filePreview" id="filePreview"></div>
+                <div class="muted" style="font-size:13px;margin-top:8px">
+                  💡 Máximo 10 archivos, 20MB por archivo. Formatos permitidos: imágenes, PDF, Word, Excel.
                 </div>
               </div>
-              <div class="row" style="margin-top:10px">
-                <button class="btn primary" id="submitBtn" type="submit">Publicar</button>
+              <div class="row" style="margin-top:12px">
+                <button class="btn" id="submitBtn" type="submit">
+                  🚀 Publicar
+                </button>
               </div>
             </form>
           </div>
 
+          <!-- Card de crear hilo -->
           <div id="forumCreateCard" class="card" style="display:none">
-            <h2 class="title">Nuevo hilo</h2>
+            <h2 class="title">🗣️ Nuevo Hilo</h2>
             <div id="threadPostAlert" class="alert err" style="display:none"></div>
             <form id="threadForm">
               <div class="field">
-                <label for="threadTitleInput">Título</label>
-                <input id="threadTitleInput" name="threadTitle" type="text" required maxlength="140" />
+                <label for="threadTitleInput">📌 Título</label>
+                <input id="threadTitleInput" name="threadTitle" type="text" required maxlength="140" placeholder="Tema de discusión..." />
               </div>
               <div class="field">
-                <label for="threadBodyInput">Mensaje</label>
-                <textarea id="threadBodyInput" name="threadBody" required maxlength="3000"></textarea>
+                <label for="threadBodyInput">💭 Mensaje</label>
+                <textarea id="threadBodyInput" name="threadBody" required maxlength="3000" placeholder="Inicia la conversación..."></textarea>
               </div>
-              <div class="row" style="margin-top:10px">
-                <button class="btn primary" id="threadSubmitBtn" type="submit">Publicar hilo</button>
+              <div class="row" style="margin-top:12px">
+                <button class="btn" id="threadSubmitBtn" type="submit">
+                  🚀 Crear hilo
+                </button>
               </div>
             </form>
           </div>
+        </aside>
+      </main>
+
+      <footer style="margin-top:32px;text-align:center">
+        <div class="muted" style="font-size:13px">
+          🔒 Acceso restringido a cuentas autorizadas • 
+          <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--primary)">Términos y Condiciones</a>
         </div>
-      </div>
-
-      <div class="muted" style="margin-top:18px;font-size:12px">
-        Acceso restringido a cuentas autorizadas.
-      </div>
-
-      <div class="muted" style="margin-top:6px;font-size:12px">
-        Puedes ver los <a href="/terms.html" target="_blank" rel="noopener">Términos y Condiciones</a> en una ventana separada.
-      </div>
+      </footer>
     </div>
 
-    <!-- Términos y Condiciones -->
-    <div
-      id="termsOverlay"
-      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;padding:16px"
-    >
-      <div
-        class="card"
-        style="max-width:820px;width:100%;max-height:82vh;overflow:auto"
-        id="termsModal"
-      >
-        <h2 class="title" style="margin-top:0">Términos y Condiciones</h2>
-        <div class="muted" style="margin-bottom:10px;font-size:13px">
+    <!-- Modal de Términos y Condiciones -->
+    <div id="termsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;padding:20px">
+      <div class="card" style="max-width:600px;width:100%;max-height:85vh;overflow:auto" id="termsModal">
+        <h2 class="title" style="margin-top:0">📋 Términos y Condiciones</h2>
+        <div class="muted" style="margin-bottom:16px;font-size:14px">
           Al continuar aceptas estos términos.
         </div>
 
         <div class="termsText">
           <p style="margin-top:0">
-            Puedes leer el texto completo en otra ventana haciendo clic aquí:
+            📜 Puedes leer el texto completo en otra ventana haciendo clic aquí:
           </p>
-          <div class="row" style="justify-content:flex-start;margin-top:8px">
-            <a class="btn primary" href="/terms.html" target="_blank" rel="noopener">Ver términos completos</a>
+          <div class="row" style="justify-content:flex-start;margin-top:12px">
+            <a class="btn" href="/terms.html" target="_blank" rel="noopener">
+              📖 Ver términos completos
+            </a>
           </div>
         </div>
 
-        <div class="field" style="margin-top:12px">
-          <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
-            <input id="acceptTerms" type="checkbox" style="margin-top:3px" />
-            <span>Confirmo que he leído y acepto los Términos y Condiciones.</span>
+        <div class="field" style="margin-top:16px">
+          <label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+            <input id="acceptTerms" type="checkbox" style="margin-top:4px" />
+            <span>✅ Confirmo que he leído y acepto los Términos y Condiciones.</span>
           </label>
         </div>
 
-        <div class="row" style="margin-top:10px">
-          <button class="btn primary" id="acceptTermsBtn" type="button" disabled>
-            Aceptar y continuar
+        <div class="row" style="margin-top:16px">
+          <button class="btn" id="acceptTermsBtn" type="button" disabled>
+            ✅ Aceptar y continuar
           </button>
         </div>
       </div>
