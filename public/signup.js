@@ -32,9 +32,6 @@ form.addEventListener("submit", async (e) => {
   const password = $("password").value;
   const inviteCode = $("inviteCode").value.trim();
 
-  // No damos pistas del formato del correo:
-  // la validación real se hace en backend y solo responde si está autorizado.
-
   if (!displayName) {
     setAlert("Ingresa el nombre del creador.", "err");
     return;
@@ -46,7 +43,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   if (!inviteCode) {
-    setAlert("Ingresa el código de acceso.", "err");
+    setAlert("Ingresa tu código personal.", "err");
     return;
   }
 
@@ -54,13 +51,14 @@ form.addEventListener("submit", async (e) => {
   $("submitBtn").textContent = "Creando...";
 
   try {
+    const body = { email, password, displayName, inviteCode };
+
     await api("/api/auth/signup", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, password, displayName, inviteCode }),
+      body: JSON.stringify(body),
     });
 
-    // Después de crear la cuenta, pedimos que inicie sesión
     window.location.href = "/login.html";
   } catch (err) {
     setAlert(err.message || "Error al crear cuenta", "err");

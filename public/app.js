@@ -1,3 +1,14 @@
+// --- ESCUDO DE SEGURIDAD ---
+(function() {
+  const token = localStorage.getItem('token');
+  // Si no hay token, redirigir al login inmediatamente
+  if (!token) {
+      window.location.href = '/login.html'; 
+  }
+})();
+// ---------------------------
+
+// Aquí sigue el resto de tu código original...
 function $(id) {
   return document.getElementById(id);
 }

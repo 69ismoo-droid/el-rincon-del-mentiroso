@@ -14,11 +14,6 @@ const app = express();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
-const SIGNUP_CODES_RAW = process.env.SIGNUP_CODES || process.env.SIGNUP_CODE || "00-2027";
-const SIGNUP_CODES = String(SIGNUP_CODES_RAW)
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
@@ -169,7 +164,7 @@ app.post("/api/auth/signup", async (req, res) => {
 
     if (!email || !password || !displayName || !inviteCode) {
       return res.status(400).json({
-        error: "Faltan datos (email, contraseña, nombre y código de acceso).",
+        error: "Faltan datos (email, contraseña, nombre y código personal).",
       });
     }
 
@@ -178,8 +173,8 @@ app.post("/api/auth/signup", async (req, res) => {
     }
 
     const normalizedInviteCode = String(inviteCode).trim();
-    if (!SIGNUP_CODES.includes(normalizedInviteCode)) {
-      return res.status(403).json({ error: "Código de acceso inválido." });
+    if (!normalizedInviteCode) {
+      return res.status(400).json({ error: "El código personal no puede estar vacío." });
     }
 
     const normalizedEmail = normalizeEmail(email);
@@ -191,10 +186,15 @@ app.post("/api/auth/signup", async (req, res) => {
       return res.status(409).json({ error: "Este correo ya está registrado." });
     }
 
+    if (db.users.some((u) => u.inviteCode === normalizedInviteCode)) {
+      return res.status(409).json({ error: "Este código personal ya está en uso." });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = {
       id: crypto.randomUUID(),
       email: normalizedEmail,
+      inviteCode: normalizedInviteCode,
       passwordHash,
       displayName: String(displayName).trim(),
       createdAt: new Date().toISOString(),
