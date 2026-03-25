@@ -161,6 +161,12 @@ function signToken(user) {
 app.use(cors());
 app.use(express.json());
 
+// Log todas las solicitudes para debugging
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  next();
+});
+
 // Serve uploaded files
 app.use("/uploads", express.static(uploadsDir));
 
@@ -243,27 +249,38 @@ app.post("/api/auth/signup", async (req, res) => {
 });
 
 app.post("/api/auth/login", async (req, res) => {
+  console.log(`🔐 Login attempt: ${req.body?.email}`);
   try {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: "Faltan datos." });
 
+    console.log(`🔍 Validating login email: ${email}`);
     if (!isAllowedEmailDomain(email)) {
+      console.log(`❌ Login email blocked: ${email}`);
       return res.status(403).json({ error: "Correo no autorizado." });
     }
 
+    console.log(`✅ Login email allowed: ${email}`);
     const user = await getUserByEmail(email);
-    if (!user) return res.status(401).json({ error: "Credenciales inválidas" });
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: "Credenciales inválidas" });
+    if (!ok) {
+      console.log(`❌ Invalid password for: ${email}`);
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
 
     const token = signToken(user);
+    console.log(`🎉 Login successful: ${email}`);
     return res.json({
       token,
       user: { id: user.id, email: user.email, displayName: user.displayName },
     });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('❌ Login error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
