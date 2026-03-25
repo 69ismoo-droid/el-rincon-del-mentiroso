@@ -900,6 +900,8 @@ database.connect()
       console.log(`Servidor escuchando en http://localhost:${PORT}`);
       console.log(`Retención de archivos: ${FILE_RETENTION_DAYS} días`);
       console.log(`Retención de noticias: ${NEWS_RETENTION_DAYS} días`);
+      console.log(`✅ Dominio permitido: @cusco.coar.edu.pe`);
+      console.log(`✅ Admin: cruel@admin`);
     });
   })
   .catch((err) => {
