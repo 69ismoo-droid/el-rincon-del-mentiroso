@@ -907,11 +907,33 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(publicDir, "login.html"));
 });
 
-// Helpful SPA-ish fallback: si no existe la ruta, sirve index (para rutas protegidas)
+// Rutas específicas de HTML
+app.get("/login.html", (req, res) => {
+  res.sendFile(path.join(publicDir, "login.html"));
+});
+
+app.get("/signup.html", (req, res) => {
+  res.sendFile(path.join(publicDir, "signup.html"));
+});
+
+app.get("/index.html", (req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(publicDir, "admin.html"));
+});
+
+// Helpful SPA-ish fallback: solo para rutas que no son API y no son archivos HTML específicos
 app.get("*", (req, res) => {
   // Si es una ruta de API, no servir HTML
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ error: "API endpoint not found" });
+  }
+  
+  // Si es una ruta de archivo estático, no servir HTML
+  if (req.path.includes(".")) {
+    return res.status(404).send("File not found");
   }
   
   // Para cualquier otra ruta, servir index.html (para usuarios autenticados)
