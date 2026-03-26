@@ -33,7 +33,7 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   alertEl.style.display = "none";
 
-  const email = $("email").value.trim();
+  const email = $("email").value.trim().toLowerCase(); // Normalizar email
   const password = $("password").value;
 
   // No damos pistas del formato del correo:

@@ -2,9 +2,9 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Usar /tmp en Render para compatibilidad o path relativo local
+// Usar disco persistente real en Render o path relativo local
 const dbPath = process.env.RENDER ? 
-  path.join('/tmp', 'database.sqlite') : 
+  path.join('/opt/render/project/src', 'database.sqlite') : 
   path.join(__dirname, 'data', 'database.sqlite');
 
 // Asegurar que el directorio de la base de datos exista
@@ -117,8 +117,17 @@ class Database {
 
   // Métodos específicos para usuarios
   async createUser(user) {
-    const query = `INSERT INTO users (id, email, inviteCode, passwordHash, displayName, createdAt) 
-                   VALUES (?, ?, ?, ?, ?, ?)`;
+    const query = `
+      INSERT INTO users (id, email, inviteCode, passwordHash, displayName, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    console.log(`💾 Creating user:`, { 
+      id: user.id, 
+      email: user.email, 
+      inviteCode: user.inviteCode, 
+      displayName: user.displayName,
+      passwordHashLength: user.passwordHash?.length || 0
+    });
     return this.run(query, [user.id, user.email, user.inviteCode, user.passwordHash, user.displayName, user.createdAt]);
   }
 

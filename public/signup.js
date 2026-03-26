@@ -34,7 +34,7 @@ form.addEventListener("submit", async (e) => {
   alertEl.style.display = "none";
 
   const displayName = $("displayName").value.trim();
-  const email = $("email").value.trim();
+  const email = $("email").value.trim().toLowerCase(); // Normalizar email
   const password = $("password").value;
   const inviteCode = $("inviteCode").value.trim();
 
@@ -59,13 +59,21 @@ form.addEventListener("submit", async (e) => {
   try {
     const body = { email, password, displayName, inviteCode };
 
-    await api("/api/auth/signup", {
+    const response = await api("/api/auth/signup", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
 
-    window.location.href = "/login.html";
+    // Verificar que el signup fue exitoso
+    if (response.message) {
+      setAlert("✅ " + response.message, "ok");
+      setTimeout(() => {
+        window.location.href = "/login.html";
+      }, 1500);
+    } else {
+      window.location.href = "/login.html";
+    }
   } catch (err) {
     setAlert(err.message || "Error al crear cuenta", "err");
   } finally {

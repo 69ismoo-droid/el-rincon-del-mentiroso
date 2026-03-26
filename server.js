@@ -21,7 +21,7 @@ const publicDir = path.join(rootDir, "public");
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : process.env.RENDER
-    ? path.join('/tmp', 'uploads')
+    ? path.join('/opt/render/project/src', 'uploads')
     : path.join(rootDir, "uploads");
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(rootDir, "data");
 const dbPath = path.join(dataDir, "db.json");
@@ -263,11 +263,20 @@ app.post("/api/auth/login", async (req, res) => {
     console.log(`✅ Login email allowed: ${email}`);
     const user = await getUserByEmail(email);
     if (!user) {
-      console.log(`❌ User not found: ${email}`);
+      console.log(`❌ User not found in database: ${email}`);
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
+    console.log(`👤 User found:`, { 
+      id: user.id, 
+      email: user.email, 
+      displayName: user.displayName,
+      hasPasswordHash: !!user.passwordHash,
+      passwordHashLength: user.passwordHash?.length || 0
+    });
+
     const ok = await bcrypt.compare(password, user.passwordHash);
+    console.log(`🔑 Password comparison result: ${ok}`);
     if (!ok) {
       console.log(`❌ Invalid password for: ${email}`);
       return res.status(401).json({ error: "Credenciales inválidas" });
