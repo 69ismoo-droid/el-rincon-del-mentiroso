@@ -899,28 +899,57 @@ app.post("/api/admin/users/:userId/reset-password", requireAdmin, async (req, re
   }
 });
 
-// Frontend static files
-app.use(express.static(publicDir));
+// Frontend static files con configuración mejorada
+app.use(express.static(publicDir, {
+  maxAge: '1h', // Cache de 1 hora
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Configurar headers para diferentes tipos de archivos
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (path.endsWith('.js') || path.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
 
-// Página principal: servir login.html por defecto
+// Middleware para verificar archivos estáticos
+app.use((req, res, next) => {
+  // Si es una ruta de archivo, verificar que exista
+  if (req.path.includes('.') && !req.path.startsWith('/api/')) {
+    const filePath = path.join(publicDir, req.path);
+    if (!fs.existsSync(filePath)) {
+      console.log(`❌ Static file not found: ${req.path}`);
+      return res.status(404).send('File not found');
+    }
+  }
+  next();
+});
+
+// Rutas específicas de HTML con logs
 app.get("/", (req, res) => {
+  console.log(`🏠 Serving login.html as homepage`);
   res.sendFile(path.join(publicDir, "login.html"));
 });
 
-// Rutas específicas de HTML
 app.get("/login.html", (req, res) => {
+  console.log(`🔐 Serving login.html`);
   res.sendFile(path.join(publicDir, "login.html"));
 });
 
 app.get("/signup.html", (req, res) => {
+  console.log(`📝 Serving signup.html`);
   res.sendFile(path.join(publicDir, "signup.html"));
 });
 
 app.get("/index.html", (req, res) => {
+  console.log(`🏠 Serving index.html`);
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
 app.get("/admin.html", (req, res) => {
+  console.log(`⚙️ Serving admin.html`);
   res.sendFile(path.join(publicDir, "admin.html"));
 });
 
