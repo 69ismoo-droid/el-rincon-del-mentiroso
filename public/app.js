@@ -107,7 +107,7 @@ class App {
     this.setupEventListeners();
     this.activateTab("news");
     await this.loadNews();
-    await this.loadThreads();
+    // NO cargar hilos automáticamente - solo cuando se haga clic en la pestaña
   }
 
   async ensureTermsAccepted() {
@@ -528,7 +528,7 @@ class App {
     });
   }
 
-  activateTab(tab) {
+  async activateTab(tab) {
     const isNews = tab === "news";
     const { tabNews, tabForum, newsSection, forumSection, newsCreateCard, forumCreateCard } = this.elements;
 
@@ -543,6 +543,9 @@ class App {
 
     if (isNews) {
       this.showThreadList();
+    } else {
+      // Cargar hilos solo cuando se activa la pestaña de foros
+      await this.loadThreads();
     }
   }
 
