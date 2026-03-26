@@ -902,8 +902,19 @@ app.post("/api/admin/users/:userId/reset-password", requireAdmin, async (req, re
 // Frontend static files
 app.use(express.static(publicDir));
 
-// Helpful SPA-ish fallback: si no existe la ruta, sirve index
+// Página principal: servir login.html por defecto
+app.get("/", (req, res) => {
+  res.sendFile(path.join(publicDir, "login.html"));
+});
+
+// Helpful SPA-ish fallback: si no existe la ruta, sirve index (para rutas protegidas)
 app.get("*", (req, res) => {
+  // Si es una ruta de API, no servir HTML
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "API endpoint not found" });
+  }
+  
+  // Para cualquier otra ruta, servir index.html (para usuarios autenticados)
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
