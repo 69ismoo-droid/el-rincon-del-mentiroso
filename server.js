@@ -13,6 +13,11 @@ const cors = require("cors");
 // Configuración
 dotenv.config();
 
+// Cargar información de versión
+const versionInfo = require('./version.json');
+console.log(`🏷️ El Rincón del Mentiroso v${versionInfo.version}`);
+console.log(`📄 ${versionInfo.description}`);
+
 // Forzar MONGODB_URI si Render no la encuentra O si no es la dedicada
 if (!process.env.MONGODB_URI || 
     (process.env.NODE_ENV === 'production' && 
@@ -486,6 +491,25 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (err) {
     console.error('❌ Login error:', err);
     return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.get("/api/version", (req, res) => {
+  try {
+    const versionInfo = require('./version.json');
+    return res.json({
+      version: versionInfo.version,
+      name: versionInfo.name,
+      description: versionInfo.description,
+      lastUpdate: versionInfo.changelog[0]?.date || new Date().toISOString().split('T')[0],
+      features: versionInfo.changelog[0]?.features || []
+    });
+  } catch (error) {
+    return res.json({ 
+      version: "1.0.0", 
+      name: "El Rincón del Mentiroso",
+      description: "Sistema de comunicación educativa"
+    });
   }
 });
 

@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "name": "El Rincón del Mentiroso",
+  "description": "Sistema de comunicación educativa con mensajes en tiempo real",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-03-27",
+      "type": "major",
+      "description": "Versión inicial completa",
+      "features": [
+        "Sistema de usuarios con autenticación JWT",
+        "Validación de dominio @cusco.coar.edu.pe",
+        "Sistema de noticias con archivos adjuntos",
+        "Foro de discusión con hilos y respuestas",
+        "Mensajes privados en tiempo real (WebSocket)",
+        "Base de datos MongoDB Atlas dedicada",
+        "Limpieza automática de mensajes cada 24 horas",
+        "Panel de administración completo",
+        "Deploy en Render con variables de entorno",
+        "Diseño responsive y moderno"
+      ]
+    }
+  ],
+  "nextVersion": {
+    "major": "2.0.0",
+    "minor": "1.1.0",
+    "patch": "1.0.1"
+  }
+}

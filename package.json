@@ -1,14 +1,21 @@
 {
   "name": "el-rincon-del-mentiroso",
   "version": "1.0.0",
-  "description": "Blog de noticias y foro para COAR Cusco",
+  "description": "Sistema de comunicación educativa con mensajes en tiempo real",
   "private": true,
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "echo 'Build complete'",
+    "ver": "node version.js",
+    "ver:bump": "node version.js bump",
+    "ver:current": "node version.js current",
+    "ver:changelog": "node version.js changelog",
+    "ver:next": "node version.js next",
+    "ver:major": "node version.js bump major",
+    "ver:minor": "node version.js bump minor",
+    "ver:patch": "node version.js bump patch",
     "vercel-build": "npm start"
   },
   "dependencies": {
