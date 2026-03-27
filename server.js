@@ -212,7 +212,7 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     console.log(`👤 User found:`, { 
-      id: user._id, 
+      id: user.id, 
       email: user.email, 
       displayName: user.displayName,
       hasPasswordHash: !!user.passwordHash,
@@ -268,7 +268,7 @@ app.get("/api/news", async (req, res) => {
       news.map(async (n) => {
         const author = await getUserById(n.authorId);
         return {
-          ...n.toObject(),
+          ...n,
           authorName: author ? author.displayName : "Usuario eliminado",
           attachments: await database.getAttachmentsByNewsId(n.id),
         };
