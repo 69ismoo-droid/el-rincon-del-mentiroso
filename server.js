@@ -161,6 +161,21 @@ database.connect().then(async () => {
     console.error('Error al limpiar mensajes:', err);
   }
   
+  // 🕅 LIMPIEZA AUTOMÁTICA CADA 24 HORAS
+  setInterval(async () => {
+    try {
+      const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 horas atrás
+      const result = await database.deleteOldMensajes(cutoffDate);
+      if (result.changes > 0) {
+        console.log(`🕅 Limpieza automática 24h: ${result.changes} mensajes eliminados`);
+      }
+    } catch (err) {
+      console.error('Error en limpieza periódica de mensajes:', err);
+    }
+  }, 24 * 60 * 60 * 1000); // Cada 24 horas
+  
+  console.log('🕅 Limpieza automática configurada: Cada 24 horas');
+  
   // Asegurar que el admin exista
   ensureAdminExists();
   
