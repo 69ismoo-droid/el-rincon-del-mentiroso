@@ -11,8 +11,10 @@ const crypto = require("crypto");
 // Configuración
 dotenv.config();
 
-// Forzar MONGODB_URI si Render no la encuentra
-if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
+// Forzar MONGODB_URI si Render no la encuentra O si no es la dedicada
+if (!process.env.MONGODB_URI || 
+    (process.env.NODE_ENV === 'production' && 
+     !process.env.MONGODB_URI.includes('el-rincon-del-mentiroso'))) {
   process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/el-rincon-del-mentiroso?appName=Cluster0';
   console.log('🔧 Forzando MONGODB_URI a base de datos dedicada en producción');
 }
@@ -27,13 +29,26 @@ console.log('🚪 PORT:', process.env.PORT);
 // Verificación específica de producción
 if (process.env.NODE_ENV === 'production') {
   console.log('🎯 MODO PRODUCCIÓN DETECTADO');
-  if (process.env.MONGODB_URI && process.env.MONGODB_URI.includes('el-rincon-del-mentiroso')) {
-    console.log('✅ Base de datos dedicada configurada correctamente');
-  } else if (process.env.MONGODB_URI) {
-    console.log('⚠️ Base de datos no es la dedicada');
-    console.log('📍 URI actual:', process.env.MONGODB_URI.replace(/\/\/[^:]*:[^@]*@/, '//***:***@'));
+  
+  if (process.env.MONGODB_URI) {
+    console.log('📍 MONGODB_URI encontrada en Render');
+    
+    if (process.env.MONGODB_URI.includes('el-rincon-del-mentiroso')) {
+      console.log('✅ Base de datos dedicada configurada correctamente');
+    } else {
+      console.log('⚠️ Base de datos no es la dedicada');
+      console.log('📍 URI original:', process.env.MONGODB_URI.replace(/\/\/[^:]*:[^@]*@/, '//***:***@'));
+      console.log('🔄 Forzando cambio a base dedicada...');
+      
+      // Forzar la base correcta
+      process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/el-rincon-del-mentiroso?appName=Cluster0';
+      console.log('✅ Base de datos dedicada aplicada');
+    }
   } else {
     console.log('❌ MONGODB_URI no configurada en producción');
+    console.log('🔄 Configurando base de datos dedicada por defecto...');
+    process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/el-rincon-del-mentiroso?appName=Cluster0';
+    console.log('✅ Base de datos dedicada configurada');
   }
 }
 
