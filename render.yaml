@@ -4,15 +4,19 @@ services:
     name: el-rincon-del-mentiroso
     env: node
     plan: free
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: "npm install"
+    startCommand: "npm start"
     envVars:
       - key: NODE_ENV
         value: production
-      - key: JWT_SECRET
-        generateValue: true
       - key: PORT
         value: 3000
-
-  # Variables de entorno específicas para Render
+      - key: MONGODB_URI
+        value: mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/?appName=Cluster0
+      - key: JWT_SECRET
+        value: el-rincon-del-mentiroso-super-secreto-2024
+      - key: UPLOADS_DIR
+        value: /tmp/uploads
+      - key: FILE_RETENTION_DAYS
+        value: 3
     autoDeploy: true
