@@ -1,0 +1,161 @@
+const { mongoose } = require('./models');
+
+class Database {
+  constructor() {
+    this.isConnected = false;
+  }
+
+  async connect() {
+    try {
+      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/el-rincon-del-mentiroso';
+      
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      
+      this.isConnected = true;
+      console.log('🗄️ Connected to MongoDB successfully');
+      console.log('📍 Database:', mongoUri.includes('localhost') ? 'Local' : 'MongoDB Atlas');
+      
+      return true;
+    } catch (error) {
+      console.error('❌ MongoDB connection error:', error);
+      throw error;
+    }
+  }
+
+  async disconnect() {
+    if (this.isConnected) {
+      await mongoose.disconnect();
+      this.isConnected = false;
+      console.log('🔌 Disconnected from MongoDB');
+    }
+  }
+
+  // Métodos de Usuarios
+  async createUser(userData) {
+    const { User } = require('./models');
+    const user = new User(userData);
+    return await user.save();
+  }
+
+  async getUserByEmail(email) {
+    const { User } = require('./models');
+    return await User.findOne({ email: email.toLowerCase() });
+  }
+
+  async getUserById(id) {
+    const { User } = require('./models');
+    return await User.findById(id);
+  }
+
+  async getAllUsers() {
+    const { User } = require('./models');
+    return await User.find({}).sort({ createdAt: -1 });
+  }
+
+  // Métodos de Noticias
+  async createNews(newsData) {
+    const { News } = require('./models');
+    const news = new News(newsData);
+    return await news.save();
+  }
+
+  async getAllNews() {
+    const { News } = require('./models');
+    return await News.find({}).sort({ createdAt: -1 });
+  }
+
+  async getNewsById(id) {
+    const { News } = require('./models');
+    return await News.findById(id);
+  }
+
+  async deleteNews(id) {
+    const { News } = require('./models');
+    return await News.findByIdAndDelete(id);
+  }
+
+  // Métodos de Adjuntos
+  async createAttachment(attachmentData) {
+    const { Attachment } = require('./models');
+    const attachment = new Attachment(attachmentData);
+    return await attachment.save();
+  }
+
+  async getAttachmentsByNewsId(newsId) {
+    const { Attachment } = require('./models');
+    return await Attachment.find({ newsId }).sort({ createdAt: 1 });
+  }
+
+  async deleteOldAttachments(cutoffDate) {
+    const { Attachment } = require('./models');
+    const result = await Attachment.deleteMany({ 
+      createdAt: { $lt: cutoffDate } 
+    });
+    return { changes: result.deletedCount };
+  }
+
+  // Métodos de Foro - Hilos
+  async createThread(threadData) {
+    const { Thread } = require('./models');
+    const thread = new Thread(threadData);
+    return await thread.save();
+  }
+
+  async getAllThreads() {
+    const { Thread } = require('./models');
+    return await Thread.find({}).sort({ createdAt: -1 });
+  }
+
+  async getThreadById(id) {
+    const { Thread } = require('./models');
+    return await Thread.findById(id);
+  }
+
+  async deleteThread(id) {
+    const { Thread } = require('./models');
+    return await Thread.findByIdAndDelete(id);
+  }
+
+  // Métodos de Foro - Respuestas
+  async createReply(replyData) {
+    const { Reply } = require('./models');
+    const reply = new Reply(replyData);
+    return await reply.save();
+  }
+
+  async getRepliesByThreadId(threadId) {
+    const { Reply } = require('./models');
+    return await Reply.find({ threadId }).sort({ createdAt: 1 });
+  }
+
+  async getReplyById(id) {
+    const { Reply } = require('./models');
+    return await Reply.findById(id);
+  }
+
+  async deleteReply(id) {
+    const { Reply } = require('./models');
+    return await Reply.findByIdAndDelete(id);
+  }
+
+  async deleteOldThreads(cutoffDate) {
+    const { Thread } = require('./models');
+    const result = await Thread.deleteMany({ 
+      createdAt: { $lt: cutoffDate } 
+    });
+    return { changes: result.deletedCount };
+  }
+
+  async deleteOldReplies(cutoffDate) {
+    const { Reply } = require('./models');
+    const result = await Reply.deleteMany({ 
+      createdAt: { $lt: cutoffDate } 
+    });
+    return { changes: result.deletedCount };
+  }
+}
+
+module.exports = new Database();

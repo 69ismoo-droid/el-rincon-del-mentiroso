@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "el-rincon-del-mentiroso",
+  "builds": [
+    {
+      "src": "server-mongo.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server-mongo.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/server-mongo.js"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "JWT_SECRET": "@jwt_secret",
+    "NODE_ENV": "production"
+  }
+}
