@@ -9,10 +9,7 @@ class Database {
     try {
       const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/el-rincon-del-mentiroso';
       
-      await mongoose.connect(mongoUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
+      await mongoose.connect(mongoUri);
       
       this.isConnected = true;
       console.log('🗄️ Connected to MongoDB successfully');

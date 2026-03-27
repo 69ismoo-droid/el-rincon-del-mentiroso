@@ -6,8 +6,8 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node server-mongo.js",
+    "dev": "node server-mongo.js",
     "build": "echo 'Build complete'",
     "vercel-build": "npm start"
   },
