@@ -149,12 +149,43 @@ const replySchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Esquema de Mensajes Privados
+const mensajeSchema = new mongoose.Schema({
+  senderId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    required: true, 
+    ref: 'User' 
+  },
+  receiverId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    required: true, 
+    ref: 'User' 
+  },
+  content: { 
+    type: String, 
+    required: true, 
+    trim: true,
+    maxlength: 1000
+  },
+  read: { 
+    type: Boolean, 
+    default: false 
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+}, {
+  timestamps: true
+});
+
 // Exportar modelos
 const User = mongoose.model('User', userSchema);
 const News = mongoose.model('News', newsSchema);
 const Attachment = mongoose.model('Attachment', attachmentSchema);
 const Thread = mongoose.model('Thread', threadSchema);
 const Reply = mongoose.model('Reply', replySchema);
+const Mensaje = mongoose.model('Mensaje', mensajeSchema);
 
 module.exports = {
   User,
@@ -162,5 +193,6 @@ module.exports = {
   Attachment,
   Thread,
   Reply,
+  Mensaje,
   mongoose
 };

@@ -158,6 +158,58 @@ class Database {
     });
     return { changes: result.deletedCount };
   }
+
+  // Métodos de Mensajes Privados
+  async createMensaje(mensajeData) {
+    const { Mensaje } = require('./models');
+    const mensaje = new Mensaje(mensajeData);
+    return await mensaje.save();
+  }
+
+  async getMensajesByUserId(userId) {
+    const { Mensaje } = require('./models');
+    return await Mensaje.find({
+      $or: [
+        { senderId: userId },
+        { receiverId: userId }
+      ]
+    }).sort({ createdAt: -1 });
+  }
+
+  async getMensajesEntreUsuarios(userId1, userId2) {
+    const { Mensaje } = require('./models');
+    return await Mensaje.find({
+      $or: [
+        { senderId: userId1, receiverId: userId2 },
+        { senderId: userId2, receiverId: userId1 }
+      ]
+    }).sort({ createdAt: 1 });
+  }
+
+  async markMensajeAsRead(mensajeId, userId) {
+    const { Mensaje } = require('./models');
+    return await Mensaje.findOneAndUpdate(
+      { _id: mensajeId, receiverId: userId },
+      { read: true },
+      { new: true }
+    );
+  }
+
+  async getUnreadCount(userId) {
+    const { Mensaje } = require('./models');
+    return await Mensaje.countDocuments({
+      receiverId: userId,
+      read: false
+    });
+  }
+
+  async deleteOldMensajes(cutoffDate) {
+    const { Mensaje } = require('./models');
+    const result = await Mensaje.deleteMany({ 
+      createdAt: { $lt: cutoffDate } 
+    });
+    return { changes: result.deletedCount };
+  }
 }
 
 module.exports = new Database();

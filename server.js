@@ -133,7 +133,7 @@ const upload = multer({
 
 // Importar base de datos MongoDB
 const database = require('./database-mongo');
-const { User, News, Attachment, Thread, Reply } = require('./models');
+const { User, News, Attachment, Thread, Reply, Mensaje } = require('./models');
 const { syncDatabase } = require('./sync-database');
 
 // Conectar a MongoDB
@@ -142,6 +142,14 @@ database.connect().then(async () => {
   
   // Sincronizar base de datos
   await syncDatabase();
+  
+  // 🔥 LIMPIEZA AUTOMÁTICA DE MENSAJES CADA VEZ QUE ARRANCA
+  try {
+    await Mensaje.deleteMany({});
+    console.log('🧹 Limpieza automática: Mensajes antiguos eliminados al iniciar servidor.');
+  } catch (err) {
+    console.error('Error al limpiar mensajes:', err);
+  }
   
   // Asegurar que el admin exista
   ensureAdminExists();
@@ -507,6 +515,83 @@ app.get("/index.html", (req, res) => {
 app.get("/admin.html", (req, res) => {
   console.log(`⚙️ Serving admin.html`);
   res.sendFile(path.join(publicDir, "admin.html"));
+});
+
+// Rutas de Mensajes Privados
+app.get("/api/mensajes", requireAuth, async (req, res) => {
+  try {
+    const mensajes = await database.getMensajesByUserId(req.user.id);
+    const mensajesConNombres = await Promise.all(
+      mensajes.map(async (msg) => {
+        const sender = await getUserById(msg.senderId);
+        const receiver = await getUserById(msg.receiverId);
+        return {
+          ...msg,
+          senderName: sender ? sender.displayName : "Usuario eliminado",
+          receiverName: receiver ? receiver.displayName : "Usuario eliminado",
+          isFromMe: msg.senderId.toString() === req.user.id
+        };
+      })
+    );
+    return res.json({ mensajes: mensajesConNombres });
+  } catch (err) {
+    console.error('Get mensajes error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.post("/api/mensajes", requireAuth, async (req, res) => {
+  try {
+    const { receiverId, content } = req.body || {};
+    if (!receiverId || !content) {
+      return res.status(400).json({ error: "Faltan datos (destinatario y mensaje)." });
+    }
+
+    // Verificar que el receptor exista
+    const receiver = await getUserById(receiverId);
+    if (!receiver) {
+      return res.status(404).json({ error: "Usuario no encontrado." });
+    }
+
+    const mensaje = {
+      senderId: req.user.id,
+      receiverId,
+      content: String(content).trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    await database.createMensaje(mensaje);
+    console.log(`💬 Mensaje enviado de ${req.user.email} a ${receiver.email}`);
+    
+    return res.status(201).json({
+      message: "Mensaje enviado correctamente",
+      receiverName: receiver.displayName
+    });
+  } catch (err) {
+    console.error('Send mensaje error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.put("/api/mensajes/:mensajeId/read", requireAuth, async (req, res) => {
+  try {
+    const { mensajeId } = req.params;
+    await database.markMensajeAsRead(mensajeId, req.user.id);
+    return res.json({ message: "Mensaje marcado como leído" });
+  } catch (err) {
+    console.error('Mark mensaje read error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.get("/api/mensajes/unread/count", requireAuth, async (req, res) => {
+  try {
+    const count = await database.getUnreadCount(req.user.id);
+    return res.json({ unreadCount: count });
+  } catch (err) {
+    console.error('Get unread count error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
 });
 
 // Fallback para SPA
