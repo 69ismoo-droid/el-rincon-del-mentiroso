@@ -53,7 +53,7 @@ const newsSchema = new mongoose.Schema({
     maxlength: 2000
   },
   authorId: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
     required: true, 
     ref: 'User' 
   },
@@ -68,7 +68,7 @@ const newsSchema = new mongoose.Schema({
 // Esquema de Adjuntos
 const attachmentSchema = new mongoose.Schema({
   newsId: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
     required: true, 
     ref: 'News' 
   },
@@ -111,7 +111,7 @@ const threadSchema = new mongoose.Schema({
     maxlength: 2000
   },
   authorId: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
     required: true, 
     ref: 'User' 
   },
@@ -126,12 +126,12 @@ const threadSchema = new mongoose.Schema({
 // Esquema de Foro - Respuestas
 const replySchema = new mongoose.Schema({
   threadId: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
     required: true, 
     ref: 'Thread' 
   },
   authorId: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
     required: true, 
     ref: 'User' 
   },

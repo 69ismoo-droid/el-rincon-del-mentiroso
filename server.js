@@ -304,7 +304,7 @@ app.post(
       const files = Array.isArray(req.files) ? req.files : [];
       for (const f of files) {
         await database.createAttachment({
-          newsId: createdNews._id,
+          newsId: createdNews.id,
           originalName: f.originalname,
           storedName: f.filename,
           mime: f.mimetype,
@@ -314,7 +314,7 @@ app.post(
       }
 
       const result = {
-        id: createdNews._id,
+        id: createdNews.id,
         title: news.title,
         content: news.content,
         authorId: news.authorId,
@@ -362,9 +362,9 @@ app.get("/api/forum/threads", requireAuth, async (req, res) => {
     const threadsWithAuthors = await Promise.all(
       threads.map(async (t) => {
         const author = await getUserById(t.authorId);
-        const replies = await database.getRepliesByThreadId(t._id);
+        const replies = await database.getRepliesByThreadId(t.id);
         return {
-          ...t.toObject(),
+          ...t,
           authorName: author ? author.displayName : "Usuario eliminado",
           replyCount: replies.length,
         };
@@ -421,7 +421,7 @@ app.get("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
       replies.map(async (r) => {
         const replyAuthor = await getUserById(r.authorId);
         return {
-          ...r.toObject(),
+          ...r,
           authorName: replyAuthor ? replyAuthor.displayName : "Usuario eliminado",
         };
       })
@@ -429,7 +429,7 @@ app.get("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
 
     return res.json({
       thread: {
-        ...thread.toObject(),
+        ...thread,
         authorName: author ? author.displayName : "Usuario eliminado",
         replies: repliesWithAuthors,
       },
