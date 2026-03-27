@@ -38,13 +38,6 @@ userSchema.methods.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.passwordHash);
 };
 
-// Middleware para hashear contraseña antes de guardar
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('passwordHash')) return next();
-  this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
-  next();
-});
-
 // Esquema de Noticias
 const newsSchema = new mongoose.Schema({
   title: { 
