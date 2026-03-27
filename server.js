@@ -11,6 +11,12 @@ const crypto = require("crypto");
 // Configuración
 dotenv.config();
 
+// Forzar MONGODB_URI si Render no la encuentra
+if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
+  process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/?appName=Cluster0';
+  console.log('🔧 Forzando MONGODB_URI en producción');
+}
+
 // Debug variables de entorno
 console.log('🔍 Variables de entorno:');
 console.log('📍 MONGODB_URI:', process.env.MONGODB_URI ? 'DEFINIDA' : 'NO DEFINIDA');
