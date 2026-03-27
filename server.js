@@ -226,11 +226,11 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    const token = signToken({ id: user._id, email: user.email });
+    const token = signToken({ id: user.id, email: user.email });
     console.log(`🎉 Login successful: ${email}`);
     return res.json({
       token,
-      user: { id: user._id, email: user.email, displayName: user.displayName },
+      user: { id: user.id, email: user.email, displayName: user.displayName },
     });
   } catch (err) {
     console.error('❌ Login error:', err);
@@ -252,7 +252,7 @@ app.get("/api/news", async (req, res) => {
         return {
           ...n.toObject(),
           authorName: author ? author.displayName : "Usuario eliminado",
-          attachments: await database.getAttachmentsByNewsId(n._id),
+          attachments: await database.getAttachmentsByNewsId(n.id),
         };
       })
     );
