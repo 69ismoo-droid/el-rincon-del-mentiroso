@@ -24,6 +24,19 @@ console.log('🔐 JWT_SECRET:', process.env.JWT_SECRET ? 'DEFINIDA' : 'NO DEFINI
 console.log('🌐 NODE_ENV:', process.env.NODE_ENV);
 console.log('🚪 PORT:', process.env.PORT);
 
+// Verificación específica de producción
+if (process.env.NODE_ENV === 'production') {
+  console.log('🎯 MODO PRODUCCIÓN DETECTADO');
+  if (process.env.MONGODB_URI && process.env.MONGODB_URI.includes('el-rincon-del-mentiroso')) {
+    console.log('✅ Base de datos dedicada configurada correctamente');
+  } else if (process.env.MONGODB_URI) {
+    console.log('⚠️ Base de datos no es la dedicada');
+    console.log('📍 URI actual:', process.env.MONGODB_URI.replace(/\/\/[^:]*:[^@]*@/, '//***:***@'));
+  } else {
+    console.log('❌ MONGODB_URI no configurada en producción');
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
