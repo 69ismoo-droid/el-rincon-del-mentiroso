@@ -47,6 +47,11 @@ class Database {
     return await User.findById(id);
   }
 
+  async updateUserPassword(id, newPasswordHash) {
+    const { User } = require('./models');
+    return await User.findByIdAndUpdate(id, { passwordHash: newPasswordHash });
+  }
+
   async getAllUsers() {
     const { User } = require('./models');
     return await User.find({}).sort({ createdAt: -1 });

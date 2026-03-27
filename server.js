@@ -219,8 +219,26 @@ app.post("/api/auth/login", async (req, res) => {
       passwordHashLength: user.passwordHash?.length || 0
     });
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    // Intentar login con bcrypt.compare normal
+    let ok = await bcrypt.compare(password, user.passwordHash);
     console.log(`🔑 Password comparison result: ${ok}`);
+    
+    // Si falla, intentar con doble hash (usuarios antiguos)
+    if (!ok) {
+      console.log(`🔄 Intentando con doble hash (usuario antiguo)`);
+      const doubleHash = await bcrypt.hash(password, 10);
+      ok = await bcrypt.compare(doubleHash, user.passwordHash);
+      console.log(`🔑 Double hash comparison result: ${ok}`);
+      
+      if (ok) {
+        console.log(`✅ Usuario antiguo detectado, actualizando contraseña...`);
+        // Actualizar a hash simple para futuros logins
+        const newHash = await bcrypt.hash(password, 10);
+        await database.updateUserPassword(user.id, newHash);
+        console.log(`🔄 Contraseña actualizada a formato simple`);
+      }
+    }
+    
     if (!ok) {
       console.log(`❌ Invalid password for: ${email}`);
       return res.status(401).json({ error: "Credenciales inválidas" });
