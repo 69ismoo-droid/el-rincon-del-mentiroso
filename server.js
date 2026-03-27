@@ -13,8 +13,8 @@ dotenv.config();
 
 // Forzar MONGODB_URI si Render no la encuentra
 if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
-  process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/admin?appName=Cluster0';
-  console.log('🔧 Forzando MONGODB_URI a base de datos admin en producción');
+  process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/el-rincon-del-mentiroso?appName=Cluster0';
+  console.log('🔧 Forzando MONGODB_URI a base de datos dedicada en producción');
 }
 
 // Debug variables de entorno

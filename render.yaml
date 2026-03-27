@@ -12,7 +12,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        value: mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/admin?appName=Cluster0
+        value: mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/el-rincon-del-mentiroso?appName=Cluster0
       - key: JWT_SECRET
         value: el-rincon-del-mentiroso-super-secreto-2024
       - key: UPLOADS_DIR
