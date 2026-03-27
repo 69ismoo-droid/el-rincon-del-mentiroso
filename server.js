@@ -11,8 +11,15 @@ const crypto = require("crypto");
 // Configuración
 dotenv.config();
 
+// Debug variables de entorno
+console.log('🔍 Variables de entorno:');
+console.log('📍 MONGODB_URI:', process.env.MONGODB_URI ? 'DEFINIDA' : 'NO DEFINIDA');
+console.log('🔐 JWT_SECRET:', process.env.JWT_SECRET ? 'DEFINIDA' : 'NO DEFINIDA');
+console.log('🌐 NODE_ENV:', process.env.NODE_ENV);
+console.log('🚪 PORT:', process.env.PORT);
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 const rootDir = __dirname;
