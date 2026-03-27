@@ -4,10 +4,10 @@
   "description": "Blog de noticias y foro para COAR Cusco",
   "private": true,
   "type": "commonjs",
-  "main": "server-mongo.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server-mongo.js",
-    "dev": "node server-mongo.js",
+    "start": "node server.js",
+    "dev": "node server.js",
     "build": "echo 'Build complete'",
     "vercel-build": "npm start"
   },
