@@ -72,18 +72,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware para verificar archivos estáticos
-app.use((req, res, next) => {
-  if (req.path.includes('.') && !req.path.startsWith('/api/')) {
-    const filePath = path.join(publicDir, req.path);
-    if (!fs.existsSync(filePath)) {
-      console.log(`❌ Static file not found: ${req.path}`);
-      return res.status(404).send('File not found');
-    }
-  }
-  next();
-});
-
 // Frontend static files con configuración mejorada
 app.use(express.static(publicDir, {
   maxAge: '1h',
