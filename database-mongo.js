@@ -210,6 +210,11 @@ class Database {
     });
     return { changes: result.deletedCount };
   }
+
+  async getMensajeById(mensajeId) {
+    const { Mensaje } = require('./models');
+    return await Mensaje.findById(mensajeId);
+  }
 }
 
 module.exports = new Database();

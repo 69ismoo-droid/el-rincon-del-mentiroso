@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💬 Mensajes en Tiempo Real</h1>
+            <div class="status-bar">
+                <span id="connectionStatus" class="status">🔄 Conectando...</span>
+                <span id="messageCount" class="badge">📬 Sin mensajes nuevos</span>
+            </div>
+        </header>
+
+        <main class="messages-main">
+            <!-- Usuarios Conectados -->
+            <section class="online-users-section">
+                <h2>👥 Usuarios Conectados</h2>
+                <div id="onlineUsers" class="online-users">
+                    <div class="loading">Cargando usuarios...</div>
+                </div>
+            </section>
+
+            <!-- Área de Mensajes -->
+            <section class="messages-section">
+                <h2>💬 Conversación</h2>
+                
+                <!-- Selector de Destinatario -->
+                <div class="message-controls">
+                    <select id="receiverSelect" class="receiver-select">
+                        <option value="">Seleccionar destinatario...</option>
+                    </select>
+                </div>
+
+                <!-- Contenedor de Mensajes -->
+                <div id="messagesContainer" class="messages-container">
+                    <div class="no-messages">Selecciona un destinatario para ver la conversación</div>
+                </div>
+
+                <!-- Formulario de Envío -->
+                <form id="messageForm" class="message-form">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            class="message-input" 
+                            placeholder="Escribe tu mensaje aquí..." 
+                            maxlength="1000"
+                            required
+                        >
+                        <button type="submit" class="send-btn">
+                            📤 Enviar
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </main>
+
+        <footer>
+            <p>
+                <a href="/index.html">🏠 Volver al Inicio</a> |
+                <a href="/signup.html">📝 Registrarse</a> |
+                <a href="/login.html">🔐 Iniciar Sesión</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="messages.js"></script>
+</body>
+</html>

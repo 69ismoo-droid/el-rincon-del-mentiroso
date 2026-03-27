@@ -1,12 +1,14 @@
 const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
+const http = require("http");
+const socketIo = require("socket.io");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const dotenv = require("dotenv");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const multer = require("multer");
+const cors = require("cors");
 
 // Configuración
 dotenv.config();
@@ -53,6 +55,14 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
@@ -153,10 +163,167 @@ database.connect().then(async () => {
   
   // Asegurar que el admin exista
   ensureAdminExists();
+  
+  // 🔄 INICIAR WEBSOCKET PARA MENSAJES EN TIEMPO REAL
+  startWebSocket();
 }).catch(err => {
   console.error('❌ Error al iniciar:', err);
   process.exit(1);
 });
+
+// 🔄 WebSocket para mensajes en tiempo real
+function startWebSocket() {
+  console.log('🔄 Iniciando WebSocket para mensajes en tiempo real...');
+  
+  // Almacen de usuarios conectados
+  const connectedUsers = new Map();
+  
+  io.use((socket, next) => {
+    // Autenticar WebSocket con JWT
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error('Token requerido'));
+    }
+    
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      socket.userId = decoded.sub;
+      socket.userEmail = decoded.email;
+      next();
+    } catch (err) {
+      next(new Error('Token inválido'));
+    }
+  });
+  
+  io.on('connection', (socket) => {
+    console.log(`🔌 Usuario conectado: ${socket.userEmail}`);
+    
+    // Guardar usuario conectado
+    connectedUsers.set(socket.userId, {
+      socketId: socket.id,
+      email: socket.userEmail,
+      connectedAt: new Date()
+    });
+    
+    // Notificar a todos que usuario se conectó
+    socket.broadcast.emit('user_connected', {
+      userId: socket.userId,
+      email: socket.userEmail,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Enviar lista de usuarios conectados
+    const usersList = Array.from(connectedUsers.entries()).map(([userId, data]) => ({
+      userId,
+      email: data.email,
+      connectedAt: data.connectedAt
+    }));
+    
+    socket.emit('users_list', usersList);
+    
+    // 📬 ENVIAR MENSAJE PRIVADO EN TIEMPO REAL
+    socket.on('send_message', async (data) => {
+      try {
+        const { receiverId, content } = data;
+        
+        if (!receiverId || !content) {
+          socket.emit('error', { message: 'Faltan datos' });
+          return;
+        }
+        
+        // Verificar que el receptor exista
+        const receiver = await getUserById(receiverId);
+        if (!receiver) {
+          socket.emit('error', { message: 'Usuario no encontrado' });
+          return;
+        }
+        
+        // Guardar mensaje en base de datos
+        const mensaje = {
+          senderId: socket.userId,
+          receiverId,
+          content: String(content).trim(),
+          createdAt: new Date().toISOString()
+        };
+        
+        const savedMensaje = await database.createMensaje(mensaje);
+        
+        // Preparar mensaje con nombres
+        const mensajeConNombres = {
+          ...savedMensaje,
+          senderName: socket.userEmail,
+          receiverName: receiver.displayName,
+          senderId: socket.userId,
+          receiverId: receiverId
+        };
+        
+        console.log(`💬 Mensaje en tiempo real: ${socket.userEmail} → ${receiver.displayName}`);
+        
+        // Enviar al receptor si está conectado
+        const receiverSocket = connectedUsers.get(receiverId);
+        if (receiverSocket) {
+          io.to(receiverSocket.socketId).emit('new_message', mensajeConNombres);
+          console.log(`📨 Mensaje entregado en tiempo real a: ${receiver.displayName}`);
+        }
+        
+        // Confirmar al emisor
+        socket.emit('message_sent', {
+          ...mensajeConNombres,
+          delivered: !!receiverSocket,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (err) {
+        console.error('Error en send_message:', err);
+        socket.emit('error', { message: 'Error al enviar mensaje' });
+      }
+    });
+    
+    // 📖 MARCAR MENSAJE COMO LEÍDO
+    socket.on('mark_read', async (data) => {
+      try {
+        const { messageId } = data;
+        await database.markMensajeAsRead(messageId, socket.userId);
+        
+        // Notificar al emisor que el mensaje fue leído
+        const updatedMessage = await database.getMensajeById(messageId);
+        if (updatedMessage) {
+          const senderSocket = connectedUsers.get(updatedMessage.senderId);
+          if (senderSocket) {
+            io.to(senderSocket.socketId).emit('message_read', {
+              messageId,
+              readBy: socket.userEmail,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+        
+        socket.emit('message_marked_read', { messageId });
+        
+      } catch (err) {
+        console.error('Error en mark_read:', err);
+        socket.emit('error', { message: 'Error al marcar mensaje' });
+      }
+    });
+    
+    // 🔌 DESCONECTAR
+    socket.on('disconnect', () => {
+      console.log(`🔌 Usuario desconectado: ${socket.userEmail}`);
+      
+      // Eliminar usuario conectado
+      connectedUsers.delete(socket.userId);
+      
+      // Notificar a todos que usuario se desconectó
+      socket.broadcast.emit('user_disconnected', {
+        userId: socket.userId,
+        email: socket.userEmail,
+        timestamp: new Date().toISOString()
+      });
+    });
+  });
+  
+  console.log('✅ WebSocket iniciado para mensajes en tiempo real');
+}
 
 // Middleware de autenticación
 function requireAuth(req, res, next) {
@@ -638,8 +805,10 @@ database.connect()
     // Asegurar que el administrador exista
     await ensureAdminExists();
     
-    app.listen(PORT, () => {
-      console.log(`🌙 El Rincón del Mentiroso - Servidor iniciado`);
+    // Iniciar servidor
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`🌙 El Rincón del Mentiroso - Servidor iniciado en puerto ${PORT}`);
+      console.log(`🔌 WebSocket disponible para mensajes en tiempo real`);
       console.log(`📍 http://localhost:${PORT}`);
       console.log(`✅ Dominio permitido: @cusco.coar.edu.pe`);
       console.log(`👑 Admin: cruel@admin`);
