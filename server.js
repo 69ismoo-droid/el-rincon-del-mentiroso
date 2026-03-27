@@ -13,8 +13,8 @@ dotenv.config();
 
 // Forzar MONGODB_URI si Render no la encuentra
 if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
-  process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/?appName=Cluster0';
-  console.log('🔧 Forzando MONGODB_URI en producción');
+  process.env.MONGODB_URI = 'mongodb+srv://admin_cruel:28dejulio@cluster0.lvswgvg.mongodb.net/admin?appName=Cluster0';
+  console.log('🔧 Forzando MONGODB_URI a base de datos admin en producción');
 }
 
 // Debug variables de entorno
@@ -106,6 +106,21 @@ const upload = multer({
 // Importar base de datos MongoDB
 const database = require('./database-mongo');
 const { User, News, Attachment, Thread, Reply } = require('./models');
+const { syncDatabase } = require('./sync-database');
+
+// Conectar a MongoDB
+database.connect().then(async () => {
+  console.log('🌙 El Rincón del Mentiroso - Servidor iniciado');
+  
+  // Sincronizar base de datos
+  await syncDatabase();
+  
+  // Asegurar que el admin exista
+  ensureAdminExists();
+}).catch(err => {
+  console.error('❌ Error al iniciar:', err);
+  process.exit(1);
+});
 
 // Middleware de autenticación
 function requireAuth(req, res, next) {

@@ -38,7 +38,7 @@ git push origin main
 1. Conecta tu repositorio de GitHub a Render
 2. Configura las variables de entorno:
    - `JWT_SECRET`: una clave muy segura
-   - `PORT`: 3000 (valor por defecto de Render)
+   - `PORT`: 1000 (valor por defecto de Render)
 3. En "Build Command" usa: `npm install`
 4. En "Start Command" usa: `npm start`
 
