@@ -328,28 +328,32 @@ class RealTimeMessages {
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  // Verificar que el usuario esté autenticado
-  const token = localStorage.getItem('token');
-  if (!token) {
-    console.error('❌ No hay token de autenticación');
-    window.location.href = '/login.html';
-    return;
-  }
+  // Esperar un momento más para asegurar que todo esté cargado
+  setTimeout(() => {
+    // Verificar que el usuario esté autenticado
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('❌ No hay token de autenticación');
+      window.location.href = '/login.html';
+      return;
+    }
 
-  // Verificar que Socket.io esté disponible
-  if (typeof io === 'undefined') {
-    console.error('❌ Socket.io no está disponible');
-    alert('Error: Socket.io no se pudo cargar. Recarga la página.');
-    return;
-  }
+    // Verificar que Socket.io esté disponible
+    if (typeof io === 'undefined') {
+      console.error('❌ Socket.io no está disponible');
+      alert('Error: Socket.io no se pudo cargar. Recarga la página.');
+      return;
+    }
 
-  // Pedir permiso para notificaciones
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-  
-  console.log('✅ Inicializando sistema de mensajes...');
-  window.messagesApp = new RealTimeMessages();
+    // Pedir permiso para notificaciones
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    
+    console.log('✅ Inicializando sistema de mensajes...');
+    console.log('🔌 io disponible:', typeof io);
+    window.messagesApp = new RealTimeMessages();
+  }, 200); // Aumentar el tiempo de espera
 });
 
 // Función global para marcar mensajes
