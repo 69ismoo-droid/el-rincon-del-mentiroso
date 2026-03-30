@@ -556,6 +556,8 @@ class App {
     } else {
       // Cargar hilos solo cuando se activa la pestaña de foros
       await this.loadThreads();
+    }
+  }
 
   showThreadList() {
     const { threadListView, threadDetailView } = this.elements;

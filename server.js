@@ -792,6 +792,82 @@ app.put("/api/mensajes/:mensajeId/read", requireAuth, async (req, res) => {
   }
 });
 
+// Rutas de Administración General
+app.get("/api/admin/stats", requireAuth, async (req, res) => {
+  try {
+    // Verificar que sea admin
+    if (req.user.email !== "cruel@admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    // Obtener estadísticas generales
+    const { User } = require('./models');
+    const { News } = require('./models');
+    const { Thread } = require('./models');
+    const { Reply } = require('./models');
+    const { Attachment } = require('./models');
+
+    const stats = {
+      totalUsers: await User.countDocuments(),
+      totalNews: await News.countDocuments(),
+      totalThreads: await Thread.countDocuments(),
+      totalReplies: await Reply.countDocuments(),
+      totalAttachments: await Attachment.countDocuments(),
+      timestamp: new Date().toISOString()
+    };
+
+    return res.json({ stats });
+  } catch (err) {
+    console.error('Error en stats admin:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.get("/api/admin/users", requireAuth, async (req, res) => {
+  try {
+    // Verificar que sea admin
+    if (req.user.email !== "cruel@admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const users = await database.getAllUsers();
+    return res.json({ users });
+  } catch (err) {
+    console.error('Error en users admin:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.get("/api/admin/news", requireAuth, async (req, res) => {
+  try {
+    // Verificar que sea admin
+    if (req.user.email !== "cruel@admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const news = await database.getAllNews();
+    return res.json({ news });
+  } catch (err) {
+    console.error('Error en news admin:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.get("/api/admin/threads", requireAuth, async (req, res) => {
+  try {
+    // Verificar que sea admin
+    if (req.user.email !== "cruel@admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const threads = await database.getAllThreads();
+    return res.json({ threads });
+  } catch (err) {
+    console.error('Error en threads admin:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
 // Rutas de Administración de Mensajes
 app.delete("/api/admin/mensajes", requireAuth, async (req, res) => {
   try {
