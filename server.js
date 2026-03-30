@@ -68,7 +68,7 @@ const io = socketIo(server, {
   }
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 const rootDir = __dirname;
