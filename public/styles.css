@@ -1,20 +1,66 @@
 :root{
-  --primary: #1a1a2e;
-  --primary-light: #16213e;
-  --secondary: #0f3460;
-  --accent: #e94560;
-  --accent-light: #ff6b6b;
-  --warning: #ffd93d;
-  --warning-light: #ffed4e;
-  --success: #00b4d8;
-  --danger: #e94560;
-  --text: #e8e8e8;
-  --muted: #a8a8a8;
-  --border: #2d2d44;
-  --bg: #0d0d1f;
-  --card-bg: #1a1a2e;
-  --code-bg: #2d2d44;
-  --shadow: rgba(0, 0, 0, 0.5);
+  /* 🎨 Paleta de Colores Mejorada - El Rincón del Mentiroso v2.0 */
+  
+  /* Colores Primarios */
+  --primary: #2563eb;
+  --primary-light: #4dabf7;
+  --primary-dark: #1e4db8;
+  --secondary: #7c3aed;
+  --secondary-light: #a78bfa;
+  --secondary-dark: #6d28d9;
+  
+  /* Colores de Acento */
+  --accent: #f59e0b;
+  --accent-light: #fbbf24;
+  --accent-dark: #d97706;
+  
+  /* Colores de Estado */
+  --success: #10b981;
+  --success-light: #34d399;
+  --success-dark: #059669;
+  --warning: #f59e0b;
+  --warning-light: #fbbf24;
+  --warning-dark: #d97706;
+  --danger: #ef4444;
+  --danger-light: #f87171;
+  --danger-dark: #dc2626;
+  --info: #3b82f6;
+  --info-light: #60a5fa;
+  --info-dark: #1d4ed8;
+  
+  /* Colores de Texto */
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-inverse: #1e293b;
+  
+  /* Colores de Fondo */
+  --bg: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --card-bg: #1e293b;
+  --card-hover: #334155;
+  --card-border: #475569;
+  
+  /* Colores de Borde y Sombra */
+  --border: #334155;
+  --border-light: #475569;
+  --border-focus: #60a5fa;
+  --shadow: rgba(0, 0, 0, 0.25);
+  --shadow-lg: rgba(0, 0, 0, 0.4);
+  --shadow-xl: rgba(0, 0, 0, 0.6);
+  
+  /* Gradientes */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  --gradient-bg: radial-gradient(ellipse at top, var(--bg-secondary) 0%, var(--bg) 100%);
+  
+  /* Efectos Especiales */
+  --glow-primary: 0 0 20px rgba(37, 99, 235, 0.5);
+  --glow-accent: 0 0 20px rgba(245, 158, 11, 0.5);
+  --glow-success: 0 0 20px rgba(16, 185, 129, 0.5);
+  --glow-danger: 0 0 20px rgba(239, 68, 68, 0.5);
 }
 
 *{
@@ -25,15 +71,19 @@
 
 body{
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg);
+  background: var(--gradient-bg);
   color: var(--text);
   min-height: 100vh;
   line-height: 1.6;
-  background-image: 
-    radial-gradient(circle at 20% 50%, rgba(233, 69, 96, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 217, 61, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(0, 180, 216, 0.05) 0%, transparent 50%);
   background-attachment: fixed;
+  background-size: 400% 400%;
+  animation: gradientShift 20s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .container{
@@ -87,9 +137,9 @@ button, input, textarea{
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(10px);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -101,7 +151,7 @@ button, input, textarea{
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 217, 61, 0.3), transparent);
+  background: var(--gradient-primary);
   animation: shimmer 3s infinite;
 }
 
@@ -111,8 +161,10 @@ button, input, textarea{
 }
 
 .card:hover{
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--border-focus);
+  background: var(--card-hover);
 }
 
 .title{
@@ -173,19 +225,46 @@ textarea{
 .btn{
   border: none;
   border-radius: 12px;
-  padding: 12px 20px;
-  background: var(--primary);
-  color: white;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 15px;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--gradient-primary);
+  color: white;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
 }
 
-.btn:hover{
-  background: var(--primary-hover);
-  transform: translateY(-1px);
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-secondary);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.btn:hover::before {
+  left: 0;
+}
+
+.btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--glow-primary);
+  background: var(--gradient-primary);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
   box-shadow: var(--shadow);
 }
 
@@ -445,19 +524,41 @@ textarea{
   margin-bottom: 16px;
 }
 
-.loading{
+.loadingSpinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid var(--primary);
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--border-light);
   border-radius: 50%;
+  border-top-color: var(--primary);
   animation: spin 1s linear infinite;
+  margin-right: 8px;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.btn.loading {
+  pointer-events: none;
+  opacity: 0.8;
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid var(--primary-light);
+  border-radius: 50%;
+  border-top-color: var(--text);
+  animation: spin 1s linear infinite;
 }
 
 .emptyState{
@@ -783,16 +884,131 @@ textarea{
   animation: fadeIn 0.3s ease;
 }
 
+/* Efectos Especiales y Mejoras Visuales */
+
+/* Efecto de brillo en hover */
+.glow-effect {
+  transition: all 0.3s ease;
+}
+
+.glow-effect:hover {
+  box-shadow: var(--glow-primary);
+  transform: translateY(-2px);
+}
+
+/* Efecto de pulso para elementos importantes */
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Efecto de entrada suave */
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Efecto de deslizamiento */
+.slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* Mejoras para accesibilidad */
 .btn:focus,
 input:focus,
 textarea:focus {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--border-focus);
   outline-offset: 2px;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.2);
 }
 
 .btn:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Efectos de texto */
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* Efecto de vidrio esmerilado */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+}
+
+/* Mejoras responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+  
+  .card {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .topbar {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 8px;
+  }
+  
+  .card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .tabs .btn {
+    flex: 1;
+    min-width: 120px;
+  }
 }
 
 /* Mejoras para estado vacío */
