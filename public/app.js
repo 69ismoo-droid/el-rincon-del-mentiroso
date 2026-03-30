@@ -667,7 +667,16 @@ class App {
 
     try {
       const data = await api("/api/forum/threads");
+      
+      // Verificar que data exista y tenga threads
+      if (!data || !data.threads) {
+        console.error('❌ Respuesta inválida de API threads:', data);
+        this.setAlert(this.elements.forumAlert, "❌ Error al cargar hilos: respuesta inválida del servidor", "err");
+        return;
+      }
+      
       const threads = Array.isArray(data.threads) ? data.threads : [];
+      console.log('✅ Hilos cargados:', threads.length);
 
       if (threads.length === 0) {
         threadList.innerHTML = `
@@ -781,7 +790,8 @@ class App {
                 await api(`/api/forum/replies/${r.id}`, { method: "DELETE" });
                 await this.loadThreadDetail(threadId);
               } catch (err) {
-                this.setAlert(this.elements.forumAlert, `❌ Error: ${err.message}`, "err");
+                console.error('❌ Error cargando hilos:', err);
+                this.setAlert(this.elements.forumAlert, `❌ Error cargando hilos: ${err.message}`, "err");
               }
             });
           }

@@ -341,7 +341,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verificar que Socket.io esté disponible
     if (typeof io === 'undefined') {
       console.error('❌ Socket.io no está disponible');
-      alert('Error: Socket.io no se pudo cargar. Recarga la página.');
+      console.error('🔍 Intentando cargar Socket.io manualmente...');
+      
+      // Intentar cargar Socket.io manualmente
+      const script = document.createElement('script');
+      script.src = '/socket.io/socket.io.js';
+      script.onload = () => {
+        console.log('✅ Socket.io cargado manualmente');
+        setTimeout(() => {
+          window.messagesApp = new RealTimeMessages();
+        }, 500);
+      };
+      script.onerror = () => {
+        console.error('❌ No se pudo cargar Socket.io manualmente');
+        alert('Error: Socket.io no se pudo cargar. El servidor podría no estar funcionando correctamente.');
+      };
+      document.head.appendChild(script);
       return;
     }
 

@@ -6,34 +6,77 @@
     <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
-    <!-- Cargar Socket.io de forma síncrona -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="app.js"></script>
+    <!-- Cargar Socket.io con múltiples estrategias -->
     <script>
-        // Verificar que io esté disponible
-        if (typeof io === 'undefined') {
-            console.error('❌ Socket.io no se pudo cargar desde CDN');
-            // Intentar cargar desde servidor
-            var script = document.createElement('script');
-            script.src = '/socket.io/socket.io.js';
-            script.onload = function() {
-                console.log('✅ Socket.io cargado desde servidor');
-                // Cargar messages.js después
-                var messagesScript = document.createElement('script');
-                messagesScript.src = 'messages.js';
-                document.head.appendChild(messagesScript);
-            };
-            script.onerror = function() {
-                alert('Error: No se pudo cargar Socket.io. El servidor podría no estar funcionando.');
-            };
-            document.head.appendChild(script);
-        } else {
-            console.log('✅ Socket.io cargado desde CDN');
-            // Cargar messages.js directamente
-            var messagesScript = document.createElement('script');
-            messagesScript.src = 'messages.js';
-            document.head.appendChild(messagesScript);
+        // Estrategia 1: Intentar CDN primero
+        function loadSocketFromCDN() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+                script.onload = () => {
+                    console.log('✅ Socket.io cargado desde CDN');
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.log('🔄 CDN falló, intentando servidor...');
+                    reject();
+                };
+                document.head.appendChild(script);
+            });
         }
+        
+        // Estrategia 2: Cargar desde servidor
+        function loadSocketFromServer() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = '/socket.io/socket.io.js';
+                script.onload = () => {
+                    console.log('✅ Socket.io cargado desde servidor');
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error('❌ No se pudo cargar Socket.io desde servidor');
+                    reject();
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Estrategia 3: Cargar app.js y messages.js
+        function loadAppScripts() {
+            return new Promise((resolve) => {
+                const appScript = document.createElement('script');
+                appScript.src = 'app.js';
+                appScript.onload = () => {
+                    const messagesScript = document.createElement('script');
+                    messagesScript.src = 'messages.js';
+                    messagesScript.onload = resolve;
+                    document.head.appendChild(messagesScript);
+                };
+                document.head.appendChild(appScript);
+            });
+        }
+        
+        // Ejecutar estrategias en orden
+        async function initializeMessages() {
+            try {
+                await loadSocketFromCDN();
+            } catch (e) {
+                try {
+                    await loadSocketFromServer();
+                } catch (e2) {
+                    console.error('❌ No se pudo cargar Socket.io desde ninguna fuente');
+                    alert('Error: No se pudo cargar Socket.io. El servidor podría no estar funcionando.');
+                    return;
+                }
+            }
+            
+            // Cargar la aplicación después de Socket.io
+            await loadAppScripts();
+        }
+        
+        // Iniciar la carga
+        initializeMessages();
     </script>
 </head>
 <body>
