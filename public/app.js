@@ -22,7 +22,15 @@ function escapeHtml(str) {
 
 function formatDate(iso) {
   try {
+    if (!iso) return '📅 Fecha no disponible';
+    
     const d = new Date(iso);
+    
+    // Verificar si la fecha es válida
+    if (isNaN(d.getTime())) {
+      return '📅 Fecha inválida';
+    }
+    
     return d.toLocaleString('es-ES', {
       day: '2-digit',
       month: '2-digit',
@@ -30,8 +38,9 @@ function formatDate(iso) {
       hour: '2-digit',
       minute: '2-digit'
     });
-  } catch {
-    return iso;
+  } catch (error) {
+    console.error('Error en formatDate:', error);
+    return '📅 Error en fecha';
   }
 }
 
@@ -140,7 +149,7 @@ class App {
       const me = await api("/api/auth/me");
       this.currentUserId = me.user.id;
       this.currentUser = me.user;
-      this.elements.userBox.textContent = `👋 ${me.user.displayName}`;
+      this.elements.userBox.textContent = `👋 ${me.user.displayName || me.user.email || 'Usuario'}`;
       this.elements.logoutBtn.style.display = "inline-block";
       
       // Mostrar enlace de admin solo para cruel@admin

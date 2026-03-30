@@ -50,6 +50,7 @@ form.addEventListener("submit", async (e) => {
     });
 
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
     window.location.href = "/index.html";
   } catch (err) {
     setAlert(err.message || "Error al iniciar sesión", "err");
