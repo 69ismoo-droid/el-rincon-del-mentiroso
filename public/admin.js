@@ -180,32 +180,29 @@ class AdminApp {
       
       this.elements.statsContainer.innerHTML = `
         <div class="statCard">
-          <div class="statNumber">${stats.totalUsers}</div>
-          <div class="statLabel">Total Usuarios</div>
+          <h3>👥 Usuarios</h3>
+          <div class="statNumber">${stats.totalUsers || 0}</div>
         </div>
         <div class="statCard">
-          <div class="statNumber">${stats.adminUsers}</div>
-          <div class="statLabel">Administradores</div>
+          <h3>📰 Noticias</h3>
+          <div class="statNumber">${stats.totalNews || 0}</div>
         </div>
         <div class="statCard">
-          <div class="statNumber">${stats.totalNews}</div>
-          <div class="statLabel">Noticias</div>
+          <h3>💬 Hilos</h3>
+          <div class="statNumber">${stats.totalThreads || 0}</div>
         </div>
         <div class="statCard">
-          <div class="statNumber">${stats.totalThreads}</div>
-          <div class="statLabel">Hilos</div>
+          <h3>💬 Respuestas</h3>
+          <div class="statNumber">${stats.totalReplies || 0}</div>
         </div>
         <div class="statCard">
-          <div class="statNumber">${stats.totalReplies}</div>
-          <div class="statLabel">Respuestas</div>
-        </div>
-        <div class="statCard">
-          <div class="statNumber">${stats.totalAttachments}</div>
-          <div class="statLabel">Archivos</div>
+          <h3>📎 Adjuntos</h3>
+          <div class="statNumber">${stats.totalAttachments || 0}</div>
         </div>
       `;
     } catch (err) {
-      this.elements.statsContainer.innerHTML = `<div class="alert err">Error cargando estadísticas: ${err.message}</div>`;
+      console.error('Error cargando estadísticas:', err);
+      this.elements.statsContainer.innerHTML = '<div class="alert err">Error cargando estadísticas: ' + err.message + '</div>';
     }
   }
 

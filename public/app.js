@@ -541,34 +541,33 @@ class App {
     const isNews = tab === "news";
     const { tabNews, tabForum, newsSection, forumSection, newsCreateCard, forumCreateCard } = this.elements;
 
-    tabNews?.classList.toggle("active", isNews);
-    tabForum?.classList.toggle("active", !isNews);
+    // Verificar que los elementos existan antes de usarlos
+    if (tabNews) tabNews.classList.toggle("active", isNews);
+    if (tabForum) tabForum.classList.toggle("active", !isNews);
 
-    newsSection.style.display = isNews ? "block" : "none";
-    forumSection.style.display = isNews ? "none" : "block";
+    if (newsSection) newsSection.style.display = isNews ? "block" : "none";
+    if (forumSection) forumSection.style.display = isNews ? "none" : "block";
 
-    newsCreateCard.style.display = isNews ? "block" : "none";
-    forumCreateCard.style.display = isNews ? "none" : "block";
+    if (newsCreateCard) newsCreateCard.style.display = isNews ? "block" : "none";
+    if (forumCreateCard) forumCreateCard.style.display = isNews ? "none" : "block";
 
     if (isNews) {
       this.showThreadList();
     } else {
       // Cargar hilos solo cuando se activa la pestaña de foros
       await this.loadThreads();
-    }
-  }
 
   showThreadList() {
     const { threadListView, threadDetailView } = this.elements;
-    threadListView.style.display = "block";
-    threadDetailView.style.display = "none";
+    if (threadListView) threadListView.style.display = "block";
+    if (threadDetailView) threadDetailView.style.display = "none";
     this.activeThreadId = null;
   }
 
   showThreadDetail() {
     const { threadListView, threadDetailView } = this.elements;
-    threadListView.style.display = "none";
-    threadDetailView.style.display = "block";
+    if (threadListView) threadListView.style.display = "none";
+    if (threadDetailView) threadDetailView.style.display = "block";
   }
 
   setAlert(el, msg, kind) {
@@ -767,7 +766,7 @@ class App {
               <div class="muted">📅 ${escapeHtml(formatDate(r.createdAt))}</div>
             </div>
             <div class="replyContent">${escapeHtml(r.body)}</div>
-            ${canDelete ? `<button class="btn danger" data-reply-delete="${r.id}" style="margin-top:8px">🗑️ Eliminar</button>` : ""}
+            ${canDelete ? '<button class="btn danger" data-reply-delete="' + r.id + '" style="margin-top:8px">🗑️ Eliminar</button>' : ''}
           `;
 
           const delBtn = item.querySelector("button[data-reply-delete]");
