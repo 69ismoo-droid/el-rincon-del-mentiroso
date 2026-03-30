@@ -1,8 +1,15 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "El Rincón del Mentiroso",
   "description": "Sistema de comunicación educativa con mensajes en tiempo real",
   "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-03-30",
+      "type": "minor",
+      "description": "Mensajes permanentes con administración de admin",
+      "features": []
+    },
     {
       "version": "1.0.0",
       "date": "2026-03-27",
@@ -24,7 +31,7 @@
   ],
   "nextVersion": {
     "major": "2.0.0",
-    "minor": "1.1.0",
-    "patch": "1.0.1"
+    "minor": "1.2.0",
+    "patch": "1.1.1"
   }
 }

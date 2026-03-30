@@ -160,26 +160,28 @@ database.connect().then(async () => {
   
   // 🔥 LIMPIEZA AUTOMÁTICA DE MENSAJES CADA VEZ QUE ARRANCA
   try {
-    await Mensaje.deleteMany({});
-    console.log('🧹 Limpieza automática: Mensajes antiguos eliminados al iniciar servidor.');
+    // Comentamos la limpieza para que los mensajes sean permanentes
+    // await Mensaje.deleteMany({});
+    // console.log('🧹 Limpieza automática: Mensajes antiguos eliminados al iniciar servidor.');
+    console.log('💬 Mensajes configurados para ser PERMANENTES');
   } catch (err) {
-    console.error('Error al limpiar mensajes:', err);
+    console.error('Error en configuración de mensajes:', err);
   }
   
-  // 🕅 LIMPIEZA AUTOMÁTICA CADA 24 HORAS
-  setInterval(async () => {
-    try {
-      const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 horas atrás
-      const result = await database.deleteOldMensajes(cutoffDate);
-      if (result.changes > 0) {
-        console.log(`🕅 Limpieza automática 24h: ${result.changes} mensajes eliminados`);
-      }
-    } catch (err) {
-      console.error('Error en limpieza periódica de mensajes:', err);
-    }
-  }, 24 * 60 * 60 * 1000); // Cada 24 horas
+  // 🕅 LIMPIEZA AUTOMÁTICA CADA 24 HORAS (COMENTADA)
+  // setInterval(async () => {
+  //   try {
+  //     const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 horas atrás
+  //     const result = await database.deleteOldMensajes(cutoffDate);
+  //     if (result.changes > 0) {
+  //       console.log(`🕅 Limpieza automática 24h: ${result.changes} mensajes eliminados`);
+  //     }
+  //   } catch (err) {
+  //     console.error('Error en limpieza periódica de mensajes:', err);
+  //   }
+  // }, 24 * 60 * 60 * 1000); // Cada 24 horas
   
-  console.log('🕅 Limpieza automática configurada: Cada 24 horas');
+  console.log('� Mensajes PERMANENTES - Solo el admin puede borrarlos');
   
   // Asegurar que el admin exista
   ensureAdminExists();
@@ -786,6 +788,75 @@ app.put("/api/mensajes/:mensajeId/read", requireAuth, async (req, res) => {
     return res.json({ message: "Mensaje marcado como leído" });
   } catch (err) {
     console.error('Mark mensaje read error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Rutas de Administración de Mensajes
+app.delete("/api/admin/mensajes", requireAuth, async (req, res) => {
+  try {
+    // Verificar que sea admin
+    if (req.user.email !== "cruel@admin") {
+      return res.status(403).json({ error: "Acceso denegado. Solo el administrador puede borrar mensajes." });
+    }
+
+    // Borrar TODOS los mensajes de la base de datos
+    const result = await Mensaje.deleteMany({});
+    
+    console.log(`🗑️ Admin ${req.user.email} borró ${result.deletedCount} mensajes`);
+    
+    return res.json({ 
+      message: "Todos los mensajes han sido eliminados",
+      deletedCount: result.deletedCount,
+      deletedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error al borrar mensajes:', err);
+    return res.status(500).json({ error: "Error interno al borrar mensajes" });
+  }
+});
+
+// Ruta para obtener estadísticas de mensajes (solo admin)
+app.get("/api/admin/mensajes/stats", requireAuth, async (req, res) => {
+  try {
+    // Verificar que sea admin
+    if (req.user.email !== "cruel@admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    // Obtener estadísticas
+    const totalMensajes = await Mensaje.countDocuments();
+    const mensajesHoy = await Mensaje.countDocuments({
+      createdAt: {
+        $gte: new Date(new Date().setHours(0,0,0,0))
+      }
+    });
+    
+    // Obtener mensajes por usuario
+    const mensajesPorUsuario = await Mensaje.aggregate([
+      {
+        $group: {
+          _id: "$senderId",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    return res.json({
+      totalMensajes,
+      mensajesHoy,
+      topUsuarios: mensajesPorUsuario,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error al obtener estadísticas:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
