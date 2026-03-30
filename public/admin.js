@@ -230,10 +230,10 @@ class AdminApp {
         item.innerHTML = `
           <div class="adminItemHeader">
             <div class="adminItemInfo">
-              <h3>${escapeHtml(user.displayName)} ${isAdminBadge}</h3>
+              <h3>${escapeHtml(user.displayName || 'Sin nombre')} ${isAdminBadge}</h3>
               <div class="adminItemDetails">
                 <div>📧 ${escapeHtml(user.email)}</div>
-                <div>🔖 ${escapeHtml(user.inviteCode)}</div>
+                <div>🔖 Código: ${escapeHtml(user.censoredInviteCode || user.inviteCode)}</div>
                 <div>📅 ${formatDate(user.createdAt)}</div>
               </div>
             </div>

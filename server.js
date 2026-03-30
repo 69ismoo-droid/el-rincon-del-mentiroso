@@ -529,6 +529,7 @@ app.get("/api/news", async (req, res) => {
         return {
           ...n,
           authorName: author ? author.displayName : "Usuario eliminado",
+          authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
           attachments: await database.getAttachmentsByNewsId(n.id),
         };
       })
@@ -559,6 +560,7 @@ app.post(
       };
 
       const createdNews = await database.createNews(news);
+      const author = await getUserById(req.user.id);
 
       const files = Array.isArray(req.files) ? req.files : [];
       for (const f of files) {
@@ -577,6 +579,8 @@ app.post(
         title: news.title,
         content: news.content,
         authorId: news.authorId,
+        authorName: author.displayName,
+        authorCode: censorInviteCode(author.inviteCode),
         createdAt: news.createdAt,
         attachments: files.map((f) => ({
           originalName: f.originalname,
@@ -625,6 +629,7 @@ app.get("/api/forum/threads", requireAuth, async (req, res) => {
         return {
           ...t,
           authorName: author ? author.displayName : "Usuario eliminado",
+          authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
           replyCount: replies.length,
         };
       })
@@ -657,6 +662,7 @@ app.post("/api/forum/threads", requireAuth, async (req, res) => {
       thread: {
         ...createdThread.toObject(),
         authorName: author.displayName,
+        authorCode: censorInviteCode(author.inviteCode),
         replyCount: 0,
       },
     });
@@ -682,6 +688,7 @@ app.get("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
         return {
           ...r,
           authorName: replyAuthor ? replyAuthor.displayName : "Usuario eliminado",
+          authorCode: replyAuthor ? censorInviteCode(replyAuthor.inviteCode) : "N/A",
         };
       })
     );
@@ -690,11 +697,51 @@ app.get("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
       thread: {
         ...thread,
         authorName: author ? author.displayName : "Usuario eliminado",
+        authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
         replies: repliesWithAuthors,
       },
     });
   } catch (err) {
     console.error('Get thread error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// Ruta para crear respuestas en hilos
+app.post("/api/forum/threads/:threadId/replies", requireAuth, async (req, res) => {
+  try {
+    const { threadId } = req.params;
+    const { body } = req.body || {};
+    
+    if (!body) {
+      return res.status(400).json({ error: "Falta el campo: body." });
+    }
+
+    // Verificar que el hilo exista
+    const thread = await database.getThreadById(threadId);
+    if (!thread) {
+      return res.status(404).json({ error: "Hilo no encontrado." });
+    }
+
+    const reply = {
+      body: String(body).trim(),
+      authorId: req.user.id,
+      threadId: threadId,
+      createdAt: new Date().toISOString(),
+    };
+
+    const createdReply = await database.createReply(reply);
+    const author = await getUserById(req.user.id);
+
+    return res.status(201).json({
+      reply: {
+        ...createdReply.toObject(),
+        authorName: author.displayName,
+        authorCode: censorInviteCode(author.inviteCode),
+      },
+    });
+  } catch (err) {
+    console.error('Create reply error:', err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -831,7 +878,11 @@ app.get("/api/admin/users", requireAuth, async (req, res) => {
     }
 
     const users = await database.getAllUsers();
-    return res.json({ users });
+    const usersWithCensoredCodes = users.map(user => ({
+      ...user.toObject(),
+      censoredInviteCode: censorInviteCode(user.inviteCode)
+    }));
+    return res.json({ users: usersWithCensoredCodes });
   } catch (err) {
     console.error('Error en users admin:', err);
     return res.status(500).json({ error: "Error interno" });

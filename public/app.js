@@ -740,7 +740,7 @@ class App {
       const data = await api(`/api/forum/threads/${threadId}`);
       const { thread, replies } = data;
 
-      threadAuthor.textContent = `👤 ${thread.authorName}`;
+      threadAuthor.textContent = `👤 ${thread.authorName} 🔖 ${thread.authorCode}`;
       threadDate.textContent = `📅 ${formatDate(thread.createdAt)}`;
       threadTitle.textContent = thread.title;
       threadBodyView.textContent = thread.body;
@@ -765,6 +765,7 @@ class App {
           item.innerHTML = `
             <div class="replyMeta">
               <div class="author">👤 ${escapeHtml(r.authorName || "Desconocido")}</div>
+              <div class="authorCode">🔖 ${escapeHtml(r.authorCode || "N/A")}</div>
               <div class="muted">📅 ${escapeHtml(formatDate(r.createdAt))}</div>
             </div>
             <div class="replyContent">${escapeHtml(r.body)}</div>
