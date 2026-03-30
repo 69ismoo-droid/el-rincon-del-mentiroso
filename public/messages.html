@@ -6,7 +6,15 @@
     <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // Fallback si el CDN falla
+        if (typeof io === 'undefined') {
+            console.log('🔄 CDN falló, cargando Socket.io desde servidor...');
+            document.write('<script src="/socket.io/socket.io.js"><\/script>');
+        }
+    </script>
+    <script src="app.js"></script>
 </head>
 <body>
     <div class="container">

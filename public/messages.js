@@ -26,6 +26,13 @@ class RealTimeMessages {
 
   connectWebSocket() {
     try {
+      // Verificar que io esté disponible
+      if (typeof io === 'undefined') {
+        console.error('Socket.io no está cargado');
+        this.updateStatus('❌ Socket.io no disponible', 'error');
+        return;
+      }
+
       // Obtener token del localStorage
       const token = localStorage.getItem('token');
       if (!token) {
@@ -33,12 +40,23 @@ class RealTimeMessages {
         return;
       }
 
+      // Determinar URL del servidor
+      const serverUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000' 
+        : window.location.origin;
+
+      console.log('🔌 Conectando a WebSocket:', serverUrl);
+
       // Conectar a WebSocket con autenticación
-      this.socket = io({
+      this.socket = io(serverUrl, {
         auth: {
           token: token
         },
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        timeout: 5000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
       });
 
       this.setupSocketEvents();
@@ -310,12 +328,30 @@ class RealTimeMessages {
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
+  // Verificar que el usuario esté autenticado
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('❌ No hay token de autenticación');
+    window.location.href = '/login.html';
+    return;
+  }
+
   // Pedir permiso para notificaciones
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
   
-  window.messagesApp = new RealTimeMessages();
+  // Esperar un poco para asegurar que Socket.io esté cargado
+  setTimeout(() => {
+    if (typeof io === 'undefined') {
+      console.error('❌ Socket.io no está disponible');
+      alert('Error: Socket.io no se pudo cargar. Recarga la página.');
+      return;
+    }
+    
+    console.log('✅ Inicializando sistema de mensajes...');
+    window.messagesApp = new RealTimeMessages();
+  }, 100);
 });
 
 // Función global para marcar mensajes
