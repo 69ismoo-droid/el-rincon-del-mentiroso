@@ -6,15 +6,43 @@
     <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Cargar Socket.io directamente desde el servidor (más confiable) -->
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Fallback si el CDN falla
-        if (typeof io === 'undefined') {
-            console.log('🔄 CDN falló, cargando Socket.io desde servidor...');
-            document.write('<script src="/socket.io/socket.io.js"><\/script>');
+        // Verificar que se cargó correctamente
+        if (typeof io !== 'undefined') {
+            console.log('✅ Socket.io cargado desde servidor');
+            // Cargar los demás scripts
+            var appScript = document.createElement('script');
+            appScript.src = 'app.js';
+            appScript.onload = function() {
+                var messagesScript = document.createElement('script');
+                messagesScript.src = 'messages.js';
+                document.head.appendChild(messagesScript);
+            };
+            document.head.appendChild(appScript);
+        } else {
+            console.error('❌ No se pudo cargar Socket.io desde el servidor');
+            // Intentar CDN como último recurso
+            var cdnScript = document.createElement('script');
+            cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+            cdnScript.onload = function() {
+                console.log('✅ Socket.io cargado desde CDN');
+                var appScript = document.createElement('script');
+                appScript.src = 'app.js';
+                appScript.onload = function() {
+                    var messagesScript = document.createElement('script');
+                    messagesScript.src = 'messages.js';
+                    document.head.appendChild(messagesScript);
+                };
+                document.head.appendChild(appScript);
+            };
+            cdnScript.onerror = function() {
+                alert('Error: No se pudo cargar Socket.io. El servidor podría no estar funcionando correctamente.');
+            };
+            document.head.appendChild(cdnScript);
         }
     </script>
-    <script src="app.js"></script>
 </head>
 <body>
     <div class="container">
@@ -78,7 +106,5 @@
             </p>
         </footer>
     </div>
-
-    <script src="messages.js"></script>
 </body>
 </html>

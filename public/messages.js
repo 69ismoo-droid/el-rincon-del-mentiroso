@@ -336,22 +336,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // Verificar que Socket.io esté disponible
+  if (typeof io === 'undefined') {
+    console.error('❌ Socket.io no está disponible');
+    alert('Error: Socket.io no se pudo cargar. Recarga la página.');
+    return;
+  }
+
   // Pedir permiso para notificaciones
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
   
-  // Esperar un poco para asegurar que Socket.io esté cargado
-  setTimeout(() => {
-    if (typeof io === 'undefined') {
-      console.error('❌ Socket.io no está disponible');
-      alert('Error: Socket.io no se pudo cargar. Recarga la página.');
-      return;
-    }
-    
-    console.log('✅ Inicializando sistema de mensajes...');
-    window.messagesApp = new RealTimeMessages();
-  }, 100);
+  console.log('✅ Inicializando sistema de mensajes...');
+  window.messagesApp = new RealTimeMessages();
 });
 
 // Función global para marcar mensajes
