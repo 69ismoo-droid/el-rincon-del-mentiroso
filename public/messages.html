@@ -10,8 +10,15 @@
     <!-- 1. Cargar Socket.io PRIMERO (orden crítico) -->
     <script src="/socket.io/socket.io.js"></script>
     
-    <!-- 2. Validación inmediata de que io esté disponible -->
+    <!-- 2. Asignación global de io (el problema real) -->
     <script>
+        // El problema: Socket.io no asigna 'io' globalmente
+        // Solución: Asignar io manualmente si existe la función lookup
+        if (typeof io === 'undefined' && typeof lookup !== 'undefined') {
+            console.log('🔧 Asignando io globalmente desde lookup...');
+            window.io = lookup;
+        }
+        
         // Validación crítica antes de cargar cualquier otro script
         if (typeof io === 'undefined') {
             console.error('❌ Error crítico: Socket.io no cargado. Usando CDN...');
