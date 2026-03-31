@@ -17,16 +17,7 @@
         console.log('📍 Protocolo de la página:', window.location.protocol);
         console.log('🌐 Host de la página:', window.location.host);
         console.log('🔗 URL completa:', window.location.origin);
-        
-        // DETECCIÓN CRÍTICA: Evitar file:///
-        if (window.location.protocol === 'file:') {
-            console.error('❌ ERROR CRÍTICO: Archivo abierto directamente (file://)');
-            console.error('🔍 Socket.io NO FUNCIONA con archivos abiertos directamente');
-            console.error('💡 Solución: Usa Live Server o un servidor web local');
-            alert('ERROR: No puedes abrir este archivo directamente.\n\nUsa un servidor web local como Live Server extension en VS Code.\n\nHaz clic derecho → Open with Live Server');
-            // No continuar cargando nada más
-            throw new Error('Archivo abierto directamente. Usa un servidor web.');
-        }
+        console.log('� Producción en Render - Sin modo local');
         
         // Según documentación oficial, io debería estar disponible globalmente
         if (typeof io === 'undefined') {

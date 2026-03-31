@@ -49,25 +49,12 @@ class RealTimeMessages {
         return;
       }
 
-      // Configuración específica para Render (HTTPS obligatorio)
-      let serverUrl;
+      // Configuración SOLO para producción en Render
+      const serverUrl = 'https://el-rincon-del-mentiroso.onrender.com';
+      console.log('🔍 Producción en Render - URL directa');
       
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // Desarrollo local - usar HTTP
-        serverUrl = 'http://localhost:3000';
-        console.log('🔍 Modo desarrollo detectado, usando HTTP local');
-      } else if (window.location.hostname === 'el-rincon-del-mentiroso.onrender.com') {
-        // Producción en Render - usar URL directa
-        serverUrl = 'https://el-rincon-del-mentiroso.onrender.com';
-        console.log('🔍 Modo producción Render detectado, usando URL directa');
-      } else {
-        // Otros entornos - usar origen actual
-        serverUrl = window.location.origin;
-        console.log('🔍 Modo producción genérico detectado');
-      }
-      
-      // Validación adicional de seguridad
-      if (!serverUrl || !serverUrl.startsWith('http')) {
+      // Validación de seguridad
+      if (!serverUrl || !serverUrl.startsWith('https')) {
         console.error('❌ URL del servidor inválida:', serverUrl);
         throw new Error('URL del servidor no configurada correctamente');
       }
@@ -104,6 +91,7 @@ class RealTimeMessages {
       this.updateStatus('✅ Conectado', 'connected');
       console.log('🔌 WebSocket conectado para mensajes en tiempo real');
       console.log('✅ ¡Conexión exitosa al Rincón del Mentiroso!');
+      console.log('🚀 Producción en Render funcionando correctamente');
     });
 
     // ❌ Error de conexión específico para Render
@@ -112,11 +100,10 @@ class RealTimeMessages {
       console.error('🔍 Detalles del error:', err);
       this.updateStatus('❌ Error de conexión', 'error');
       
-      // Mensaje específico para Render
-      if (window.location.hostname === 'el-rincon-del-mentiroso.onrender.com') {
-        console.error('🔍 Error específico de Render - Verificando configuración...');
-        console.error('💡 Recuerda limpiar caché con Ctrl+F5 después de cambios');
-      }
+      // Mensaje específico para producción en Render
+      console.error('🔍 Error en producción de Render - Verificando configuración...');
+      console.error('💡 Recuerda limpiar caché con Ctrl+F5 después de cambios');
+      console.error('🌐 Verificando: https://el-rincon-del-mentiroso.onrender.com');
     });
 
     // 📋 Lista de usuarios conectados

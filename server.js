@@ -63,13 +63,13 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    // Configuración específica para Render
-    origin: ["https://el-rincon-del-mentiroso.onrender.com", "http://localhost:3000"],
+    // Configuración SOLO para producción en Render
+    origin: "https://el-rincon-del-mentiroso.onrender.com",
     methods: ["GET", "POST"],
     credentials: true, // Importante para cookies y autenticación
     allowedHeaders: ["Content-Type", "Authorization"] // Headers permitidos
   },
-  // Configuración adicional para Render
+  // Configuración optimizada para producción en Render
   allowEIO3: true, // Compatibilidad con clientes antiguos
   transports: ["websocket", "polling"], // Métodos de transporte
   // Configuración de seguridad para Render
