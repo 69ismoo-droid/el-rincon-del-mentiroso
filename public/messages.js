@@ -357,26 +357,61 @@ document.addEventListener('DOMContentLoaded', () => {
       script.src = '/socket.io/socket.io.js';
       script.onload = () => {
         console.log('✅ Socket.io cargado manualmente');
+        console.log('🔍 Verificando que io esté disponible después de carga...');
+        
+        // Esperar un poco y verificar
         setTimeout(() => {
-          window.messagesApp = new RealTimeMessages();
-        }, 500);
+          if (typeof io !== 'undefined') {
+            console.log('✅ io disponible después de carga manual, reconectando...');
+            // Intentar conectar con el io recién cargado
+            this.connectWebSocket();
+          } else {
+            console.error('❌ io todavía no disponible después de carga manual');
+            // Intentar CDN como último recurso
+            this.loadSocketFromCDN();
+          }
+        }, 1000);
       };
       script.onerror = () => {
-        console.error('❌ No se pudo cargar Socket.io manualmente');
-        alert('Error: Socket.io no se pudo cargar. El servidor podría no estar funcionando correctamente.');
+        console.error('❌ No se pudo cargar Socket.io manualmente desde servidor');
+        console.log('🔄 Intentando CDN como último recurso...');
+        this.loadSocketFromCDN();
       };
       document.head.appendChild(script);
       return;
     }
 
-    // Pedir permiso para notificaciones
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    loadSocketFromCDN() {
+      console.log('🔄 Cargando Socket.io desde CDN...');
+      const cdnScript = document.createElement('script');
+      cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+      cdnScript.onload = () => {
+        console.log('✅ Socket.io cargado desde CDN');
+        setTimeout(() => {
+          if (typeof io !== 'undefined') {
+            console.log('✅ io disponible desde CDN, conectando...');
+            this.connectWebSocket();
+          } else {
+            console.error('❌ CDN tampoco funcionó');
+            alert('Error: No se pudo cargar Socket.io desde ninguna fuente. Recarga la página.');
+          }
+        }, 1000);
+      };
+      cdnScript.onerror = () => {
+        console.error('❌ CDN también falló');
+        alert('Error: No se pudo cargar Socket.io. El servidor podría no estar funcionando correctamente.');
+      };
+      document.head.appendChild(cdnScript);
     }
-    
-    console.log('✅ Inicializando sistema de mensajes...');
-    console.log('🔌 io disponible:', typeof io);
-    window.messagesApp = new RealTimeMessages();
+
+  // Pedir permiso para notificaciones
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  
+  console.log('✅ Inicializando sistema de mensajes...');
+  console.log('🔌 io disponible:', typeof io);
+  window.messagesApp = new RealTimeMessages();
   }, 200); // Aumentar el tiempo de espera
 });
 
