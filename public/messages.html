@@ -9,25 +9,41 @@
     <!-- Cargar Socket.io directamente desde el servidor (garantizado) -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Verificar que io esté disponible
-        if (typeof io === 'undefined') {
-            console.error('❌ Socket.io no cargado desde servidor');
-            // Intentar CDN como fallback
-            const cdnScript = document.createElement('script');
-            cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-            cdnScript.onload = () => {
-                console.log('✅ Socket.io cargado desde CDN fallback');
-                loadApp();
-            };
-            cdnScript.onerror = () => {
-                console.error('❌ CDN fallback también falló');
-                alert('Error: No se pudo cargar Socket.io. Recarga la página.');
-            };
-            document.head.appendChild(cdnScript);
-        } else {
-            console.log('✅ Socket.io cargado desde servidor');
-            loadApp();
-        }
+        // Esperar a que la página cargue completamente antes de verificar
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📱 DOM listo, verificando Socket.io...');
+            
+            // Esperar un momento más para asegurar que todo esté cargado
+            setTimeout(() => {
+                // Verificar que io esté disponible
+                if (typeof io === 'undefined') {
+                    console.error('❌ Socket.io no cargado desde servidor');
+                    // Intentar CDN como fallback
+                    const cdnScript = document.createElement('script');
+                    cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+                    cdnScript.onload = () => {
+                        console.log('✅ Socket.io cargado desde CDN fallback');
+                        setTimeout(() => {
+                            if (typeof io !== 'undefined') {
+                                console.log('✅ io disponible desde CDN, cargando app...');
+                                loadApp();
+                            } else {
+                                console.error('❌ CDN tampoco funcionó');
+                                alert('Error: No se pudo cargar Socket.io. Recarga la página.');
+                            }
+                        }, 500);
+                    };
+                    cdnScript.onerror = () => {
+                        console.error('❌ CDN fallback también falló');
+                        alert('Error: No se pudo cargar Socket.io. Recarga la página.');
+                    };
+                    document.head.appendChild(cdnScript);
+                } else {
+                    console.log('✅ Socket.io cargado desde servidor');
+                    loadApp();
+                }
+            }, 100); // Pequeña espera para asegurar carga
+        });
         
         function loadApp() {
             // Cargar app.js
