@@ -366,9 +366,9 @@ function formatDate(iso) {
   }
 }
 
-// Esperar a que el DOM esté listo y verificar Socket.io
+// Esperar a que el DOM esté listo - Socket.io ya está garantizado por el HTML
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('📱 DOM listo, verificando Socket.io...');
+  console.log('📱 DOM listo, inicializando sistema...');
   
   // Verificar token primero
   const token = localStorage.getItem('token');
@@ -378,45 +378,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Verificar Socket.io
+  // Socket.io está garantizado por el HTML, solo verificar por seguridad
   if (typeof io === 'undefined') {
-    console.error('❌ Socket.io no está disponible');
-    console.error('🔍 Intentando cargar Socket.io manualmente...');
-    
-    // Cargar Socket.io manualmente
-    const script = document.createElement('script');
-    script.src = '/socket.io/socket.io.js';
-    script.onload = () => {
-      console.log('✅ Socket.io cargado manualmente');
-      
-      // Esperar y verificar
-      setTimeout(() => {
-        if (typeof io !== 'undefined') {
-          console.log('✅ io disponible, inicializando...');
-          // Pedir permiso para notificaciones
-          if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-          }
-          window.messagesApp = new RealTimeMessages();
-        } else {
-          console.error('❌ io todavía no disponible');
-          alert('Error: No se pudo cargar Socket.io. Recarga la página.');
-        }
-      }, 1000);
-    };
-    script.onerror = () => {
-      console.error('❌ No se pudo cargar Socket.io manualmente');
-      alert('Error: No se pudo cargar Socket.io. Recarga la página.');
-    };
-    document.head.appendChild(script);
-  } else {
-    console.log('✅ Socket.io disponible, inicializando...');
-    // Pedir permiso para notificaciones
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-    window.messagesApp = new RealTimeMessages();
+    console.error('❌ Error crítico: Socket.io no disponible (esto no debería pasar)');
+    alert('Error crítico: Socket.io no disponible. Recarga la página.');
+    return;
   }
+
+  console.log('✅ Socket.io disponible, inicializando...');
+  
+  // Pedir permiso para notificaciones
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  
+  // Inicializar la aplicación
+  window.messagesApp = new RealTimeMessages();
 });
 
 // Función global para marcar mensajes
