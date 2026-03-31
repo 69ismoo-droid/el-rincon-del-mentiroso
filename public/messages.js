@@ -21,6 +21,33 @@ class RealTimeMessages {
 
   init() {
     this.setupEventListeners();
+    
+    // Verificar que io esté disponible antes de conectar
+    if (typeof io === 'undefined') {
+      console.error('❌ Socket.io no está disponible en init(), esperando...');
+      this.updateStatus('🔄 Cargando Socket.io...', 'connecting');
+      
+      // Esperar a que io esté disponible
+      const checkIo = setInterval(() => {
+        if (typeof io !== 'undefined') {
+          console.log('✅ Socket.io disponible, conectando...');
+          clearInterval(checkIo);
+          this.connectWebSocket();
+        }
+      }, 100);
+      
+      // Timeout después de 10 segundos
+      setTimeout(() => {
+        clearInterval(checkIo);
+        if (typeof io === 'undefined') {
+          console.error('❌ Timeout esperando Socket.io');
+          this.updateStatus('❌ Error: Socket.io no cargado', 'error');
+        }
+      }, 10000);
+      
+      return;
+    }
+    
     this.connectWebSocket();
   }
 
