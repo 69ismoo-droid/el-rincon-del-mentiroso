@@ -6,84 +6,25 @@
     <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
-    <!-- Cargar Socket.io de forma síncrona para garantizar disponibilidad -->
+    
+    <!-- 1. Cargar Socket.io PRIMERO (orden crítico) -->
     <script src="/socket.io/socket.io.js"></script>
+    
+    <!-- 2. Validación inmediata de que io esté disponible -->
     <script>
-        // Función para verificar y asegurar que io esté disponible
-        function asegurarSocketIO() {
-            return new Promise((resolve, reject) => {
-                let intentos = 0;
-                const maxIntentos = 50; // 5 segundos máximo
-                
-                const verificar = () => {
-                    intentos++;
-                    
-                    if (typeof io !== 'undefined') {
-                        console.log('✅ Socket.io disponible desde servidor');
-                        resolve();
-                        return;
-                    }
-                    
-                    if (intentos >= maxIntentos) {
-                        console.error('❌ Timeout: Socket.io no disponible después de 5 segundos');
-                        // Cargar CDN como último recurso
-                        const cdnScript = document.createElement('script');
-                        cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-                        cdnScript.onload = () => {
-                            console.log('✅ Socket.io cargado desde CDN');
-                            resolve();
-                        };
-                        cdnScript.onerror = () => {
-                            console.error('❌ CDN también falló');
-                            reject(new Error('No se pudo cargar Socket.io'));
-                        };
-                        document.head.appendChild(cdnScript);
-                        return;
-                    }
-                    
-                    // Seguir esperando
-                    setTimeout(verificar, 100);
-                };
-                
-                verificar();
-            });
-        }
-        
-        // Iniciar el proceso
-        asegurarSocketIO()
-            .then(() => {
-                console.log('🎉 Socket.io garantizado, cargando aplicación...');
-                loadApp();
-            })
-            .catch((error) => {
-                console.error('❌ Error crítico:', error);
-                alert('Error crítico: No se pudo cargar Socket.io. Recarga la página.');
-            });
-        
-        function loadApp() {
-            // Cargar app.js
-            const appScript = document.createElement('script');
-            appScript.src = 'app.js';
-            appScript.onload = () => {
-                console.log('✅ app.js cargado');
-                // Cargar messages.js
-                const messagesScript = document.createElement('script');
-                messagesScript.src = 'messages.js';
-                messagesScript.onload = () => {
-                    console.log('✅ messages.js cargado');
-                    console.log('🎉 Todos los scripts cargados correctamente');
-                };
-                messagesScript.onerror = () => {
-                    console.error('❌ Error cargando messages.js');
-                };
-                document.head.appendChild(messagesScript);
-            };
-            appScript.onerror = () => {
-                console.error('❌ Error cargando app.js');
-            };
-            document.head.appendChild(appScript);
+        // Validación crítica antes de cargar cualquier otro script
+        if (typeof io === 'undefined') {
+            console.error('❌ Error crítico: Socket.io no cargado. Usando CDN...');
+            // Fallback a CDN si el servidor no sirve Socket.io
+            document.write('<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"><\/script>');
+        } else {
+            console.log('✅ Socket.io cargado correctamente desde servidor');
         }
     </script>
+    
+    <!-- 3. Cargar los demás scripts SOLO después de validar Socket.io -->
+    <script src="app.js"></script>
+    <script src="messages.js"></script>
 </head>
 <body>
     <div class="container">

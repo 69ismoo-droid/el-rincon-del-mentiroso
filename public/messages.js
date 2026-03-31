@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Socket.io está garantizado por el HTML, solo verificar por seguridad
+  // Validación final (no debería pasar si el HTML funciona)
   if (typeof io === 'undefined') {
     console.error('❌ Error crítico: Socket.io no disponible (esto no debería pasar)');
     alert('Error crítico: Socket.io no disponible. Recarga la página.');
