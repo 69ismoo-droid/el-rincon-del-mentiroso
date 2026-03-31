@@ -215,6 +215,37 @@ class Database {
     const { Mensaje } = require('./models');
     return await Mensaje.findById(mensajeId);
   }
+
+  // ============================================
+  // MÉTODOS DEL FORO DE POSTS (MENTIRAS)
+  // ============================================
+
+  async createPost(postData) {
+    const { Post } = require('./models');
+    const post = new Post(postData);
+    return await post.save();
+  }
+
+  async getAllPosts() {
+    const { Post } = require('./models');
+    return await Post.find().sort({ createdAt: -1 });
+  }
+
+  async getPostById(postId) {
+    const { Post } = require('./models');
+    return await Post.findById(postId);
+  }
+
+  async createComment(commentData) {
+    const { Comment } = require('./models');
+    const comment = new Comment(commentData);
+    return await comment.save();
+  }
+
+  async getCommentsByPostId(postId) {
+    const { Comment } = require('./models');
+    return await Comment.find({ postId }).sort({ createdAt: 1 });
+  }
 }
 
 module.exports = new Database();

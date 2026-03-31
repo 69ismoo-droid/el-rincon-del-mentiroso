@@ -3,89 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
+    <title>Foro de Mentiras - El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
     
-    <!-- 1. Socket.io CDN - SIMPLE Y DIRECTO -->
+    <!-- 
+      Socket.io es OPCIONAL (Progressive Enhancement)
+      Si no carga, el foro sigue funcionando perfectamente vía HTTP/API
+    -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     
-    <!-- 2. Verificación SIMPLE -->
-    <script>
-        // Verificar que io esté disponible
-        if (typeof io === 'undefined') {
-            console.error('❌ Socket.io no cargó desde CDN');
-            // Intentar servidor local
-            const serverScript = document.createElement('script');
-            serverScript.src = '/socket.io/socket.io.js';
-            serverScript.onload = () => {
-                console.log('✅ Socket.io cargado desde servidor');
-            };
-            serverScript.onerror = () => {
-                console.error('❌ Servidor tampoco funcionó');
-                alert('Error: Socket.io no disponible. Recarga la página.');
-            };
-            document.head.appendChild(serverScript);
-        } else {
-            console.log('✅ Socket.io cargado desde CDN');
-        }
-    </script>
-    
-    <!-- 3. Cargar scripts de la aplicación -->
+    <!-- Scripts de la aplicación -->
     <script src="app.js"></script>
     <script src="messages.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>💬 Mensajes en Tiempo Real</h1>
+            <h1>🤥 Foro de Mentiras</h1>
+            <p class="subtitle">El lugar donde las mentiras se convierten en arte</p>
             <div class="status-bar">
-                <span id="connectionStatus" class="status">🔄 Conectando...</span>
-                <span id="messageCount" class="badge">📬 Sin mensajes nuevos</span>
+                <span id="connectionStatus" class="status">🔄 Cargando foro...</span>
             </div>
         </header>
 
-        <main class="messages-main">
-            <!-- Usuarios Conectados -->
-            <section class="online-users-section">
-                <h2>👥 Usuarios Conectados</h2>
-                <div id="onlineUsers" class="online-users">
-                    <div class="loading">Cargando usuarios...</div>
-                </div>
-            </section>
-
-            <!-- Área de Mensajes -->
-            <section class="messages-section">
-                <h2>💬 Conversación</h2>
-                
-                <!-- Selector de Destinatario -->
-                <div class="message-controls">
-                    <select id="receiverSelect" class="receiver-select">
-                        <option value="">Seleccionar destinatario...</option>
-                    </select>
-                </div>
-
-                <!-- Contenedor de Mensajes -->
-                <div id="messagesContainer" class="messages-container">
-                    <div class="no-messages">Selecciona un destinatario para ver la conversación</div>
-                </div>
-
-                <!-- Formulario de Envío -->
-                <form id="messageForm" class="message-form">
-                    <div class="input-group">
+        <main class="forum-main">
+            <!-- Formulario para Crear Nueva Mentira -->
+            <section class="create-post-section">
+                <h2>� Contar una Nueva Mentira</h2>
+                <form id="postForm" class="post-form">
+                    <div class="form-group">
+                        <label for="postTitle">Título de tu mentira:</label>
                         <input 
                             type="text" 
-                            id="messageInput" 
-                            class="message-input" 
-                            placeholder="Escribe tu mensaje aquí..." 
-                            maxlength="1000"
+                            id="postTitle" 
+                            class="post-title-input" 
+                            placeholder="Ej: 'Vi un dragón en el parque'"
+                            maxlength="200"
                             required
                         >
-                        <button type="submit" class="send-btn">
-                            📤 Enviar
-                        </button>
                     </div>
+                    <div class="form-group">
+                        <label for="postContent">Desarrolla tu mentira:</label>
+                        <textarea 
+                            id="postContent" 
+                            class="post-content-input" 
+                            placeholder="Cuéntanos todos los detalles convincentes de tu historia falsa..."
+                            maxlength="5000"
+                            rows="5"
+                            required
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="publish-btn">
+                        📤 Publicar Mentira
+                    </button>
                 </form>
+            </section>
+
+            <!-- Listado de Mentiras (Posts) -->
+            <section class="posts-section">
+                <h2>📚 Mentiras Publicadas</h2>
+                <div id="postsContainer" class="posts-container">
+                    <div class="loading-state">
+                        <p>🔄 Cargando mentiras desde el servidor...</p>
+                        <p class="small">Esto puede tomar unos segundos</p>
+                    </div>
+                </div>
             </section>
         </main>
 
@@ -94,6 +77,12 @@
                 <a href="/index.html">🏠 Volver al Inicio</a> |
                 <a href="/signup.html">📝 Registrarse</a> |
                 <a href="/login.html">🔐 Iniciar Sesión</a>
+            </p>
+            <p class="footer-note">
+                <small>
+                    💡 Este foro funciona con o sin WebSocket. 
+                    Si ves este mensaje, significa que las mentiras se cargan directamente desde la base de datos.
+                </small>
             </p>
         </footer>
     </div>

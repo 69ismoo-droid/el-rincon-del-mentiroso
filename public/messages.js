@@ -1,239 +1,342 @@
-// Verificar que io esté disponible antes de usarlo
-if (typeof io === 'undefined') {
-    console.error('❌ ERROR: Socket.io no está disponible');
-    console.error('💡 Espera a que la página cargue completamente');
-    throw new Error('Socket.io no disponible');
-}
+/**
+ * FORO DE DISCUSIÓN - El Rincón del Mentiroso
+ * 
+ * Arquitectura: API REST primaria, Socket.io opcional (progressive enhancement)
+ * Si Socket.io no carga, el foro sigue funcionando perfectamente vía HTTP
+ */
 
-// Clase para manejar mensajes en tiempo real
-class RealTimeMessages {
+// Clase para manejar el Foro de Discusión
+class ForumManager {
   constructor() {
+    this.posts = [];
     this.socket = null;
-    this.messages = [];
-    this.connectedUsers = [];
-    this.currentReceiverId = null;
+    this.socketAvailable = false;
+    this.apiUrl = 'https://el-rincon-del-mentiroso.onrender.com';
     this.elements = {};
     
     this.initElements();
-    this.connectWebSocket();
+    this.loadPosts(); // Carga inicial vía API
+    this.initSocketOptional(); // Socket.io opcional
   }
 
   initElements() {
-    this.elements.messagesContainer = $('messagesContainer');
-    this.elements.messageForm = $('messageForm');
-    this.elements.messageInput = $('messageInput');
-    this.elements.receiverSelect = $('receiverSelect');
-    this.elements.onlineUsers = $('onlineUsers');
-    this.elements.connectionStatus = $('connectionStatus');
-    this.elements.messageCount = $('messageCount');
+    this.elements.postsContainer = document.getElementById('postsContainer');
+    this.elements.postForm = document.getElementById('postForm');
+    this.elements.postTitle = document.getElementById('postTitle');
+    this.elements.postContent = document.getElementById('postContent');
+    this.elements.connectionStatus = document.getElementById('connectionStatus');
     
     this.setupEventListeners();
   }
 
   setupEventListeners() {
-    if (this.elements.messageForm) {
-      this.elements.messageForm.addEventListener('submit', (e) => {
+    if (this.elements.postForm) {
+      this.elements.postForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.sendMessage();
-      });
-    }
-    
-    if (this.elements.receiverSelect) {
-      this.elements.receiverSelect.addEventListener('change', (e) => {
-        this.currentReceiverId = e.target.value;
-        this.loadMessages();
+        this.createPost();
       });
     }
   }
 
-  connectWebSocket() {
+  // ============================================
+  // API REST - MÉTODO PRINCIPAL (SIEMPRE DISPONIBLE)
+  // ============================================
+
+  async loadPosts() {
     try {
-      // Obtener token
+      this.updateStatus('🔄 Cargando posts...', 'loading');
+      
       const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('❌ No hay token de autenticación');
-        window.location.href = '/login.html';
+      const response = await fetch(`${this.apiUrl}/api/posts`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      this.posts = data.posts || [];
+      this.renderPosts();
+      this.updateStatus('✅ Foro cargado', 'ready');
+      
+      console.log(`📚 ${this.posts.length} posts cargados desde la base de datos`);
+    } catch (error) {
+      console.error('❌ Error cargando posts:', error);
+      this.updateStatus('❌ Error cargando foro', 'error');
+      this.renderError('No se pudieron cargar los posts. Intenta recargar la página.');
+    }
+  }
+
+  async createPost() {
+    try {
+      const title = this.elements.postTitle?.value?.trim();
+      const content = this.elements.postContent?.value?.trim();
+      
+      if (!title || !content) {
+        alert('Debes escribir un título y contenido para tu mentira');
         return;
       }
 
-      // URL del servidor (producción en Render)
-      const serverUrl = 'https://el-rincon-del-mentiroso.onrender.com';
-      console.log('🔌 Conectando a:', serverUrl);
+      this.updateStatus('🔄 Publicando...', 'publishing');
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${this.apiUrl}/api/posts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title, content })
+      });
 
-      // Conectar a Socket.io
-      this.socket = io(serverUrl, {
-        auth: { token: token },
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const newPost = await response.json();
+      
+      // Agregar al array y renderizar
+      this.posts.unshift(newPost);
+      this.renderPosts();
+      
+      // Limpiar formulario
+      this.elements.postForm.reset();
+      this.updateStatus('✅ Mentira publicada', 'success');
+      
+      console.log('📝 Nueva mentira guardada en base de datos:', newPost.id);
+      
+      // Notificar vía socket si está disponible (opcional)
+      if (this.socketAvailable && this.socket) {
+        this.socket.emit('new_post', newPost);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error creando post:', error);
+      this.updateStatus('❌ Error al publicar', 'error');
+      alert('Error al publicar. Intenta de nuevo.');
+    }
+  }
+
+  async addComment(postId, content) {
+    try {
+      if (!content?.trim()) {
+        alert('Escribe un comentario');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${this.apiUrl}/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const newComment = await response.json();
+      
+      // Actualizar el post localmente
+      const post = this.posts.find(p => p.id === postId);
+      if (post) {
+        if (!post.comments) post.comments = [];
+        post.comments.push(newComment);
+        this.renderPosts();
+      }
+      
+      console.log('💬 Comentario guardado:', newComment.id);
+      
+      // Notificar vía socket si está disponible (opcional)
+      if (this.socketAvailable && this.socket) {
+        this.socket.emit('new_comment', { postId, comment: newComment });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error agregando comentario:', error);
+      alert('Error al agregar comentario');
+    }
+  }
+
+  // ============================================
+  // SOCKET.IO - OPCIONAL (Progressive Enhancement)
+  // ============================================
+
+  initSocketOptional() {
+    // Verificar si Socket.io está disponible
+    if (typeof io === 'undefined') {
+      console.log('ℹ️ Socket.io no disponible. El foro funcionará vía HTTP.');
+      this.socketAvailable = false;
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('ℹ️ Sin token. Socket.io no se conectará.');
+        return;
+      }
+
+      this.socket = io(this.apiUrl, {
+        auth: { token },
         transports: ['websocket', 'polling'],
-        withCredentials: true
+        timeout: 5000
       });
 
       this.setupSocketEvents();
-      this.updateStatus('🔄 Conectando...', 'connecting');
       
     } catch (error) {
-      console.error('❌ Error conectando WebSocket:', error);
-      this.updateStatus('❌ Error de conexión', 'error');
+      console.warn('⚠️ Error inicializando Socket.io:', error);
+      this.socketAvailable = false;
     }
   }
 
   setupSocketEvents() {
-    // Conexión exitosa
+    if (!this.socket) return;
+
     this.socket.on('connect', () => {
-      this.updateStatus('✅ Conectado', 'connected');
-      console.log('🔌 WebSocket conectado');
+      console.log('🔌 Socket.io conectado (modo opcional)');
+      this.socketAvailable = true;
     });
 
-    // Error de conexión
-    this.socket.on('connect_error', (err) => {
-      console.error('❌ Error de conexión:', err.message);
-      this.updateStatus('❌ Error de conexión', 'error');
+    this.socket.on('disconnect', () => {
+      console.log('🔌 Socket.io desconectado. Foro sigue funcionando vía HTTP.');
+      this.socketAvailable = false;
     });
 
-    // Lista de usuarios
-    this.socket.on('users_list', (users) => {
-      this.connectedUsers = users;
-      this.updateOnlineUsers();
-      console.log('👥 Usuarios conectados:', users.length);
+    // Notificación de nuevo post (solo actualiza si ya estábamos viendo el foro)
+    this.socket.on('new_post', (post) => {
+      console.log('🔔 Nuevo post detectado vía Socket.io');
+      // Opcional: recargar posts para mostrar el nuevo
+      this.loadPosts();
     });
 
-    // Nuevo usuario
-    this.socket.on('user_connected', (user) => {
-      console.log('👤 Usuario conectado:', user.email);
-      this.loadUsers();
-    });
-
-    // Mensaje recibido - SOLO si es para mí o de mí
-    this.socket.on('new_message', (message) => {
-      // Verificar que el mensaje sea para el usuario actual
-      const isForMe = message.receiverId === this.getCurrentUserId();
-      const isFromMe = message.senderId === this.getCurrentUserId();
-      
-      if (isForMe || isFromMe) {
-        this.messages.push(message);
-        this.renderMessages();
-        this.updateMessageCount();
-        console.log('📬 Nuevo mensaje privado recibido');
-        
-        // Si no es de mí, mostrar notificación
-        if (isForMe && !isFromMe) {
-          console.log(`🔔 Nuevo mensaje de: ${message.senderName}`);
+    // Notificación de nuevo comentario
+    this.socket.on('new_comment', ({ postId, comment }) => {
+      console.log('🔔 Nuevo comentario detectado vía Socket.io');
+      const post = this.posts.find(p => p.id === postId);
+      if (post) {
+        if (!post.comments) post.comments = [];
+        // Verificar si ya existe para no duplicar
+        if (!post.comments.find(c => c.id === comment.id)) {
+          post.comments.push(comment);
+          this.renderPosts();
         }
       }
     });
 
-    // Mensaje leído
-    this.socket.on('message_read', (data) => {
-      const message = this.messages.find(m => m.id === data.messageId);
-      if (message) {
-        message.read = true;
-        this.renderMessages();
-      }
-    });
-
-    // Confirmación de mensaje enviado
-    this.socket.on('message_sent', (data) => {
-      console.log('✅ Mensaje enviado confirmado:', data.delivered ? 'Entregado' : 'Guardado (usuario no conectado)');
-      if (data.delivered) {
-        console.log('📨 El destinatario recibió el mensaje');
-      } else {
-        console.log('⏳ El destinatario no está conectado, mensaje guardado');
-      }
+    this.socket.on('connect_error', (err) => {
+      console.warn('⚠️ Error de conexión Socket.io:', err.message);
+      this.socketAvailable = false;
     });
   }
 
-  sendMessage() {
-    const content = this.elements.messageInput.value.trim();
-    const receiverId = this.elements.receiverSelect.value;
-    
-    if (!content || !receiverId) {
-      console.warn('⚠️ Debes seleccionar destinatario y escribir mensaje');
+  // ============================================
+  // RENDERIZADO
+  // ============================================
+
+  renderPosts() {
+    if (!this.elements.postsContainer) return;
+
+    if (this.posts.length === 0) {
+      this.elements.postsContainer.innerHTML = `
+        <div class="empty-state">
+          <h3>🤔 Aún no hay mentiras</h3>
+          <p>Sé el primero en contar una mentira increíble...</p>
+        </div>
+      `;
       return;
     }
 
-    this.socket.emit('send_message', {
-      receiverId: receiverId,
-      content: content
-    });
-
-    this.elements.messageInput.value = '';
-    console.log('📤 Mensaje enviado');
+    this.elements.postsContainer.innerHTML = this.posts.map(post => this.renderPostHTML(post)).join('');
   }
 
-  loadMessages() {
-    if (!this.currentReceiverId) return;
+  renderPostHTML(post) {
+    const isAuthor = post.authorId === this.getCurrentUserId();
+    const comments = post.comments || [];
     
-    fetch(`/api/mensajes/${this.currentReceiverId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      this.messages = data.mensajes || [];
-      this.renderMessages();
-    })
-    .catch(error => {
-      console.error('❌ Error cargando mensajes:', error);
-    });
-  }
-
-  renderMessages() {
-    if (!this.elements.messagesContainer) return;
-    
-    // SOLO mostrar mensajes entre el usuario actual y el destinatario seleccionado
-    const filteredMessages = this.messages.filter(msg => 
-      (msg.senderId === this.getCurrentUserId() && msg.receiverId === this.currentReceiverId) ||
-      (msg.senderId === this.currentReceiverId && msg.receiverId === this.getCurrentUserId())
-    );
-
-    this.elements.messagesContainer.innerHTML = filteredMessages.map(message => {
-      const isFromMe = message.senderId === this.getCurrentUserId();
-      const isRead = message.read || message.readBy;
-      
-      return `<div class="message ${isFromMe ? 'sent' : 'received'} ${isRead ? 'read' : 'unread'}" data-message-id="${message.id}">
-        <div class="message-header">
-          <span class="message-sender">${isFromMe ? 'Tú' : (message.senderName || 'Usuario')}</span>
-          <span class="message-time">${message.createdAt ? new Date(message.createdAt).toLocaleString() : 'Fecha no disponible'}</span>
-          <span class="read-indicator">${isRead ? '✓ Leído' : '○ No leído'}</span>
+    return `
+      <article class="post-card" data-post-id="${post.id}">
+        <header class="post-header">
+          <h3 class="post-title">${this.escapeHtml(post.title)}</h3>
+          <div class="post-meta">
+            <span class="post-author">👤 ${this.escapeHtml(post.authorName || 'Anónimo')}</span>
+            <span class="post-date">📅 ${new Date(post.createdAt).toLocaleString()}</span>
+            ${isAuthor ? '<span class="post-badge">✏️ Tu mentira</span>' : ''}
+          </div>
+        </header>
+        
+        <div class="post-content">
+          ${this.escapeHtml(post.content)}
         </div>
-        <div class="message-content">${message.content}</div>
-        ${!isRead && !isFromMe ? `<button class="mark-read-btn" onclick="markAsRead('${message.id}')">Marcar como leído</button>` : ''}
-      </div>`;
-    }).join('');
-    
-    // Scroll al último mensaje
-    this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
-  }
-
-  updateOnlineUsers() {
-    if (!this.elements.onlineUsers) return;
-    
-    this.elements.onlineUsers.innerHTML = this.connectedUsers.map(user => 
-      `<div class="online-user" data-user-id="${user.userId}">
-        <div class="user-status online"></div>
-        <div class="user-info">
-          <div class="user-name">${user.email}</div>
-          <div class="user-time">Conectado: ${new Date(user.connectedAt).toLocaleTimeString()}</div>
+        
+        <div class="post-stats">
+          <span>💬 ${comments.length} comentarios</span>
+          <span>👁️ ${post.views || 0} vistas</span>
         </div>
-      </div>`
-    ).join('');
-
-    this.updateReceiverSelect();
+        
+        <div class="comments-section">
+          <h4>Comentarios (${comments.length})</h4>
+          <div class="comments-list">
+            ${comments.map(comment => this.renderCommentHTML(comment)).join('')}
+          </div>
+          <form class="comment-form" onsubmit="return false;">
+            <textarea 
+              class="comment-input" 
+              placeholder="Escribe tu comentario..."
+              data-post-id="${post.id}"
+            ></textarea>
+            <button onclick="forumManager.submitComment('${post.id}')" class="btn-comment">
+              Comentar
+            </button>
+          </form>
+        </div>
+      </article>
+    `;
   }
 
-  updateReceiverSelect() {
-    if (!this.elements.receiverSelect) return;
-    
-    const currentValue = this.elements.receiverSelect.value;
-    this.elements.receiverSelect.innerHTML = 
-      '<option value="">Seleccionar destinatario...</option>' +
-      this.connectedUsers
-        .filter(user => user.userId !== this.getCurrentUserId())
-        .map(user => `<option value="${user.userId}">${user.email}</option>`)
-        .join('');
-    
-    if (currentValue) {
-      this.elements.receiverSelect.value = currentValue;
+  renderCommentHTML(comment) {
+    return `
+      <div class="comment" data-comment-id="${comment.id}">
+        <div class="comment-header">
+          <span class="comment-author">👤 ${this.escapeHtml(comment.authorName || 'Anónimo')}</span>
+          <span class="comment-date">📅 ${new Date(comment.createdAt).toLocaleString()}</span>
+        </div>
+        <div class="comment-content">
+          ${this.escapeHtml(comment.content)}
+        </div>
+      </div>
+    `;
+  }
+
+  renderError(message) {
+    if (this.elements.postsContainer) {
+      this.elements.postsContainer.innerHTML = `
+        <div class="error-state">
+          <h3>😕 ${this.escapeHtml(message)}</h3>
+          <button onclick="forumManager.loadPosts()" class="btn-retry">Reintentar</button>
+        </div>
+      `;
+    }
+  }
+
+  // ============================================
+  // UTILIDADES
+  // ============================================
+
+  submitComment(postId) {
+    const textarea = document.querySelector(`textarea[data-post-id="${postId}"]`);
+    const content = textarea?.value;
+    if (content) {
+      this.addComment(postId, content);
+      textarea.value = '';
     }
   }
 
@@ -241,67 +344,56 @@ class RealTimeMessages {
     try {
       const token = localStorage.getItem('token');
       if (!token) return null;
-      
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.sub;
-    } catch (error) {
-      console.error('❌ Error obteniendo ID de usuario:', error);
+    } catch {
       return null;
     }
   }
 
-  updateStatus(text, className) {
+  updateStatus(text, status) {
     if (this.elements.connectionStatus) {
       this.elements.connectionStatus.textContent = text;
-      this.elements.connectionStatus.className = 'status ' + className;
+      this.elements.connectionStatus.className = `status ${status}`;
     }
   }
 
-  updateMessageCount() {
-    if (!this.elements.messageCount) return;
-    
-    const unreadCount = this.messages.filter(m => 
-      m.receiverId === this.getCurrentUserId() && !m.read && !m.readBy
-    ).length;
-    
-    this.elements.messageCount.textContent = unreadCount > 0 ? '📬 ' + unreadCount + ' no leídos' : '📬 Sin mensajes nuevos';
-  }
-
-  markAsRead(messageId) {
-    if (this.socket) {
-      this.socket.emit('mark_read', { messageId: messageId });
-    }
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
 
-// Funciones globales
-function markAsRead(messageId) {
-  if (window.messagesApp) {
-    window.messagesApp.markAsRead(messageId);
-  }
-}
+// ============================================
+// INICIALIZACIÓN
+// ============================================
 
-function $(id) {
-  return document.getElementById(id);
-}
-
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('📱 DOM listo, inicializando mensajes...');
+  console.log('📚 Inicializando Foro - El Rincón del Mentiroso...');
   
   // Verificar autenticación
   const token = localStorage.getItem('token');
   if (!token) {
-    console.error('❌ No hay token de autenticación');
+    console.log('🔒 Usuario no autenticado. Redirigiendo a login...');
     window.location.href = '/login.html';
     return;
   }
 
-  // Inicializar aplicación
+  // Inicializar el foro (funciona con o sin Socket.io)
   try {
-    window.messagesApp = new RealTimeMessages();
-    console.log('✅ Aplicación de mensajes inicializada');
+    window.forumManager = new ForumManager();
+    console.log('✅ Foro inicializado correctamente');
+    console.log('ℹ️ Modo: API REST primaria, Socket.io opcional');
   } catch (error) {
-    console.error('❌ Error inicializando aplicación:', error);
+    console.error('❌ Error inicializando foro:', error);
+    document.body.innerHTML = `
+      <div style="text-align: center; padding: 50px;">
+        <h2>😕 Error al cargar el foro</h2>
+        <p>${error.message}</p>
+        <button onclick="location.reload()">Reintentar</button>
+      </div>
+    `;
   }
 });

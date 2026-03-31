@@ -783,6 +783,121 @@ app.post("/api/forum/threads/:threadId/replies", requireAuth, async (req, res) =
   }
 });
 
+// ============================================
+// RUTAS API DEL FORO DE MENTIRAS (POSTS)
+// ============================================
+
+// GET /api/posts - Obtener todas las mentiras (posts)
+app.get("/api/posts", requireAuth, async (req, res) => {
+  try {
+    console.log(`📚 Cargando posts para usuario: ${req.user.id}`);
+    
+    // Obtener posts de la base de datos
+    const posts = await database.getAllPosts();
+    
+    // Agregar información de autores
+    const postsWithAuthors = await Promise.all(
+      posts.map(async (post) => {
+        const author = await getUserById(post.authorId);
+        return {
+          ...post,
+          authorName: author ? author.displayName : "Anónimo",
+          authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
+          isAuthor: post.authorId.toString() === req.user.id
+        };
+      })
+    );
+    
+    console.log(`✅ ${postsWithAuthors.length} posts cargados`);
+    return res.json({ posts: postsWithAuthors });
+  } catch (err) {
+    console.error('Get posts error:', err);
+    return res.status(500).json({ error: "Error al cargar posts" });
+  }
+});
+
+// POST /api/posts - Crear nueva mentira (post)
+app.post("/api/posts", requireAuth, async (req, res) => {
+  try {
+    const { title, content } = req.body || {};
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: "Título y contenido son requeridos" });
+    }
+    
+    console.log(`📝 Creando nuevo post: "${title}" por ${req.user.email}`);
+    
+    const post = {
+      authorId: req.user.id,
+      title: String(title).trim(),
+      content: String(content).trim(),
+      createdAt: new Date().toISOString(),
+      views: 0,
+      comments: []
+    };
+    
+    const savedPost = await database.createPost(post);
+    
+    // Agregar información del autor
+    const author = await getUserById(req.user.id);
+    const postWithAuthor = {
+      ...savedPost,
+      authorName: author ? author.displayName : "Anónimo",
+      authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
+      isAuthor: true
+    };
+    
+    console.log(`✅ Post creado: ${savedPost.id}`);
+    return res.status(201).json(postWithAuthor);
+  } catch (err) {
+    console.error('Create post error:', err);
+    return res.status(500).json({ error: "Error al crear post" });
+  }
+});
+
+// POST /api/posts/:postId/comments - Agregar comentario a un post
+app.post("/api/posts/:postId/comments", requireAuth, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content } = req.body || {};
+    
+    if (!content) {
+      return res.status(400).json({ error: "Contenido del comentario es requerido" });
+    }
+    
+    console.log(`💬 Agregando comentario al post ${postId} por ${req.user.email}`);
+    
+    // Verificar que el post existe
+    const post = await database.getPostById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "Post no encontrado" });
+    }
+    
+    const comment = {
+      postId,
+      authorId: req.user.id,
+      content: String(content).trim(),
+      createdAt: new Date().toISOString()
+    };
+    
+    const savedComment = await database.createComment(comment);
+    
+    // Agregar información del autor
+    const author = await getUserById(req.user.id);
+    const commentWithAuthor = {
+      ...savedComment,
+      authorName: author ? author.displayName : "Anónimo",
+      authorCode: author ? censorInviteCode(author.inviteCode) : "N/A"
+    };
+    
+    console.log(`✅ Comentario creado: ${savedComment.id}`);
+    return res.status(201).json(commentWithAuthor);
+  } catch (err) {
+    console.error('Create comment error:', err);
+    return res.status(500).json({ error: "Error al crear comentario" });
+  }
+});
+
 // Rutas específicas de HTML con logs
 app.get("/", (req, res) => {
   console.log(`🏠 Serving login.html as homepage`);

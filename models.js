@@ -179,6 +179,63 @@ const mensajeSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Esquema de Posts (Mentiras del Foro)
+const postSchema = new mongoose.Schema({
+  authorId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    required: true,
+    ref: 'User'
+  },
+  title: { 
+    type: String, 
+    required: true,
+    trim: true,
+    maxlength: 200
+  },
+  content: { 
+    type: String, 
+    required: true,
+    trim: true,
+    maxlength: 5000
+  },
+  views: {
+    type: Number,
+    default: 0
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+}, {
+  timestamps: true
+});
+
+// Esquema de Comentarios en Posts
+const commentSchema = new mongoose.Schema({
+  postId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    required: true,
+    ref: 'Post'
+  },
+  authorId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    required: true,
+    ref: 'User'
+  },
+  content: { 
+    type: String, 
+    required: true,
+    trim: true,
+    maxlength: 2000
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+}, {
+  timestamps: true
+});
+
 // Exportar modelos
 const User = mongoose.model('User', userSchema);
 const News = mongoose.model('News', newsSchema);
@@ -186,6 +243,8 @@ const Attachment = mongoose.model('Attachment', attachmentSchema);
 const Thread = mongoose.model('Thread', threadSchema);
 const Reply = mongoose.model('Reply', replySchema);
 const Mensaje = mongoose.model('Mensaje', mensajeSchema);
+const Post = mongoose.model('Post', postSchema);
+const Comment = mongoose.model('Comment', commentSchema);
 
 module.exports = {
   User,
@@ -194,5 +253,7 @@ module.exports = {
   Thread,
   Reply,
   Mensaje,
+  Post,
+  Comment,
   mongoose
 };
