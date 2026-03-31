@@ -3,8 +3,6 @@
  * Versión simplificada: Sin encriptación, datos en texto plano
  */
 
-console.log("📥 Iniciando foro...");
-
 class ForumManager {
   constructor() {
     this.posts = [];
@@ -35,8 +33,6 @@ class ForumManager {
       this.updateStatus('🔄 Cargando...', 'loading');
       
       const token = localStorage.getItem('token');
-      console.log("📥 Token:", token ? "Presente" : "Ausente");
-      
       const response = await fetch(`${this.apiUrl}/api/posts`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -44,27 +40,19 @@ class ForumManager {
         }
       });
 
-      console.log("📥 Respuesta status:", response.status);
-      
       const data = await response.json();
-      console.log("📥 Datos brutos recibidos:", data);
 
       if (!response.ok) {
         throw new Error(data.error || `Error ${response.status}`);
       }
 
       this.posts = data.posts || [];
-      console.log("📥 Posts cargados:", this.posts.length);
-      
       this.renderPosts();
       this.updateStatus('✅ Listo', 'ready');
       
     } catch (error) {
       console.error('❌ Error cargando posts:', error);
       this.updateStatus('❌ Error', 'error');
-      if (this.elements.postsContainer) {
-        this.elements.postsContainer.innerHTML = `<p>Error al cargar: ${error.message}</p>`;
-      }
     }
   }
 
@@ -82,13 +70,10 @@ class ForumManager {
       
       const token = localStorage.getItem('token');
       
-      // Datos simples en texto plano
       const datos = {
         titulo: titulo,
         mensaje: mensaje
       };
-      
-      console.log("📥 Enviando datos:", datos);
 
       const response = await fetch(`${this.apiUrl}/api/posts`, {
         method: 'POST',
@@ -100,7 +85,6 @@ class ForumManager {
       });
 
       const resultado = await response.json();
-      console.log("📥 Respuesta del servidor:", resultado);
 
       if (!response.ok) {
         throw new Error(resultado.error || 'Error al publicar');
@@ -127,13 +111,10 @@ class ForumManager {
     }
 
     this.elements.postsContainer.innerHTML = this.posts.map(post => {
-      console.log("📥 Renderizando post:", post);
-      
-      // Usar propiedades reales del post
-      const titulo = post.titulo || post.title || 'Sin título';
-      const mensaje = post.mensaje || post.content || 'Sin contenido';
-      const autor = post.usuario || post.authorName || 'Anónimo';
-      const fecha = post.fecha || post.createdAt || new Date().toISOString();
+      const titulo = post.titulo || 'Sin título';
+      const mensaje = post.mensaje || 'Sin contenido';
+      const autor = post.usuario || 'Anónimo';
+      const fecha = post.fecha || new Date().toISOString();
       
       return `
         <article class="post">
@@ -169,5 +150,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   window.forumManager = new ForumManager();
-  console.log("📥 Foro inicializado");
 });

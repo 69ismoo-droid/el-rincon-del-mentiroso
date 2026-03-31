@@ -790,12 +790,8 @@ app.post("/api/forum/threads/:threadId/replies", requireAuth, async (req, res) =
 // GET /api/posts - Obtener todas las mentiras (posts)
 app.get("/api/posts", requireAuth, async (req, res) => {
   try {
-    console.log(`📚 Cargando posts para usuario: ${req.user.id}`);
-    
-    // Obtener posts de la base de datos
     const posts = await database.getAllPosts();
     
-    // Agregar información de autores
     const postsWithAuthors = await Promise.all(
       posts.map(async (post) => {
         const author = await getUserById(post.authorId);
@@ -810,10 +806,9 @@ app.get("/api/posts", requireAuth, async (req, res) => {
       })
     );
     
-    console.log(`✅ ${postsWithAuthors.length} posts cargados`);
     return res.json({ posts: postsWithAuthors });
   } catch (err) {
-    console.error('Get posts error:', err);
+    console.error('❌ Get posts error:', err);
     return res.status(500).json({ error: "Error al cargar posts" });
   }
 });
@@ -821,15 +816,11 @@ app.get("/api/posts", requireAuth, async (req, res) => {
 // POST /api/posts - Crear nueva mentira (post)
 app.post("/api/posts", requireAuth, async (req, res) => {
   try {
-  console.log("📥 Datos recibidos en POST /api/posts:", req.body);
-    
     const { titulo, mensaje } = req.body || {};
     
     if (!titulo || !mensaje) {
       return res.status(400).json({ error: "Título y mensaje son requeridos" });
     }
-    
-    console.log(`📝 Creando nuevo post: "${titulo}" por ${req.user.email}`);
     
     const post = {
       authorId: req.user.id,
@@ -841,7 +832,6 @@ app.post("/api/posts", requireAuth, async (req, res) => {
     
     const savedPost = await database.createPost(post);
     
-    // Agregar información del autor
     const author = await getUserById(req.user.id);
     const postWithAuthor = {
       ...savedPost,
@@ -849,10 +839,9 @@ app.post("/api/posts", requireAuth, async (req, res) => {
       esAutor: true
     };
     
-    console.log(`✅ Post creado: ${savedPost.id}`);
     return res.status(201).json(postWithAuthor);
   } catch (err) {
-    console.error('Create post error:', err);
+    console.error('❌ Create post error:', err);
     return res.status(500).json({ error: "Error al crear post" });
   }
 });
