@@ -218,7 +218,8 @@ class RealTimeMessages {
       return '<div class="online-user" data-user-id="' + user.userId + '">' +
         '<div class="user-status online"></div>' +
         '<div class="user-info">' +
-          '<div class="user-name">' + user.email + '</div>' +
+          '<div class="user-name">' + (user.displayName || user.email) + '</div>' +
+          '<div class="user-code">🔖 ' + (user.userCode || 'N/A') + '</div>' +
           '<div class="user-time">Conectado: ' + new Date(user.connectedAt).toLocaleTimeString() + '</div>' +
         '</div>' +
         '</div>';
@@ -236,7 +237,9 @@ class RealTimeMessages {
       '<option value="">Seleccionar destinatario...</option>' +
       this.connectedUsers
         .filter(user => user.userId !== this.getCurrentUserId())
-        .map(user => '<option value="' + user.userId + '">' + user.email + '</option>')
+        .map(user => '<option value="' + user.userId + '">' + 
+          (user.displayName || user.email) + ' 🔖 ' + (user.userCode || 'N/A') + 
+          '</option>')
         .join('');
     
     if (currentValue) {
@@ -262,10 +265,13 @@ class RealTimeMessages {
       return '<div class="message ' + (isFromMe ? 'sent' : 'received') + ' ' + (isRead ? 'read' : 'unread') + '" data-message-id="' + message.id + '">' +
         '<div class="message-header">' +
           '<span class="message-sender">' +
-            (isFromMe ? 'Tú' : (message.senderName || message.senderEmail)) +
+            (isFromMe ? 'Tú' : (message.senderName || 'Desconocido')) +
+          '</span>' +
+          '<span class="message-code">' +
+            (isFromMe ? '' : '🔖 ' + (message.senderCode || 'N/A')) +
           '</span>' +
           '<span class="message-time">' +
-            new Date(message.createdAt).toLocaleTimeString() +
+            (message.createdAt ? formatDate(message.createdAt) : '📅 Fecha no disponible') +
           '</span>' +
           '<span class="read-indicator">' +
             (isRead ? '✓ Leído' : '○ No leído') +
@@ -332,6 +338,31 @@ class RealTimeMessages {
   filterMessages() {
     this.renderMessages();
     this.updateMessageCount();
+  }
+}
+
+// Función para formatear fechas
+function formatDate(iso) {
+  try {
+    if (!iso) return '📅 Fecha no disponible';
+    
+    const d = new Date(iso);
+    
+    // Verificar si la fecha es válida
+    if (isNaN(d.getTime())) {
+      return '📅 Fecha inválida';
+    }
+    
+    return d.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error('Error en formatDate:', error);
+    return '📅 Error en fecha';
   }
 }
 

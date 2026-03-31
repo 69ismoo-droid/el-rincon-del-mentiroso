@@ -211,6 +211,17 @@ function startWebSocket() {
       const decoded = jwt.verify(token, JWT_SECRET);
       socket.userId = decoded.sub;
       socket.userEmail = decoded.email;
+      
+      // Obtener datos completos del usuario
+      getUserById(decoded.sub).then(user => {
+        if (user) {
+          socket.userDisplayName = user.displayName;
+          socket.userInviteCode = user.inviteCode;
+        }
+      }).catch(err => {
+        console.error('Error obteniendo datos del usuario:', err);
+      });
+      
       next();
     } catch (err) {
       next(new Error('Token inválido'));
@@ -224,6 +235,8 @@ function startWebSocket() {
     connectedUsers.set(socket.userId, {
       socketId: socket.id,
       email: socket.userEmail,
+      displayName: socket.userDisplayName,
+      userCode: censorInviteCode(socket.userInviteCode),
       connectedAt: new Date()
     });
     
@@ -231,6 +244,8 @@ function startWebSocket() {
     socket.broadcast.emit('user_connected', {
       userId: socket.userId,
       email: socket.userEmail,
+      displayName: socket.userDisplayName,
+      userCode: censorInviteCode(socket.userInviteCode),
       timestamp: new Date().toISOString()
     });
     
@@ -238,6 +253,8 @@ function startWebSocket() {
     const usersList = Array.from(connectedUsers.entries()).map(([userId, data]) => ({
       userId,
       email: data.email,
+      displayName: data.displayName,
+      userCode: data.userCode,
       connectedAt: data.connectedAt
     }));
     
@@ -783,7 +800,9 @@ app.get("/api/mensajes", requireAuth, async (req, res) => {
         return {
           ...msg,
           senderName: sender ? sender.displayName : "Usuario eliminado",
+          senderCode: sender ? censorInviteCode(sender.inviteCode) : "N/A",
           receiverName: receiver ? receiver.displayName : "Usuario eliminado",
+          receiverCode: receiver ? censorInviteCode(receiver.inviteCode) : "N/A",
           isFromMe: msg.senderId.toString() === req.user.id
         };
       })
