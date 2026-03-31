@@ -824,6 +824,38 @@ app.get("/api/mensajes", requireAuth, async (req, res) => {
   }
 });
 
+// Ruta para obtener mensajes entre dos usuarios específicos
+app.get("/api/mensajes/:receiverId", requireAuth, async (req, res) => {
+  try {
+    const { receiverId } = req.params;
+    const senderId = req.user.id;
+    
+    // Obtener mensajes entre los dos usuarios
+    const mensajes = await database.getMensajesEntreUsuarios(senderId, receiverId);
+    
+    // Agregar información de los usuarios
+    const mensajesConNombres = await Promise.all(
+      mensajes.map(async (msg) => {
+        const sender = await getUserById(msg.senderId);
+        const receiver = await getUserById(msg.receiverId);
+        return {
+          ...msg,
+          senderName: sender ? sender.displayName : "Usuario eliminado",
+          senderCode: sender ? censorInviteCode(sender.inviteCode) : "N/A",
+          receiverName: receiver ? receiver.displayName : "Usuario eliminado",
+          receiverCode: receiver ? censorInviteCode(receiver.inviteCode) : "N/A",
+          isFromMe: msg.senderId.toString() === senderId
+        };
+      })
+    );
+    
+    return res.json({ mensajes: mensajesConNombres });
+  } catch (err) {
+    console.error('Get mensajes between users error:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
 app.post("/api/mensajes", requireAuth, async (req, res) => {
   try {
     const { receiverId, content } = req.body || {};
