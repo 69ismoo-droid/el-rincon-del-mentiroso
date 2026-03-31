@@ -335,84 +335,57 @@ class RealTimeMessages {
   }
 }
 
-// Inicializar cuando el DOM esté listo
+// Esperar a que el DOM esté listo y verificar Socket.io
 document.addEventListener('DOMContentLoaded', () => {
-  // Esperar un momento más para asegurar que todo esté cargado
-  setTimeout(() => {
-    // Verificar que el usuario esté autenticado
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('❌ No hay token de autenticación');
-      window.location.href = '/login.html';
-      return;
-    }
-
-    // Verificar que Socket.io esté disponible
-    if (typeof io === 'undefined') {
-      console.error('❌ Socket.io no está disponible');
-      console.error('🔍 Intentando cargar Socket.io manualmente...');
-      
-      // Intentar cargar Socket.io manualmente
-      const script = document.createElement('script');
-      script.src = '/socket.io/socket.io.js';
-      script.onload = () => {
-        console.log('✅ Socket.io cargado manualmente');
-        console.log('🔍 Verificando que io esté disponible después de carga...');
-        
-        // Esperar un poco y verificar
-        setTimeout(() => {
-          if (typeof io !== 'undefined') {
-            console.log('✅ io disponible después de carga manual, reconectando...');
-            // Intentar conectar con el io recién cargado
-            this.connectWebSocket();
-          } else {
-            console.error('❌ io todavía no disponible después de carga manual');
-            // Intentar CDN como último recurso
-            this.loadSocketFromCDN();
-          }
-        }, 1000);
-      };
-      script.onerror = () => {
-        console.error('❌ No se pudo cargar Socket.io manualmente desde servidor');
-        console.log('🔄 Intentando CDN como último recurso...');
-        this.loadSocketFromCDN();
-      };
-      document.head.appendChild(script);
-      return;
-    }
-
-    loadSocketFromCDN() {
-      console.log('🔄 Cargando Socket.io desde CDN...');
-      const cdnScript = document.createElement('script');
-      cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-      cdnScript.onload = () => {
-        console.log('✅ Socket.io cargado desde CDN');
-        setTimeout(() => {
-          if (typeof io !== 'undefined') {
-            console.log('✅ io disponible desde CDN, conectando...');
-            this.connectWebSocket();
-          } else {
-            console.error('❌ CDN tampoco funcionó');
-            alert('Error: No se pudo cargar Socket.io desde ninguna fuente. Recarga la página.');
-          }
-        }, 1000);
-      };
-      cdnScript.onerror = () => {
-        console.error('❌ CDN también falló');
-        alert('Error: No se pudo cargar Socket.io. El servidor podría no estar funcionando correctamente.');
-      };
-      document.head.appendChild(cdnScript);
-    }
-
-  // Pedir permiso para notificaciones
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+  console.log('📱 DOM listo, verificando Socket.io...');
   
-  console.log('✅ Inicializando sistema de mensajes...');
-  console.log('🔌 io disponible:', typeof io);
-  window.messagesApp = new RealTimeMessages();
-  }, 200); // Aumentar el tiempo de espera
+  // Verificar token primero
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('❌ No hay token de autenticación');
+    window.location.href = '/login.html';
+    return;
+  }
+
+  // Verificar Socket.io
+  if (typeof io === 'undefined') {
+    console.error('❌ Socket.io no está disponible');
+    console.error('🔍 Intentando cargar Socket.io manualmente...');
+    
+    // Cargar Socket.io manualmente
+    const script = document.createElement('script');
+    script.src = '/socket.io/socket.io.js';
+    script.onload = () => {
+      console.log('✅ Socket.io cargado manualmente');
+      
+      // Esperar y verificar
+      setTimeout(() => {
+        if (typeof io !== 'undefined') {
+          console.log('✅ io disponible, inicializando...');
+          // Pedir permiso para notificaciones
+          if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+          }
+          window.messagesApp = new RealTimeMessages();
+        } else {
+          console.error('❌ io todavía no disponible');
+          alert('Error: No se pudo cargar Socket.io. Recarga la página.');
+        }
+      }, 1000);
+    };
+    script.onerror = () => {
+      console.error('❌ No se pudo cargar Socket.io manualmente');
+      alert('Error: No se pudo cargar Socket.io. Recarga la página.');
+    };
+    document.head.appendChild(script);
+  } else {
+    console.log('✅ Socket.io disponible, inicializando...');
+    // Pedir permiso para notificaciones
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    window.messagesApp = new RealTimeMessages();
+  }
 });
 
 // Función global para marcar mensajes
