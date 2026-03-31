@@ -800,10 +800,12 @@ app.get("/api/posts", requireAuth, async (req, res) => {
       posts.map(async (post) => {
         const author = await getUserById(post.authorId);
         return {
-          ...post,
-          authorName: author ? author.displayName : "Anónimo",
-          authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
-          isAuthor: post.authorId.toString() === req.user.id
+          id: post._id,
+          titulo: post.titulo,
+          mensaje: post.mensaje,
+          fecha: post.fecha,
+          usuario: author ? author.displayName : "Anónimo",
+          esAutor: post.authorId.toString() === req.user.id
         };
       })
     );
@@ -819,21 +821,22 @@ app.get("/api/posts", requireAuth, async (req, res) => {
 // POST /api/posts - Crear nueva mentira (post)
 app.post("/api/posts", requireAuth, async (req, res) => {
   try {
-    const { title, content } = req.body || {};
+  console.log("📥 Datos recibidos en POST /api/posts:", req.body);
     
-    if (!title || !content) {
-      return res.status(400).json({ error: "Título y contenido son requeridos" });
+    const { titulo, mensaje } = req.body || {};
+    
+    if (!titulo || !mensaje) {
+      return res.status(400).json({ error: "Título y mensaje son requeridos" });
     }
     
-    console.log(`📝 Creando nuevo post: "${title}" por ${req.user.email}`);
+    console.log(`📝 Creando nuevo post: "${titulo}" por ${req.user.email}`);
     
     const post = {
       authorId: req.user.id,
-      title: String(title).trim(),
-      content: String(content).trim(),
-      createdAt: new Date().toISOString(),
-      views: 0,
-      comments: []
+      titulo: String(titulo).trim(),
+      mensaje: String(mensaje).trim(),
+      fecha: new Date().toISOString(),
+      usuario: req.user.email
     };
     
     const savedPost = await database.createPost(post);
@@ -842,9 +845,8 @@ app.post("/api/posts", requireAuth, async (req, res) => {
     const author = await getUserById(req.user.id);
     const postWithAuthor = {
       ...savedPost,
-      authorName: author ? author.displayName : "Anónimo",
-      authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
-      isAuthor: true
+      usuario: author ? author.displayName : "Anónimo",
+      esAutor: true
     };
     
     console.log(`✅ Post creado: ${savedPost.id}`);
