@@ -306,21 +306,31 @@ function startWebSocket() {
           receiverId: receiverId
         };
         
-        console.log(`💬 Mensaje en tiempo real: ${socket.userEmail} → ${receiver.displayName}`);
+        console.log(`💬 Mensaje privado: ${socket.userEmail} → ${receiver.displayName}`);
         
-        // Enviar al receptor si está conectado
+        // Enviar al receptor específico si está conectado
         const receiverSocket = connectedUsers.get(receiverId);
         if (receiverSocket) {
+          // Enviar SOLO al destinatario
           io.to(receiverSocket.socketId).emit('new_message', mensajeConNombres);
-          console.log(`📨 Mensaje entregado en tiempo real a: ${receiver.displayName}`);
+          console.log(`📨 Mensaje entregado a: ${receiver.displayName}`);
+          
+          // Confirmar al emisor que fue entregado
+          socket.emit('message_sent', {
+            ...mensajeConNombres,
+            delivered: true,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          console.log(`⏳ Usuario ${receiver.displayName} no está conectado. Mensaje guardado.`);
+          
+          // Confirmar al emisor que fue guardado pero no entregado
+          socket.emit('message_sent', {
+            ...mensajeConNombres,
+            delivered: false,
+            timestamp: new Date().toISOString()
+          });
         }
-        
-        // Confirmar al emisor
-        socket.emit('message_sent', {
-          ...mensajeConNombres,
-          delivered: !!receiverSocket,
-          timestamp: new Date().toISOString()
-        });
         
       } catch (err) {
         console.error('Error en send_message:', err);

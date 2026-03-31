@@ -102,12 +102,23 @@ class RealTimeMessages {
       this.loadUsers();
     });
 
-    // Mensaje recibido
+    // Mensaje recibido - SOLO si es para mí o de mí
     this.socket.on('new_message', (message) => {
-      this.messages.push(message);
-      this.renderMessages();
-      this.updateMessageCount();
-      console.log('📬 Nuevo mensaje recibido');
+      // Verificar que el mensaje sea para el usuario actual
+      const isForMe = message.receiverId === this.getCurrentUserId();
+      const isFromMe = message.senderId === this.getCurrentUserId();
+      
+      if (isForMe || isFromMe) {
+        this.messages.push(message);
+        this.renderMessages();
+        this.updateMessageCount();
+        console.log('📬 Nuevo mensaje privado recibido');
+        
+        // Si no es de mí, mostrar notificación
+        if (isForMe && !isFromMe) {
+          console.log(`🔔 Nuevo mensaje de: ${message.senderName}`);
+        }
+      }
     });
 
     // Mensaje leído
@@ -116,6 +127,16 @@ class RealTimeMessages {
       if (message) {
         message.read = true;
         this.renderMessages();
+      }
+    });
+
+    // Confirmación de mensaje enviado
+    this.socket.on('message_sent', (data) => {
+      console.log('✅ Mensaje enviado confirmado:', data.delivered ? 'Entregado' : 'Guardado (usuario no conectado)');
+      if (data.delivered) {
+        console.log('📨 El destinatario recibió el mensaje');
+      } else {
+        console.log('⏳ El destinatario no está conectado, mensaje guardado');
       }
     });
   }
@@ -159,8 +180,10 @@ class RealTimeMessages {
   renderMessages() {
     if (!this.elements.messagesContainer) return;
     
+    // SOLO mostrar mensajes entre el usuario actual y el destinatario seleccionado
     const filteredMessages = this.messages.filter(msg => 
-      msg.receiverId === this.currentReceiverId || msg.senderId === this.currentReceiverId
+      (msg.senderId === this.getCurrentUserId() && msg.receiverId === this.currentReceiverId) ||
+      (msg.senderId === this.currentReceiverId && msg.receiverId === this.getCurrentUserId())
     );
 
     this.elements.messagesContainer.innerHTML = filteredMessages.map(message => {
@@ -177,6 +200,9 @@ class RealTimeMessages {
         ${!isRead && !isFromMe ? `<button class="mark-read-btn" onclick="markAsRead('${message.id}')">Marcar como leído</button>` : ''}
       </div>`;
     }).join('');
+    
+    // Scroll al último mensaje
+    this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
   }
 
   updateOnlineUsers() {
