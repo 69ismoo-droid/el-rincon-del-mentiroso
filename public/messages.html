@@ -6,70 +6,41 @@
     <title>Mensajes en Tiempo Real - El Rincón del Mentiroso</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
-    <!-- Cargar Socket.io con estrategia garantizada -->
+    <!-- Cargar Socket.io directamente desde el servidor (garantizado) -->
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Variable global para controlar la carga
-        window.socketIoLoaded = false;
-        window.socketIoLoading = false;
-        
-        // Función para cargar Socket.io
-        function loadSocketIo() {
-            if (window.socketIoLoaded || window.socketIoLoading) {
-                return Promise.resolve();
-            }
-            
-            window.socketIoLoading = true;
-            console.log('🔄 Iniciando carga de Socket.io...');
-            
-            return new Promise((resolve, reject) => {
-                // Estrategia 1: CDN
-                const cdnScript = document.createElement('script');
-                cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-                cdnScript.onload = () => {
-                    console.log('✅ Socket.io cargado desde CDN');
-                    window.socketIoLoaded = true;
-                    window.socketIoLoading = false;
-                    resolve();
-                };
-                cdnScript.onerror = () => {
-                    console.log('🔄 CDN falló, intentando servidor...');
-                    
-                    // Estrategia 2: Servidor local
-                    const serverScript = document.createElement('script');
-                    serverScript.src = '/socket.io/socket.io.js';
-                    serverScript.onload = () => {
-                        console.log('✅ Socket.io cargado desde servidor');
-                        window.socketIoLoaded = true;
-                        window.socketIoLoading = false;
-                        resolve();
-                    };
-                    serverScript.onerror = () => {
-                        console.error('❌ No se pudo cargar Socket.io desde ninguna fuente');
-                        window.socketIoLoading = false;
-                        reject(new Error('No se pudo cargar Socket.io'));
-                    };
-                    document.head.appendChild(serverScript);
-                };
-                document.head.appendChild(cdnScript);
-            });
+        // Verificar que io esté disponible
+        if (typeof io === 'undefined') {
+            console.error('❌ Socket.io no cargado desde servidor');
+            // Intentar CDN como fallback
+            const cdnScript = document.createElement('script');
+            cdnScript.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+            cdnScript.onload = () => {
+                console.log('✅ Socket.io cargado desde CDN fallback');
+                loadApp();
+            };
+            cdnScript.onerror = () => {
+                console.error('❌ CDN fallback también falló');
+                alert('Error: No se pudo cargar Socket.io. Recarga la página.');
+            };
+            document.head.appendChild(cdnScript);
+        } else {
+            console.log('✅ Socket.io cargado desde servidor');
+            loadApp();
         }
         
-        // Función para cargar la aplicación
         function loadApp() {
-            console.log('📱 Cargando aplicación...');
-            
-            // Cargar app.js primero
+            // Cargar app.js
             const appScript = document.createElement('script');
             appScript.src = 'app.js';
             appScript.onload = () => {
                 console.log('✅ app.js cargado');
-                
-                // Luego cargar messages.js
+                // Cargar messages.js
                 const messagesScript = document.createElement('script');
                 messagesScript.src = 'messages.js';
                 messagesScript.onload = () => {
                     console.log('✅ messages.js cargado');
-                    console.log('🎉 Todos los scripts cargados');
+                    console.log('🎉 Todos los scripts cargados correctamente');
                 };
                 messagesScript.onerror = () => {
                     console.error('❌ Error cargando messages.js');
@@ -80,49 +51,6 @@
                 console.error('❌ Error cargando app.js');
             };
             document.head.appendChild(appScript);
-        }
-        
-        // Inicialización secuencial
-        async function initialize() {
-            try {
-                // 1. Cargar Socket.io primero
-                await loadSocketIo();
-                
-                // 2. Esperar un poco para asegurar que io esté disponible
-                await new Promise(resolve => setTimeout(resolve, 200));
-                
-                // 3. Verificar que io esté realmente disponible
-                if (typeof io === 'undefined') {
-                    throw new Error('Socket.io no está disponible después de la carga');
-                }
-                
-                console.log('✅ Socket.io verificado:', typeof io);
-                
-                // 4. Cargar la aplicación
-                loadApp();
-                
-            } catch (error) {
-                console.error('❌ Error en inicialización:', error);
-                
-                // Mostrar error al usuario
-                document.addEventListener('DOMContentLoaded', () => {
-                    const statusEl = document.getElementById('connectionStatus');
-                    if (statusEl) {
-                        statusEl.textContent = '❌ Error cargando Socket.io';
-                        statusEl.className = 'status error';
-                    }
-                });
-                
-                // Intentar cargar la aplicación de todos modos
-                loadApp();
-            }
-        }
-        
-        // Iniciar cuando el DOM esté listo
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initialize);
-        } else {
-            initialize();
         }
     </script>
 </head>
