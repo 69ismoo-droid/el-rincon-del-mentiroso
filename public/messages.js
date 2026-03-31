@@ -49,21 +49,21 @@ class RealTimeMessages {
         return;
       }
 
-      // Determinar URL del servidor (mejorado para evitar problemas de seguridad)
+      // Configuración específica para Render (HTTPS obligatorio)
       let serverUrl;
       
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         // Desarrollo local - usar HTTP
         serverUrl = 'http://localhost:3000';
         console.log('🔍 Modo desarrollo detectado, usando HTTP local');
-      } else if (window.location.protocol === 'https:') {
-        // Producción con HTTPS - usar siempre HTTPS
-        serverUrl = window.location.origin;
-        console.log('🔍 Modo producción HTTPS detectado');
+      } else if (window.location.hostname === 'el-rincon-del-mentiroso.onrender.com') {
+        // Producción en Render - usar URL directa
+        serverUrl = 'https://el-rincon-del-mentiroso.onrender.com';
+        console.log('🔍 Modo producción Render detectado, usando URL directa');
       } else {
-        // Producción con HTTP - usar origen actual
+        // Otros entornos - usar origen actual
         serverUrl = window.location.origin;
-        console.log('🔍 Modo producción HTTP detectado');
+        console.log('🔍 Modo producción genérico detectado');
       }
       
       // Validación adicional de seguridad
@@ -76,12 +76,13 @@ class RealTimeMessages {
       console.log('🔍 Protocolo:', window.location.protocol);
       console.log('🔍 Host:', window.location.hostname);
 
-      // Conectar a WebSocket con autenticación
+      // Conectar a WebSocket con configuración específica para Render
       this.socket = io(serverUrl, {
         auth: {
           token: token
         },
-        transports: ['websocket', 'polling'],
+        transports: ['websocket', 'polling'], // Transportes específicos
+        withCredentials: true, // Importante para Render
         timeout: 5000,
         reconnection: true,
         reconnectionAttempts: 5,
@@ -98,10 +99,24 @@ class RealTimeMessages {
   }
 
   setupSocketEvents() {
-    // ✅ Conexión exitosa
+    // ✅ Conexión exitosa específica para Render
     this.socket.on('connect', () => {
       this.updateStatus('✅ Conectado', 'connected');
       console.log('🔌 WebSocket conectado para mensajes en tiempo real');
+      console.log('✅ ¡Conexión exitosa al Rincón del Mentiroso!');
+    });
+
+    // ❌ Error de conexión específico para Render
+    this.socket.on('connect_error', (err) => {
+      console.error('❌ Error de conexión:', err.message);
+      console.error('🔍 Detalles del error:', err);
+      this.updateStatus('❌ Error de conexión', 'error');
+      
+      // Mensaje específico para Render
+      if (window.location.hostname === 'el-rincon-del-mentiroso.onrender.com') {
+        console.error('🔍 Error específico de Render - Verificando configuración...');
+        console.error('💡 Recuerda limpiar caché con Ctrl+F5 después de cambios');
+      }
     });
 
     // 📋 Lista de usuarios conectados

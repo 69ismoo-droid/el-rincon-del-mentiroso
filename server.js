@@ -63,14 +63,19 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*", // En desarrollo usa "*" para permitir todo
+    // Configuración específica para Render
+    origin: ["https://el-rincon-del-mentiroso.onrender.com", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true, // Importante para cookies y autenticación
     allowedHeaders: ["Content-Type", "Authorization"] // Headers permitidos
   },
-  // Configuración adicional para evitar problemas de seguridad
+  // Configuración adicional para Render
   allowEIO3: true, // Compatibilidad con clientes antiguos
-  transports: ["websocket", "polling"] // Métodos de transporte
+  transports: ["websocket", "polling"], // Métodos de transporte
+  // Configuración de seguridad para Render
+  maxHttpBufferSize: 1e8, // 100 MB
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 const PORT = process.env.PORT || 3000;
