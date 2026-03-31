@@ -10,33 +10,63 @@
     <!-- 1. Usar CDN oficial (recomendado por documentación) -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     
-    <!-- 2. Validación de que io esté disponible -->
+    <!-- 2. Validación y diagnóstico completo -->
     <script>
+        // Diagnóstico completo del problema de carga
+        console.log('🔍 Diagnóstico de carga de Socket.io:');
+        console.log('📍 Protocolo de la página:', window.location.protocol);
+        console.log('🌐 Host de la página:', window.location.host);
+        console.log('🔗 URL completa:', window.location.origin);
+        
         // Según documentación oficial, io debería estar disponible globalmente
         if (typeof io === 'undefined') {
             console.error('❌ Error crítico: Socket.io CDN no cargado');
-            console.error('� Intentando servidor como fallback...');
+            console.error('🔍 Causas posibles:');
+            console.error('  • Mixed Content (HTTP vs HTTPS)');
+            console.error('  • CDN bloqueado por red/corporativo');
+            console.error('  • Script no descargado por timeout');
+            console.error('🔍 Intentando servidor como fallback...');
             
             // Fallback al servidor si CDN falla
             const serverScript = document.createElement('script');
-            serverScript.src = '/socket.io/socket.io.js';
+            // IMPORTANTE: Usar mismo protocolo que la página para evitar Mixed Content
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            serverScript.src = `${protocol}//${host}/socket.io/socket.io.js`;
+            console.log('🔍 Fallback URL:', serverScript.src);
+            console.log('🔍 Verificando que el protocolo coincida...');
+            
             serverScript.onload = () => {
                 console.log('✅ Socket.io cargado desde servidor (fallback)');
                 // Verificación adicional
                 if (typeof io === 'undefined') {
                     console.error('❌ Servidor tampoco asignó io globalmente');
-                    alert('Error: Socket.io no disponible. Recarga la página.');
+                    console.error('🔍 Esto confirma que el problema es en el bundle del servidor');
+                    alert('Error: Socket.io no disponible. El servidor no está asignando io globalmente.');
                 } else {
                     console.log('✅ io disponible desde servidor');
+                    console.log('🎉 Problema resuelto con fallback al servidor');
                 }
             };
             serverScript.onerror = () => {
                 console.error('❌ Servidor fallback también falló');
-                alert('Error: No se pudo cargar Socket.io desde ninguna fuente.');
+                console.error('🔍 Error de red o el servidor no está sirviendo el bundle');
+                alert('Error: No se pudo cargar Socket.io desde ninguna fuente. Verifica la consola para más detalles.');
             };
+            
+            // Agregar timeout para detectar problemas de red
+            setTimeout(() => {
+                if (typeof io === 'undefined') {
+                    console.error('❌ Timeout: Socket.io no cargado después de 10 segundos');
+                    console.error('🔍 Probablemente un problema de red o bloqueo');
+                    alert('Error: Timeout cargando Socket.io. Verifica tu conexión a internet.');
+                }
+            }, 10000);
+            
             document.head.appendChild(serverScript);
         } else {
             console.log('✅ Socket.io cargado correctamente desde CDN oficial');
+            console.log('🎉 io disponible globalmente, todo funciona');
         }
     </script>
     
