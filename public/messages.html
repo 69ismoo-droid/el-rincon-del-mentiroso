@@ -7,111 +7,33 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
     
-    <!-- 1. CDN estable y probado (fallback si 4.7.5 falla) -->
+    <!-- 1. Socket.io CDN - SIMPLE Y DIRECTO -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     
-    <!-- 2. Validación INMEDIATA después de cargar CDN -->
+    <!-- 2. Verificación SIMPLE -->
     <script>
-        // Validación CRÍTICA inmediata
-        console.log('🔍 Verificación INMEDIATA de io:');
-        console.log('typeof io:', typeof io);
-        
+        // Verificar que io esté disponible
         if (typeof io === 'undefined') {
-            console.error('❌ ERROR: io no está definido INMEDIATAMENTE después del CDN');
-            console.error('� El CDN no cargó o está bloqueado');
-            console.error('💡 Intentando con CDN alternativo...');
-            
-            // CDN alternativo
-            const altScript = document.createElement('script');
-            altScript.src = 'https://cdn.jsdelivr.net/npm/socket.io-client@4.7.2/dist/socket.io.min.js';
-            altScript.onload = () => {
-                console.log('✅ CDN alternativo cargado');
-                if (typeof io !== 'undefined') {
-                    console.log('✅ io disponible desde CDN alternativo');
-                } else {
-                    console.error('❌ CDN alternativo tampoco funcionó');
-                }
-            };
-            altScript.onerror = () => {
-                console.error('❌ CDN alternativo también falló');
-            };
-            document.head.appendChild(altScript);
-        } else {
-            console.log('✅ io disponible INMEDIATAMENTE después del CDN');
-            console.log('🎉 CDN funcionó correctamente');
-        }
-    </script>
-    
-    <!-- 3. Validación y diagnóstico completo -->
-    <script>
-        // Diagnóstico completo del problema de carga
-        console.log('🔍 Diagnóstico de carga de Socket.io:');
-        console.log('� Protocolo de la página:', window.location.protocol);
-        console.log('🌐 Host de la página:', window.location.host);
-        console.log('🔗 URL completa:', window.location.origin);
-        console.log('🚀 Producción en Render - Sin modo local');
-        
-        // Verificación final antes de cargar app.js
-        if (typeof io === 'undefined') {
-            console.error('❌ Error crítico: Socket.io no disponible después de todos los intentos');
-            console.error('🔍 Último intento: servidor local...');
-            
-            // Último fallback al servidor
+            console.error('❌ Socket.io no cargó desde CDN');
+            // Intentar servidor local
             const serverScript = document.createElement('script');
             serverScript.src = '/socket.io/socket.io.js';
             serverScript.onload = () => {
-                if (typeof io !== 'undefined') {
-                    console.log('✅ io disponible desde servidor (último recurso)');
-                } else {
-                    console.error('❌ Ni el servidor funciona');
-                    alert('Error crítico: Socket.io no disponible desde ninguna fuente.');
-                }
+                console.log('✅ Socket.io cargado desde servidor');
             };
             serverScript.onerror = () => {
-                console.error('❌ Servidor tampoco funciona');
-                alert('Error crítico: Socket.io no disponible. Recarga la página.');
+                console.error('❌ Servidor tampoco funcionó');
+                alert('Error: Socket.io no disponible. Recarga la página.');
             };
             document.head.appendChild(serverScript);
         } else {
-            console.log('✅ Socket.io disponible, cargando aplicación...');
+            console.log('✅ Socket.io cargado desde CDN');
         }
     </script>
     
-    <!-- 4. Cargar los demás scripts SOLO después de verificar io -->
-    <script>
-        // Esperar a que io esté disponible
-        const waitForIo = () => {
-            if (typeof io !== 'undefined') {
-                console.log('✅ io confirmado, cargando app.js y messages.js...');
-                // Cargar app.js
-                const appScript = document.createElement('script');
-                appScript.src = 'app.js';
-                appScript.onload = () => {
-                    console.log('✅ app.js cargado');
-                    // Cargar messages.js
-                    const messagesScript = document.createElement('script');
-                    messagesScript.src = 'messages.js';
-                    messagesScript.onload = () => {
-                        console.log('✅ messages.js cargado');
-                        console.log('🎉 Todos los scripts cargados correctamente');
-                    };
-                    messagesScript.onerror = () => {
-                        console.error('❌ Error cargando messages.js');
-                    };
-                    document.head.appendChild(messagesScript);
-                };
-                appScript.onerror = () => {
-                    console.error('❌ Error cargando app.js');
-                };
-                document.head.appendChild(appScript);
-            } else {
-                console.log('⏳ Esperando io...');
-                setTimeout(waitForIo, 100);
-            }
-        };
-        
-        waitForIo();
-    </script>
+    <!-- 3. Cargar scripts de la aplicación -->
+    <script src="app.js"></script>
+    <script src="messages.js"></script>
 </head>
 <body>
     <div class="container">

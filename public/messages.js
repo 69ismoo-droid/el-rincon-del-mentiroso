@@ -1,253 +1,197 @@
-// Sistema de Mensajes en Tiempo Real - WebSocket
+// Verificar que io esté disponible antes de usarlo
+if (typeof io === 'undefined') {
+    console.error('❌ ERROR: Socket.io no está disponible');
+    console.error('💡 Espera a que la página cargue completamente');
+    throw new Error('Socket.io no disponible');
+}
+
+// Clase para manejar mensajes en tiempo real
 class RealTimeMessages {
   constructor() {
     this.socket = null;
-    this.currentUser = null;
     this.messages = [];
     this.connectedUsers = [];
+    this.currentReceiverId = null;
+    this.elements = {};
     
-    this.elements = {
-      messagesContainer: document.getElementById('messagesContainer'),
-      messageForm: document.getElementById('messageForm'),
-      messageInput: document.getElementById('messageInput'),
-      receiverSelect: document.getElementById('receiverSelect'),
-      onlineUsers: document.getElementById('onlineUsers'),
-      connectionStatus: document.getElementById('connectionStatus'),
-      messageCount: document.getElementById('messageCount')
-    };
-    
-    this.init();
-  }
-
-  init() {
-    this.setupEventListeners();
-    
-    // Verificación simple de io
-    if (typeof io === 'undefined') {
-      console.error('❌ Socket.io no está disponible');
-      this.updateStatus('❌ Error: Socket.io no disponible', 'error');
-      return;
-    }
-    
-    console.log('✅ Socket.io disponible, conectando...');
+    this.initElements();
     this.connectWebSocket();
   }
 
-  connectWebSocket() {
-    try {
-      // Verificar que io esté disponible
-      if (typeof io === 'undefined') {
-        console.error('Socket.io no está cargado');
-        this.updateStatus('❌ Socket.io no disponible', 'error');
-        return;
-      }
-
-      // Obtener token del localStorage
-      const token = localStorage.getItem('token');
-      if (!token) {
-        this.updateStatus('❌ No autenticado', 'error');
-        return;
-      }
-
-      // Configuración SOLO para producción en Render
-      const serverUrl = 'https://el-rincon-del-mentiroso.onrender.com';
-      console.log('🔍 Producción en Render - URL directa');
-      
-      // Validación de seguridad
-      if (!serverUrl || !serverUrl.startsWith('https')) {
-        console.error('❌ URL del servidor inválida:', serverUrl);
-        throw new Error('URL del servidor no configurada correctamente');
-      }
-      
-      console.log('🔌 Conectando a WebSocket:', serverUrl);
-      console.log('🔍 Protocolo:', window.location.protocol);
-      console.log('🔍 Host:', window.location.hostname);
-
-      // Conectar a WebSocket con configuración específica para Render
-      this.socket = io(serverUrl, {
-        auth: {
-          token: token
-        },
-        transports: ['websocket', 'polling'], // Transportes específicos
-        withCredentials: true, // Importante para Render
-        timeout: 5000,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000
-      });
-
-      this.setupSocketEvents();
-      this.updateStatus('🔄 Conectando...', 'connecting');
-      
-    } catch (error) {
-      console.error('Error al conectar WebSocket:', error);
-      this.updateStatus('❌ Error de conexión', 'error');
-    }
-  }
-
-  setupSocketEvents() {
-    // ✅ Conexión exitosa específica para Render
-    this.socket.on('connect', () => {
-      this.updateStatus('✅ Conectado', 'connected');
-      console.log('🔌 WebSocket conectado para mensajes en tiempo real');
-      console.log('✅ ¡Conexión exitosa al Rincón del Mentiroso!');
-      console.log('🚀 Producción en Render funcionando correctamente');
-    });
-
-    // ❌ Error de conexión específico para Render
-    this.socket.on('connect_error', (err) => {
-      console.error('❌ Error de conexión:', err.message);
-      console.error('🔍 Detalles del error:', err);
-      this.updateStatus('❌ Error de conexión', 'error');
-      
-      // Mensaje específico para producción en Render
-      console.error('🔍 Error en producción de Render - Verificando configuración...');
-      console.error('💡 Recuerda limpiar caché con Ctrl+F5 después de cambios');
-      console.error('🌐 Verificando: https://el-rincon-del-mentiroso.onrender.com');
-    });
-
-    // 📋 Lista de usuarios conectados
-    this.socket.on('users_list', (users) => {
-      this.connectedUsers = users;
-      this.updateOnlineUsers();
-      console.log('👥 Usuarios conectados:', users.length);
-    });
-
-    // 🔔 Nuevo usuario conectado
-    this.socket.on('user_connected', (user) => {
-      const existingUser = this.connectedUsers.find(u => u.userId === user.userId);
-      if (!existingUser) {
-        this.connectedUsers.push(user);
-        this.updateOnlineUsers();
-        console.log('🔌 Usuario conectado:', user.email);
-      }
-    });
-
-    // 🔔 Usuario desconectado
-    this.socket.on('user_disconnected', (user) => {
-      this.connectedUsers = this.connectedUsers.filter(u => u.userId !== user.userId);
-      this.updateOnlineUsers();
-      console.log('🔌 Usuario desconectado:', user.email);
-    });
-
-    // 📬 Mensaje recibido en tiempo real
-    this.socket.on('new_message', (message) => {
-      this.addMessage(message);
-      this.updateMessageCount();
-      
-      // Notificación si no es el mensaje actual
-      if (message.receiverId === this.getCurrentUserId()) {
-        this.showNotification('Nuevo mensaje de ' + message.senderName, message.content);
-      }
-      
-      console.log('📨 Mensaje recibido en tiempo real:', message);
-    });
-
-    // ✅ Mensaje enviado confirmado
-    this.socket.on('message_sent', (message) => {
-      this.addMessage(message);
-      console.log('✅ Mensaje enviado confirmado:', message.delivered ? 'Entregado' : 'Pendiente');
-    });
-
-    // 📖 Mensaje leído (notificación al emisor)
-    this.socket.on('message_read', (data) => {
-      this.markMessageAsRead(data.messageId);
-      console.log('📖 Mensaje leído:', data);
-    });
-
-    // ❌ Error
-    this.socket.on('error', (error) => {
-      console.error('❌ Error WebSocket:', error);
-      this.updateStatus('❌ ' + error.message, 'error');
-    });
-
-    // 🔌 Desconexión
-    this.socket.on('disconnect', () => {
-      this.updateStatus('🔌 Desconectado', 'disconnected');
-      console.log('🔌 WebSocket desconectado');
-    });
+  initElements() {
+    this.elements.messagesContainer = $('messagesContainer');
+    this.elements.messageForm = $('messageForm');
+    this.elements.messageInput = $('messageInput');
+    this.elements.receiverSelect = $('receiverSelect');
+    this.elements.onlineUsers = $('onlineUsers');
+    this.elements.connectionStatus = $('connectionStatus');
+    this.elements.messageCount = $('messageCount');
+    
+    this.setupEventListeners();
   }
 
   setupEventListeners() {
-    // Enviar mensaje
     if (this.elements.messageForm) {
       this.elements.messageForm.addEventListener('submit', (e) => {
         e.preventDefault();
         this.sendMessage();
       });
     }
-
-    // Actualizar receptor cuando cambia la selección
+    
     if (this.elements.receiverSelect) {
-      this.elements.receiverSelect.addEventListener('change', () => {
-        this.filterMessages();
-      });
-    }
-
-    // Reconectar automáticamente
-    if (this.socket) {
-      this.socket.on('disconnect', () => {
-        setTimeout(() => {
-          console.log('🔄 Intentando reconectar WebSocket...');
-          this.connectWebSocket();
-        }, 5000);
+      this.elements.receiverSelect.addEventListener('change', (e) => {
+        this.currentReceiverId = e.target.value;
+        this.loadMessages();
       });
     }
   }
 
-  sendMessage() {
-    const receiverId = this.elements.receiverSelect.value;
-    const content = this.elements.messageInput.value.trim();
+  connectWebSocket() {
+    try {
+      // Obtener token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ No hay token de autenticación');
+        window.location.href = '/login.html';
+        return;
+      }
 
-    if (!receiverId || !content) {
-      alert('Por favor selecciona un destinatario y escribe un mensaje');
+      // URL del servidor (producción en Render)
+      const serverUrl = 'https://el-rincon-del-mentiroso.onrender.com';
+      console.log('🔌 Conectando a:', serverUrl);
+
+      // Conectar a Socket.io
+      this.socket = io(serverUrl, {
+        auth: { token: token },
+        transports: ['websocket', 'polling'],
+        withCredentials: true
+      });
+
+      this.setupSocketEvents();
+      this.updateStatus('🔄 Conectando...', 'connecting');
+      
+    } catch (error) {
+      console.error('❌ Error conectando WebSocket:', error);
+      this.updateStatus('❌ Error de conexión', 'error');
+    }
+  }
+
+  setupSocketEvents() {
+    // Conexión exitosa
+    this.socket.on('connect', () => {
+      this.updateStatus('✅ Conectado', 'connected');
+      console.log('🔌 WebSocket conectado');
+    });
+
+    // Error de conexión
+    this.socket.on('connect_error', (err) => {
+      console.error('❌ Error de conexión:', err.message);
+      this.updateStatus('❌ Error de conexión', 'error');
+    });
+
+    // Lista de usuarios
+    this.socket.on('users_list', (users) => {
+      this.connectedUsers = users;
+      this.updateOnlineUsers();
+      console.log('👥 Usuarios conectados:', users.length);
+    });
+
+    // Nuevo usuario
+    this.socket.on('user_connected', (user) => {
+      console.log('👤 Usuario conectado:', user.email);
+      this.loadUsers();
+    });
+
+    // Mensaje recibido
+    this.socket.on('new_message', (message) => {
+      this.messages.push(message);
+      this.renderMessages();
+      this.updateMessageCount();
+      console.log('📬 Nuevo mensaje recibido');
+    });
+
+    // Mensaje leído
+    this.socket.on('message_read', (data) => {
+      const message = this.messages.find(m => m.id === data.messageId);
+      if (message) {
+        message.read = true;
+        this.renderMessages();
+      }
+    });
+  }
+
+  sendMessage() {
+    const content = this.elements.messageInput.value.trim();
+    const receiverId = this.elements.receiverSelect.value;
+    
+    if (!content || !receiverId) {
+      console.warn('⚠️ Debes seleccionar destinatario y escribir mensaje');
       return;
     }
 
-    // Enviar por WebSocket
     this.socket.emit('send_message', {
       receiverId: receiverId,
       content: content
     });
 
-    // Limpiar input
     this.elements.messageInput.value = '';
-    if (this.elements.messageInput) {
-      this.elements.messageInput.focus();
-    }
+    console.log('📤 Mensaje enviado');
   }
 
-  addMessage(message) {
-    this.messages.push(message);
-    this.renderMessages();
-  }
-
-  markMessageAsRead(messageId) {
-    const messageElement = document.querySelector('[data-message-id="' + messageId + '"]');
-    if (messageElement) {
-      messageElement.classList.add('read');
-      const readIndicator = messageElement.querySelector('.read-indicator');
-      if (readIndicator) {
-        readIndicator.textContent = '✓ Leído';
+  loadMessages() {
+    if (!this.currentReceiverId) return;
+    
+    fetch(`/api/mensajes/${this.currentReceiverId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    }
+    })
+    .then(response => response.json())
+    .then(data => {
+      this.messages = data.mensajes || [];
+      this.renderMessages();
+    })
+    .catch(error => {
+      console.error('❌ Error cargando mensajes:', error);
+    });
+  }
+
+  renderMessages() {
+    if (!this.elements.messagesContainer) return;
+    
+    const filteredMessages = this.messages.filter(msg => 
+      msg.receiverId === this.currentReceiverId || msg.senderId === this.currentReceiverId
+    );
+
+    this.elements.messagesContainer.innerHTML = filteredMessages.map(message => {
+      const isFromMe = message.senderId === this.getCurrentUserId();
+      const isRead = message.read || message.readBy;
+      
+      return `<div class="message ${isFromMe ? 'sent' : 'received'} ${isRead ? 'read' : 'unread'}" data-message-id="${message.id}">
+        <div class="message-header">
+          <span class="message-sender">${isFromMe ? 'Tú' : (message.senderName || 'Usuario')}</span>
+          <span class="message-time">${message.createdAt ? new Date(message.createdAt).toLocaleString() : 'Fecha no disponible'}</span>
+          <span class="read-indicator">${isRead ? '✓ Leído' : '○ No leído'}</span>
+        </div>
+        <div class="message-content">${message.content}</div>
+        ${!isRead && !isFromMe ? `<button class="mark-read-btn" onclick="markAsRead('${message.id}')">Marcar como leído</button>` : ''}
+      </div>`;
+    }).join('');
   }
 
   updateOnlineUsers() {
     if (!this.elements.onlineUsers) return;
     
-    this.elements.onlineUsers.innerHTML = this.connectedUsers.map(user => {
-      return '<div class="online-user" data-user-id="' + user.userId + '">' +
-        '<div class="user-status online"></div>' +
-        '<div class="user-info">' +
-          '<div class="user-name">' + (user.displayName || user.email) + '</div>' +
-          '<div class="user-code">🔖 ' + (user.userCode || 'N/A') + '</div>' +
-          '<div class="user-time">Conectado: ' + new Date(user.connectedAt).toLocaleTimeString() + '</div>' +
-        '</div>' +
-        '</div>';
-    }).join('');
+    this.elements.onlineUsers.innerHTML = this.connectedUsers.map(user => 
+      `<div class="online-user" data-user-id="${user.userId}">
+        <div class="user-status online"></div>
+        <div class="user-info">
+          <div class="user-name">${user.email}</div>
+          <div class="user-time">Conectado: ${new Date(user.connectedAt).toLocaleTimeString()}</div>
+        </div>
+      </div>`
+    ).join('');
 
-    // Actualizar selector de destinatarios
     this.updateReceiverSelect();
   }
 
@@ -259,9 +203,7 @@ class RealTimeMessages {
       '<option value="">Seleccionar destinatario...</option>' +
       this.connectedUsers
         .filter(user => user.userId !== this.getCurrentUserId())
-        .map(user => '<option value="' + user.userId + '">' + 
-          (user.displayName || user.email) + ' 🔖 ' + (user.userCode || 'N/A') + 
-          '</option>')
+        .map(user => `<option value="${user.userId}">${user.email}</option>`)
         .join('');
     
     if (currentValue) {
@@ -269,47 +211,24 @@ class RealTimeMessages {
     }
   }
 
-  renderMessages() {
-    if (!this.elements.messagesContainer) return;
-    
-    const receiverId = this.elements.receiverSelect ? this.elements.receiverSelect.value : null;
-    const filteredMessages = receiverId 
-      ? this.messages.filter(m => 
-          (m.senderId === this.getCurrentUserId() && m.receiverId === receiverId) ||
-          (m.receiverId === this.getCurrentUserId() && m.senderId === receiverId)
-        )
-      : this.messages;
-
-    this.elements.messagesContainer.innerHTML = filteredMessages.map(message => {
-      const isFromMe = message.senderId === this.getCurrentUserId();
-      const isRead = message.read || message.readBy;
+  getCurrentUserId() {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
       
-      return '<div class="message ' + (isFromMe ? 'sent' : 'received') + ' ' + (isRead ? 'read' : 'unread') + '" data-message-id="' + message.id + '">' +
-        '<div class="message-header">' +
-          '<span class="message-sender">' +
-            (isFromMe ? 'Tú' : (message.senderName || 'Desconocido')) +
-          '</span>' +
-          '<span class="message-code">' +
-            (isFromMe ? '' : '🔖 ' + (message.senderCode || 'N/A')) +
-          '</span>' +
-          '<span class="message-time">' +
-            (message.createdAt ? formatDate(message.createdAt) : '📅 Fecha no disponible') +
-          '</span>' +
-          '<span class="read-indicator">' +
-            (isRead ? '✓ Leído' : '○ No leído') +
-          '</span>' +
-        '</div>' +
-        '<div class="message-content">' +
-          message.content +
-        '</div>' +
-        (!isRead && !isFromMe ? 
-          '<button class="mark-read-btn" onclick="markAsRead(\'' + message.id + '\')">Marcar como leído</button>' 
-          : '') +
-        '</div>';
-    }).join('');
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.sub;
+    } catch (error) {
+      console.error('❌ Error obteniendo ID de usuario:', error);
+      return null;
+    }
+  }
 
-    // Scroll al último mensaje
-    this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+  updateStatus(text, className) {
+    if (this.elements.connectionStatus) {
+      this.elements.connectionStatus.textContent = text;
+      this.elements.connectionStatus.className = 'status ' + className;
+    }
   }
 
   updateMessageCount() {
@@ -320,35 +239,6 @@ class RealTimeMessages {
     ).length;
     
     this.elements.messageCount.textContent = unreadCount > 0 ? '📬 ' + unreadCount + ' no leídos' : '📬 Sin mensajes nuevos';
-    this.elements.messageCount.className = unreadCount > 0 ? 'badge' : '';
-  }
-
-  updateStatus(message, status) {
-    if (!this.elements.connectionStatus) return;
-    
-    this.elements.connectionStatus.textContent = message;
-    this.elements.connectionStatus.className = 'status ' + status;
-  }
-
-  showNotification(title, message) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body: message,
-        icon: '/favicon.ico'
-      });
-    }
-  }
-
-  getCurrentUserId() {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.sub;
-    } catch {
-      return null;
-    }
   }
 
   markAsRead(messageId) {
@@ -356,43 +246,24 @@ class RealTimeMessages {
       this.socket.emit('mark_read', { messageId: messageId });
     }
   }
+}
 
-  filterMessages() {
-    this.renderMessages();
-    this.updateMessageCount();
+// Funciones globales
+function markAsRead(messageId) {
+  if (window.messagesApp) {
+    window.messagesApp.markAsRead(messageId);
   }
 }
 
-// Función para formatear fechas
-function formatDate(iso) {
-  try {
-    if (!iso) return '📅 Fecha no disponible';
-    
-    const d = new Date(iso);
-    
-    // Verificar si la fecha es válida
-    if (isNaN(d.getTime())) {
-      return '📅 Fecha inválida';
-    }
-    
-    return d.toLocaleString('es-ES', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    console.error('Error en formatDate:', error);
-    return '📅 Error en fecha';
-  }
+function $(id) {
+  return document.getElementById(id);
 }
 
-// Esperar a que el DOM esté listo - Socket.io ya está garantizado por el HTML
+// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('📱 DOM listo, inicializando sistema...');
+  console.log('📱 DOM listo, inicializando mensajes...');
   
-  // Verificar token primero
+  // Verificar autenticación
   const token = localStorage.getItem('token');
   if (!token) {
     console.error('❌ No hay token de autenticación');
@@ -400,27 +271,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Validación final (no debería pasar si el HTML funciona)
-  if (typeof io === 'undefined') {
-    console.error('❌ Error crítico: Socket.io no disponible (esto no debería pasar)');
-    alert('Error crítico: Socket.io no disponible. Recarga la página.');
-    return;
+  // Inicializar aplicación
+  try {
+    window.messagesApp = new RealTimeMessages();
+    console.log('✅ Aplicación de mensajes inicializada');
+  } catch (error) {
+    console.error('❌ Error inicializando aplicación:', error);
   }
-
-  console.log('✅ Socket.io disponible, inicializando...');
-  
-  // Pedir permiso para notificaciones
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-  
-  // Inicializar la aplicación
-  window.messagesApp = new RealTimeMessages();
 });
-
-// Función global para marcar mensajes
-function markAsRead(messageId) {
-  if (window.messagesApp) {
-    window.messagesApp.markAsRead(messageId);
-  }
-}
