@@ -49,12 +49,32 @@ class RealTimeMessages {
         return;
       }
 
-      // Determinar URL del servidor
-      const serverUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000' 
-        : window.location.origin;
-
+      // Determinar URL del servidor (mejorado para evitar problemas de seguridad)
+      let serverUrl;
+      
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Desarrollo local - usar HTTP
+        serverUrl = 'http://localhost:3000';
+        console.log('🔍 Modo desarrollo detectado, usando HTTP local');
+      } else if (window.location.protocol === 'https:') {
+        // Producción con HTTPS - usar siempre HTTPS
+        serverUrl = window.location.origin;
+        console.log('🔍 Modo producción HTTPS detectado');
+      } else {
+        // Producción con HTTP - usar origen actual
+        serverUrl = window.location.origin;
+        console.log('🔍 Modo producción HTTP detectado');
+      }
+      
+      // Validación adicional de seguridad
+      if (!serverUrl || !serverUrl.startsWith('http')) {
+        console.error('❌ URL del servidor inválida:', serverUrl);
+        throw new Error('URL del servidor no configurada correctamente');
+      }
+      
       console.log('🔌 Conectando a WebSocket:', serverUrl);
+      console.log('🔍 Protocolo:', window.location.protocol);
+      console.log('🔍 Host:', window.location.hostname);
 
       // Conectar a WebSocket con autenticación
       this.socket = io(serverUrl, {

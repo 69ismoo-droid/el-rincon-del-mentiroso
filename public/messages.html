@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
     
-    <!-- 1. Usar CDN oficial (recomendado por documentación) -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- 1. Usar CDN más reciente (recomendado por documentación) -->
+    <script src="https://cdn.socket.io/4.8.3/socket.io.min.js" 
+            integrity="sha384-kzavj5fiMwLKzzD1f8S7TeoVIEi7uKHvbTA3ueZkrzYq75pNQUiUi6Dy98Q3fxb0" 
+            crossorigin="anonymous"></script>
     
     <!-- 2. Validación y diagnóstico completo -->
     <script>
@@ -18,6 +20,16 @@
         console.log('🌐 Host de la página:', window.location.host);
         console.log('🔗 URL completa:', window.location.origin);
         
+        // DETECCIÓN CRÍTICA: Evitar file:///
+        if (window.location.protocol === 'file:') {
+            console.error('❌ ERROR CRÍTICO: Archivo abierto directamente (file://)');
+            console.error('🔍 Socket.io NO FUNCIONA con archivos abiertos directamente');
+            console.error('💡 Solución: Usa Live Server o un servidor web local');
+            alert('ERROR: No puedes abrir este archivo directamente.\n\nUsa un servidor web local como Live Server extension en VS Code.\n\nHaz clic derecho → Open with Live Server');
+            // No continuar cargando nada más
+            throw new Error('Archivo abierto directamente. Usa un servidor web.');
+        }
+        
         // Según documentación oficial, io debería estar disponible globalmente
         if (typeof io === 'undefined') {
             console.error('❌ Error crítico: Socket.io CDN no cargado');
@@ -25,6 +37,7 @@
             console.error('  • Mixed Content (HTTP vs HTTPS)');
             console.error('  • CDN bloqueado por red/corporativo');
             console.error('  • Script no descargado por timeout');
+            console.error('  • Problemas de CORS/HSTS');
             console.error('🔍 Intentando servidor como fallback...');
             
             // Fallback al servidor si CDN falla
@@ -59,7 +72,7 @@
                 if (typeof io === 'undefined') {
                     console.error('❌ Timeout: Socket.io no cargado después de 10 segundos');
                     console.error('🔍 Probablemente un problema de red o bloqueo');
-                    alert('Error: Timeout cargando Socket.io. Verifica tu conexión a internet.');
+                    alert('Error: Timeout cargando Socket.io. Verifica tu conexión a internet.\n\nTambién limpia la caché con Ctrl+F5');
                 }
             }, 10000);
             

@@ -63,9 +63,14 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+    origin: "*", // En desarrollo usa "*" para permitir todo
+    methods: ["GET", "POST"],
+    credentials: true, // Importante para cookies y autenticación
+    allowedHeaders: ["Content-Type", "Authorization"] // Headers permitidos
+  },
+  // Configuración adicional para evitar problemas de seguridad
+  allowEIO3: true, // Compatibilidad con clientes antiguos
+  transports: ["websocket", "polling"] // Métodos de transporte
 });
 
 const PORT = process.env.PORT || 3000;
