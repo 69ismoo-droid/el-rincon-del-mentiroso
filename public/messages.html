@@ -7,29 +7,40 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="messages.css">
     
-    <!-- 1. Cargar Socket.io PRIMERO (orden crítico) -->
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- 1. Usar CDN oficial (recomendado por documentación) -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     
-    <!-- 2. Asignación global de io (el problema real) -->
+    <!-- 2. Validación de que io esté disponible -->
     <script>
-        // El problema: Socket.io no asigna 'io' globalmente
-        // Solución: Asignar io manualmente si existe la función lookup
-        if (typeof io === 'undefined' && typeof lookup !== 'undefined') {
-            console.log('🔧 Asignando io globalmente desde lookup...');
-            window.io = lookup;
-        }
-        
-        // Validación crítica antes de cargar cualquier otro script
+        // Según documentación oficial, io debería estar disponible globalmente
         if (typeof io === 'undefined') {
-            console.error('❌ Error crítico: Socket.io no cargado. Usando CDN...');
-            // Fallback a CDN si el servidor no sirve Socket.io
-            document.write('<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"><\/script>');
+            console.error('❌ Error crítico: Socket.io CDN no cargado');
+            console.error('� Intentando servidor como fallback...');
+            
+            // Fallback al servidor si CDN falla
+            const serverScript = document.createElement('script');
+            serverScript.src = '/socket.io/socket.io.js';
+            serverScript.onload = () => {
+                console.log('✅ Socket.io cargado desde servidor (fallback)');
+                // Verificación adicional
+                if (typeof io === 'undefined') {
+                    console.error('❌ Servidor tampoco asignó io globalmente');
+                    alert('Error: Socket.io no disponible. Recarga la página.');
+                } else {
+                    console.log('✅ io disponible desde servidor');
+                }
+            };
+            serverScript.onerror = () => {
+                console.error('❌ Servidor fallback también falló');
+                alert('Error: No se pudo cargar Socket.io desde ninguna fuente.');
+            };
+            document.head.appendChild(serverScript);
         } else {
-            console.log('✅ Socket.io cargado correctamente desde servidor');
+            console.log('✅ Socket.io cargado correctamente desde CDN oficial');
         }
     </script>
     
-    <!-- 3. Cargar los demás scripts SOLO después de validar Socket.io -->
+    <!-- 3. Cargar los demás scripts -->
     <script src="app.js"></script>
     <script src="messages.js"></script>
 </head>
