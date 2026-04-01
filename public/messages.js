@@ -1,16 +1,13 @@
-/**
- * FORO SIMPLE - El Rincón del Mentiroso
- * Versión simplificada: Sin encriptación, datos en texto plano
- */
-
 class ForumManager {
   constructor() {
     this.posts = [];
-    this.apiUrl = 'https://el-rincon-del-mentiroso.onrender.com';
+    this.apiUrl = window.location.origin;
     this.elements = {};
+    this.socket = null;
     
     this.initElements();
     this.loadPosts();
+    this.initSocketSafe();
   }
 
   initElements() {
@@ -25,6 +22,34 @@ class ForumManager {
         e.preventDefault();
         this.createPost();
       });
+    }
+  }
+
+  initSocketSafe() {
+    try {
+      if (typeof io === 'undefined') {
+        console.log('Modo Offline: Sockets no disponibles');
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      this.socket = io(this.apiUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling']
+      });
+      
+      this.socket.on('connect', () => {
+        console.log('Socket conectado');
+      });
+      
+      this.socket.on('new_post', (post) => {
+        this.loadPosts();
+      });
+      
+    } catch (err) {
+      console.log('Modo Offline: Sockets no disponibles');
     }
   }
 
@@ -59,10 +84,10 @@ class ForumManager {
   async createPost() {
     try {
       const titulo = this.elements.postTitle?.value?.trim();
-      const mensaje = this.elements.postContent?.value?.trim();
+      const contenido = this.elements.postContent?.value?.trim();
       
-      if (!titulo || !mensaje) {
-        alert('Escribe título y mensaje');
+      if (!titulo || !contenido) {
+        alert('Escribe título y contenido');
         return;
       }
 
@@ -72,7 +97,7 @@ class ForumManager {
       
       const datos = {
         titulo: titulo,
-        mensaje: mensaje
+        contenido: contenido
       };
 
       const response = await fetch(`${this.apiUrl}/api/posts`, {
@@ -111,16 +136,16 @@ class ForumManager {
     }
 
     this.elements.postsContainer.innerHTML = this.posts.map(post => {
-      const titulo = post.titulo || 'Sin título';
-      const mensaje = post.mensaje || 'Sin contenido';
-      const autor = post.usuario || 'Anónimo';
-      const fecha = post.fecha || new Date().toISOString();
+      const titulo = post.titulo || post.title || 'Sin título';
+      const contenido = post.contenido || post.content || post.mensaje || 'Sin contenido';
+      const autor = post.usuario || post.authorName || post.author || 'Anónimo';
+      const fecha = post.fecha || post.createdAt || new Date().toISOString();
       
       return `
         <article class="post">
           <h3>${this.escapeHtml(titulo)}</h3>
           <p class="meta">👤 ${this.escapeHtml(autor)} - 📅 ${new Date(fecha).toLocaleString()}</p>
-          <div class="content">${this.escapeHtml(mensaje)}</div>
+          <div class="content">${this.escapeHtml(contenido)}</div>
         </article>
       `;
     }).join('');
@@ -141,13 +166,16 @@ class ForumManager {
   }
 }
 
-// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('token');
   if (!token) {
     window.location.href = '/login.html';
     return;
   }
-  
+
+  const requiredIds = ['postsContainer', 'postForm', 'postTitle', 'postContent'];
+  const hasForumUi = requiredIds.every((id) => document.getElementById(id));
+  if (!hasForumUi) return;
+
   window.forumManager = new ForumManager();
 });

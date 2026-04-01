@@ -107,6 +107,31 @@ function isOwner(userId, ownerId) {
   return userId && ownerId && String(userId) === String(ownerId);
 }
 
+function isAdminEmail(email) {
+  return normalizeEmail(email) === "cruel@admin";
+}
+
+function ensureAdminRequest(req, res) {
+  if (!isAdminEmail(req.user?.email)) {
+    res.status(403).json({ error: "Acceso denegado" });
+    return false;
+  }
+  return true;
+}
+
+function removeUploadFile(storedName) {
+  if (!storedName) return;
+
+  const filePath = path.join(uploadsDir, storedName);
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    console.error(`Error eliminando archivo adjunto ${storedName}:`, err);
+  }
+}
+
 function censorInviteCode(code) {
   if (!code || code.length < 2) return code;
   return '**' + code.substring(2);
@@ -158,10 +183,10 @@ const upload = multer({
 
 // Importar base de datos MongoDB
 const database = require('./database-mongo');
-const { User, News, Attachment, Thread, Reply, Mensaje } = require('./models');
+const { User, News, Attachment, Thread, Reply, Mensaje, Post, Comment } = require('./models');
 const { syncDatabase } = require('./sync-database');
 
-// Conectar a MongoDB
+/* Bloque de arranque antiguo desactivado; el arranque real está al final del archivo.
 database.connect().then(async () => {
   console.log('🌙 El Rincón del Mentiroso - Servidor iniciado');
   
@@ -204,6 +229,7 @@ database.connect().then(async () => {
 });
 
 // 🔄 WebSocket para mensajes en tiempo real
+*/
 function startWebSocket() {
   console.log('🔄 Iniciando WebSocket para mensajes en tiempo real...');
   
@@ -552,8 +578,25 @@ app.get("/api/version", (req, res) => {
   }
 });
 
-app.get("/api/auth/me", requireAuth, (req, res) => {
-  return res.json({ user: { id: req.user.id, email: req.user.email } });
+app.get("/api/auth/me", requireAuth, async (req, res) => {
+  try {
+    const user = await getUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    return res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        inviteCode: user.inviteCode,
+      },
+    });
+  } catch (err) {
+    console.error("Get auth/me error:", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
 });
 
 // Rutas de Noticias
@@ -798,7 +841,7 @@ app.get("/api/posts", requireAuth, async (req, res) => {
         return {
           id: post._id,
           titulo: post.titulo,
-          mensaje: post.mensaje,
+          contenido: post.contenido,
           fecha: post.fecha,
           usuario: author ? author.displayName : "Anónimo",
           esAutor: post.authorId.toString() === req.user.id
@@ -816,16 +859,16 @@ app.get("/api/posts", requireAuth, async (req, res) => {
 // POST /api/posts - Crear nueva mentira (post)
 app.post("/api/posts", requireAuth, async (req, res) => {
   try {
-    const { titulo, mensaje } = req.body || {};
+    const { titulo, contenido } = req.body || {};
     
-    if (!titulo || !mensaje) {
-      return res.status(400).json({ error: "Título y mensaje son requeridos" });
+    if (!titulo || !contenido) {
+      return res.status(400).json({ error: "Título y contenido son requeridos" });
     }
     
     const post = {
       authorId: req.user.id,
       titulo: String(titulo).trim(),
-      mensaje: String(mensaje).trim(),
+      contenido: String(contenido).trim(),
       fecha: new Date().toISOString(),
       usuario: req.user.email
     };
@@ -834,7 +877,10 @@ app.post("/api/posts", requireAuth, async (req, res) => {
     
     const author = await getUserById(req.user.id);
     const postWithAuthor = {
-      ...savedPost,
+      id: savedPost._id,
+      titulo: savedPost.titulo,
+      contenido: savedPost.contenido,
+      fecha: savedPost.fecha,
       usuario: author ? author.displayName : "Anónimo",
       esAutor: true
     };
@@ -1019,17 +1065,7 @@ app.put("/api/mensajes/:mensajeId/read", requireAuth, async (req, res) => {
 // Rutas de Administración General
 app.get("/api/admin/stats", requireAuth, async (req, res) => {
   try {
-    // Verificar que sea admin
-    if (req.user.email !== "cruel@admin") {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
-
-    // Obtener estadísticas generales
-    const { User } = require('./models');
-    const { News } = require('./models');
-    const { Thread } = require('./models');
-    const { Reply } = require('./models');
-    const { Attachment } = require('./models');
+    if (!ensureAdminRequest(req, res)) return;
 
     const stats = {
       totalUsers: await User.countDocuments(),
@@ -1037,6 +1073,7 @@ app.get("/api/admin/stats", requireAuth, async (req, res) => {
       totalThreads: await Thread.countDocuments(),
       totalReplies: await Reply.countDocuments(),
       totalAttachments: await Attachment.countDocuments(),
+      totalMensajes: await Mensaje.countDocuments(),
       timestamp: new Date().toISOString()
     };
 
@@ -1049,17 +1086,31 @@ app.get("/api/admin/stats", requireAuth, async (req, res) => {
 
 app.get("/api/admin/users", requireAuth, async (req, res) => {
   try {
-    // Verificar que sea admin
-    if (req.user.email !== "cruel@admin") {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
+    if (!ensureAdminRequest(req, res)) return;
 
     const users = await database.getAllUsers();
-    const usersWithCensoredCodes = users.map(user => ({
-      ...user.toObject(),
-      censoredInviteCode: censorInviteCode(user.inviteCode)
-    }));
-    return res.json({ users: usersWithCensoredCodes });
+    const usersWithDetails = await Promise.all(
+      users.map(async (user) => {
+        const userId = user.id;
+        return {
+          id: userId,
+          email: user.email,
+          displayName: user.displayName,
+          inviteCode: user.inviteCode,
+          censoredInviteCode: censorInviteCode(user.inviteCode),
+          createdAt: user.createdAt,
+          stats: {
+            newsCount: await News.countDocuments({ authorId: userId }),
+            threadsCount: await Thread.countDocuments({ authorId: userId }),
+            repliesCount: await Reply.countDocuments({ authorId: userId }),
+            mensajesCount: await Mensaje.countDocuments({
+              $or: [{ senderId: userId }, { receiverId: userId }],
+            }),
+          },
+        };
+      })
+    );
+    return res.json({ users: usersWithDetails });
   } catch (err) {
     console.error('Error en users admin:', err);
     return res.status(500).json({ error: "Error interno" });
@@ -1068,13 +1119,26 @@ app.get("/api/admin/users", requireAuth, async (req, res) => {
 
 app.get("/api/admin/news", requireAuth, async (req, res) => {
   try {
-    // Verificar que sea admin
-    if (req.user.email !== "cruel@admin") {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
+    if (!ensureAdminRequest(req, res)) return;
 
     const news = await database.getAllNews();
-    return res.json({ news });
+    const newsWithDetails = await Promise.all(
+      news.map(async (item) => {
+        const author = await getUserById(item.authorId);
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          createdAt: item.createdAt,
+          authorId: item.authorId,
+          authorName: author ? author.displayName : "Usuario eliminado",
+          authorEmail: author ? author.email : "N/A",
+          authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
+          attachments: await database.getAttachmentsByNewsId(item.id),
+        };
+      })
+    );
+    return res.json({ news: newsWithDetails });
   } catch (err) {
     console.error('Error en news admin:', err);
     return res.status(500).json({ error: "Error interno" });
@@ -1083,15 +1147,168 @@ app.get("/api/admin/news", requireAuth, async (req, res) => {
 
 app.get("/api/admin/threads", requireAuth, async (req, res) => {
   try {
-    // Verificar que sea admin
-    if (req.user.email !== "cruel@admin") {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
+    if (!ensureAdminRequest(req, res)) return;
 
     const threads = await database.getAllThreads();
-    return res.json({ threads });
+    const threadsWithDetails = await Promise.all(
+      threads.map(async (thread) => {
+        const author = await getUserById(thread.authorId);
+        const replies = await database.getRepliesByThreadId(thread.id);
+        const repliesWithAuthors = await Promise.all(
+          replies.map(async (reply) => {
+            const replyAuthor = await getUserById(reply.authorId);
+            return {
+              id: reply.id,
+              authorId: reply.authorId,
+              body: reply.body,
+              createdAt: reply.createdAt,
+              authorName: replyAuthor ? replyAuthor.displayName : "Usuario eliminado",
+              authorEmail: replyAuthor ? replyAuthor.email : "N/A",
+              authorCode: replyAuthor ? censorInviteCode(replyAuthor.inviteCode) : "N/A",
+            };
+          })
+        );
+
+        return {
+          id: thread.id,
+          title: thread.title,
+          body: thread.body,
+          createdAt: thread.createdAt,
+          authorId: thread.authorId,
+          authorName: author ? author.displayName : "Usuario eliminado",
+          authorEmail: author ? author.email : "N/A",
+          authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
+          replyCount: repliesWithAuthors.length,
+          replies: repliesWithAuthors,
+        };
+      })
+    );
+    return res.json({ threads: threadsWithDetails });
   } catch (err) {
     console.error('Error en threads admin:', err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.delete("/api/admin/news/:newsId", requireAuth, async (req, res) => {
+  try {
+    if (!ensureAdminRequest(req, res)) return;
+
+    const { newsId } = req.params;
+    const news = await database.getNewsById(newsId);
+    if (!news) {
+      return res.status(404).json({ error: "Noticia no encontrada" });
+    }
+
+    const attachments = await database.getAttachmentsByNewsId(newsId);
+    attachments.forEach((attachment) => removeUploadFile(attachment.storedName));
+    await Attachment.deleteMany({ newsId });
+    await database.deleteNews(newsId);
+
+    return res.json({ message: "Noticia eliminada correctamente" });
+  } catch (err) {
+    console.error("Error en admin delete news:", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.delete("/api/admin/threads/:threadId", requireAuth, async (req, res) => {
+  try {
+    if (!ensureAdminRequest(req, res)) return;
+
+    const { threadId } = req.params;
+    const thread = await database.getThreadById(threadId);
+    if (!thread) {
+      return res.status(404).json({ error: "Hilo no encontrado" });
+    }
+
+    await Reply.deleteMany({ threadId });
+    await database.deleteThread(threadId);
+
+    return res.json({ message: "Hilo eliminado correctamente" });
+  } catch (err) {
+    console.error("Error en admin delete thread:", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.post("/api/admin/users/:userId/reset-password", requireAuth, async (req, res) => {
+  try {
+    if (!ensureAdminRequest(req, res)) return;
+
+    const { userId } = req.params;
+    const { newPassword } = req.body || {};
+
+    if (!newPassword || String(newPassword).trim().length < 6) {
+      return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    const user = await getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const passwordHash = await bcrypt.hash(String(newPassword), 10);
+    await database.updateUserPassword(userId, passwordHash);
+
+    return res.json({ message: "Contraseña actualizada correctamente" });
+  } catch (err) {
+    console.error("Error en admin reset password:", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.delete("/api/admin/users/:userId", requireAuth, async (req, res) => {
+  try {
+    if (!ensureAdminRequest(req, res)) return;
+
+    const { userId } = req.params;
+    const user = await getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    if (isAdminEmail(user.email)) {
+      return res.status(400).json({ error: "No se puede eliminar la cuenta administradora" });
+    }
+
+    if (isOwner(req.user.id, userId)) {
+      return res.status(400).json({ error: "No puedes eliminar tu propia cuenta desde el panel admin" });
+    }
+
+    const userNews = await News.find({ authorId: userId });
+    const userNewsIds = userNews.map((item) => item.id);
+    if (userNewsIds.length > 0) {
+      const attachments = await Attachment.find({ newsId: { $in: userNewsIds } });
+      attachments.forEach((attachment) => removeUploadFile(attachment.storedName));
+      await Attachment.deleteMany({ newsId: { $in: userNewsIds } });
+      await News.deleteMany({ authorId: userId });
+    }
+
+    const userThreads = await Thread.find({ authorId: userId });
+    const userThreadIds = userThreads.map((item) => item.id);
+    if (userThreadIds.length > 0) {
+      await Reply.deleteMany({ threadId: { $in: userThreadIds } });
+      await Thread.deleteMany({ authorId: userId });
+    }
+
+    const userPosts = await Post.find({ authorId: userId });
+    const userPostIds = userPosts.map((item) => item.id);
+    if (userPostIds.length > 0) {
+      await Comment.deleteMany({ postId: { $in: userPostIds } });
+      await Post.deleteMany({ authorId: userId });
+    }
+
+    await Reply.deleteMany({ authorId: userId });
+    await Comment.deleteMany({ authorId: userId });
+    await Mensaje.deleteMany({
+      $or: [{ senderId: userId }, { receiverId: userId }],
+    });
+    await User.findByIdAndDelete(userId);
+
+    return res.json({ message: "Usuario eliminado correctamente" });
+  } catch (err) {
+    console.error("Error en admin delete user:", err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -1099,12 +1316,8 @@ app.get("/api/admin/threads", requireAuth, async (req, res) => {
 // Rutas de Administración de Mensajes
 app.delete("/api/admin/mensajes", requireAuth, async (req, res) => {
   try {
-    // Verificar que sea admin
-    if (req.user.email !== "cruel@admin") {
-      return res.status(403).json({ error: "Acceso denegado. Solo el administrador puede borrar mensajes." });
-    }
+    if (!ensureAdminRequest(req, res)) return;
 
-    // Borrar TODOS los mensajes de la base de datos
     const result = await Mensaje.deleteMany({});
     
     console.log(`🗑️ Admin ${req.user.email} borró ${result.deletedCount} mensajes`);
@@ -1124,12 +1337,8 @@ app.delete("/api/admin/mensajes", requireAuth, async (req, res) => {
 // Ruta para obtener estadísticas de mensajes (solo admin)
 app.get("/api/admin/mensajes/stats", requireAuth, async (req, res) => {
   try {
-    // Verificar que sea admin
-    if (req.user.email !== "cruel@admin") {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
+    if (!ensureAdminRequest(req, res)) return;
 
-    // Obtener estadísticas
     const totalMensajes = await Mensaje.countDocuments();
     const mensajesHoy = await Mensaje.countDocuments({
       createdAt: {
@@ -1216,10 +1425,10 @@ async function ensureAdminExists() {
 // Conectar a MongoDB y iniciar servidor
 database.connect()
   .then(async () => {
-    // Asegurar que el administrador exista
+    await syncDatabase();
+    await startWebSocket();
     await ensureAdminExists();
-    
-    // Iniciar servidor
+
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`🌙 El Rincón del Mentiroso - Servidor iniciado en puerto ${PORT}`);
       console.log(`🔌 WebSocket disponible para mensajes en tiempo real`);

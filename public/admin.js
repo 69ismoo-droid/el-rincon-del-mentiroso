@@ -78,12 +78,15 @@ class AdminApp {
       tabUsers: $("tabUsers"),
       tabNews: $("tabNews"),
       tabThreads: $("tabThreads"),
+      tabMessages: $("tabMessages"),
       usersSection: $("usersSection"),
       newsSection: $("newsSection"),
       threadsSection: $("threadsSection"),
+      messagesSection: $("messagesSection"),
       usersAlert: $("usersAlert"),
       newsAlert: $("newsAlert"),
       threadsAlert: $("threadsAlert"),
+      messagesAlert: $("messagesAlert"),
       usersList: $("usersList"),
       newsList: $("newsList"),
       threadsList: $("threadsList"),
@@ -124,7 +127,7 @@ class AdminApp {
   }
 
   setupEventListeners() {
-    const { logoutBtn, tabUsers, tabNews, tabThreads, passwordForm } = this.elements;
+    const { logoutBtn, tabUsers, tabNews, tabThreads, tabMessages, passwordForm } = this.elements;
 
     logoutBtn?.addEventListener("click", () => {
       localStorage.removeItem("token");
@@ -134,6 +137,7 @@ class AdminApp {
     tabUsers?.addEventListener("click", () => this.activateTab("users"));
     tabNews?.addEventListener("click", () => this.activateTab("news"));
     tabThreads?.addEventListener("click", () => this.activateTab("threads"));
+    tabMessages?.addEventListener("click", () => this.activateTab("messages"));
 
     passwordForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -142,19 +146,24 @@ class AdminApp {
   }
 
   activateTab(tab) {
-    const { tabUsers, tabNews, tabThreads, usersSection, newsSection, threadsSection } = this.elements;
+    const { tabUsers, tabNews, tabThreads, tabMessages, usersSection, newsSection, threadsSection, messagesSection } = this.elements;
 
     tabUsers?.classList.toggle("active", tab === "users");
     tabNews?.classList.toggle("active", tab === "news");
     tabThreads?.classList.toggle("active", tab === "threads");
+    tabMessages?.classList.toggle("active", tab === "messages");
 
-    usersSection.style.display = tab === "users" ? "block" : "none";
-    newsSection.style.display = tab === "news" ? "block" : "none";
-    threadsSection.style.display = tab === "threads" ? "block" : "none";
+    if (usersSection) usersSection.style.display = tab === "users" ? "block" : "none";
+    if (newsSection) newsSection.style.display = tab === "news" ? "block" : "none";
+    if (threadsSection) threadsSection.style.display = tab === "threads" ? "block" : "none";
+    if (messagesSection) messagesSection.style.display = tab === "messages" ? "block" : "none";
 
     if (tab === "users") this.loadUsers();
     if (tab === "news") this.loadNews();
     if (tab === "threads") this.loadThreads();
+    if (tab === "messages" && window.messagesAdmin) {
+      window.messagesAdmin.loadMessagesStats();
+    }
   }
 
   setAlert(el, msg, kind) {

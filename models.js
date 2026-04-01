@@ -186,25 +186,25 @@ const postSchema = new mongoose.Schema({
     required: true,
     ref: 'User'
   },
-  title: { 
+  titulo: { 
     type: String, 
     required: true,
     trim: true,
     maxlength: 200
   },
-  content: { 
+  contenido: { 
     type: String, 
     required: true,
     trim: true,
     maxlength: 5000
   },
-  views: {
-    type: Number,
-    default: 0
+  fecha: {
+    type: Date,
+    default: Date.now
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  usuario: {
+    type: String,
+    default: 'Anónimo'
   }
 }, {
   timestamps: true
