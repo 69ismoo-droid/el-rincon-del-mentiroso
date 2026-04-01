@@ -3,28 +3,56 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel Administrativo - El Rincón del Mentiroso</title>
+    <title>Panel Administrativo - El Rincon del Mentiroso</title>
     <link rel="stylesheet" href="/styles.css" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>"
+    />
   </head>
   <body>
     <div class="container">
-      <header class="topbar">
-        <div class="brand">⚙️ Panel Administrativo</div>
+      <header class="topbar siteTopbar">
+        <div class="brandWrap">
+          <div class="topbarEyebrow">Control interno</div>
+          <div class="brand">Panel Administrativo</div>
+        </div>
         <div class="row" style="gap:12px">
           <div id="userBox" class="muted"></div>
-          <button class="btn secondary" id="logoutBtn" type="button">
-            🚪 Salir
-          </button>
-          <a href="/" class="btn" style="text-decoration:none">🏠 Inicio</a>
+          <button class="btn secondary" id="logoutBtn" type="button">Salir</button>
+          <a href="/" class="btn" style="text-decoration:none">Inicio</a>
         </div>
       </header>
 
+      <section class="card showcasePanel adminShowcasePanel">
+        <div class="showcasePanel__content">
+          <div>
+            <p class="showcasePanel__eyebrow">Vista de administracion</p>
+            <h1 class="showcasePanel__title">Control del sistema con una vista mas clara y profesional</h1>
+            <p class="showcasePanel__text">
+              Gestiona usuarios, noticias, hilos y mensajes desde un panel con mejores jerarquias
+              visuales y menos ruido.
+            </p>
+          </div>
+          <div class="showcasePanel__stats" aria-hidden="true">
+            <span>Usuarios</span>
+            <span>Contenido</span>
+            <span>Moderacion</span>
+          </div>
+        </div>
+      </section>
+
       <div class="adminStats">
         <div class="card">
-          <h2 class="title">📊 Estadísticas del Sistema</h2>
+          <div class="sectionHeader">
+            <div>
+              <p class="sectionHeader__eyebrow">Resumen</p>
+              <h2 class="title">Estadisticas del sistema</h2>
+            </div>
+          </div>
           <div id="statsContainer" class="statsGrid">
-            <div class="loading">Cargando estadísticas...</div>
+            <div class="loading">Cargando estadisticas...</div>
           </div>
         </div>
       </div>
@@ -32,16 +60,15 @@
       <div class="grid">
         <section>
           <nav class="tabs">
-            <button class="btn active" id="tabUsers" type="button">👥 Usuarios</button>
-            <button class="btn" id="tabNews" type="button">📰 Noticias</button>
-            <button class="btn" id="tabThreads" type="button">💬 Hilos</button>
-            <button class="btn" id="tabMessages" type="button">💬 Mensajes</button>
+            <button class="btn active" id="tabUsers" type="button">Usuarios</button>
+            <button class="btn" id="tabNews" type="button">Noticias</button>
+            <button class="btn" id="tabThreads" type="button">Hilos</button>
+            <button class="btn" id="tabMessages" type="button">Mensajes</button>
           </nav>
 
-          <!-- Sección de Usuarios -->
           <div id="usersSection">
             <div class="card">
-              <h2 class="title">👥 Gestión de Usuarios</h2>
+              <h2 class="title">Gestion de usuarios</h2>
               <div id="usersAlert" class="alert" style="display:none"></div>
               <div id="usersList">
                 <div class="loading">Cargando usuarios...</div>
@@ -49,10 +76,9 @@
             </div>
           </div>
 
-          <!-- Sección de Noticias -->
           <div id="newsSection" style="display:none">
             <div class="card">
-              <h2 class="title">📰 Gestión de Noticias</h2>
+              <h2 class="title">Gestion de noticias</h2>
               <div id="newsAlert" class="alert" style="display:none"></div>
               <div id="newsList">
                 <div class="loading">Cargando noticias...</div>
@@ -60,10 +86,9 @@
             </div>
           </div>
 
-          <!-- Sección de Hilos -->
           <div id="threadsSection" style="display:none">
             <div class="card">
-              <h2 class="title">💬 Gestión de Hilos</h2>
+              <h2 class="title">Gestion de hilos</h2>
               <div id="threadsAlert" class="alert" style="display:none"></div>
               <div id="threadsList">
                 <div class="loading">Cargando hilos...</div>
@@ -72,69 +97,54 @@
           </div>
         </section>
 
-        <aside>
-          <!-- Card de información -->
-          <div class="card">
-            <h2 class="title">ℹ️ Panel Administrativo</h2>
-            <div class="muted" style="font-size:14px; line-height:1.6">
-              <p><strong>Acceso Exclusivo:</strong></p>
-              <ul style="margin:8px 0; padding-left:20px">
-                <li>� Usuario: cruel@admin</li>
-                <li>🔐 Contraseña: 123456789</li>
-                <li>⚙️ Control total del sistema</li>
-              </ul>
-              <p style="margin-top:12px"><strong>Funciones Administrativas:</strong></p>
-              <ul style="margin:8px 0; padding-left:20px">
-                <li>👥 Gestión de usuarios</li>
-                <li>🗑️ Eliminar cuentas y contenido</li>
-                <li>🔐 Cambiar contraseñas</li>
-                <li>📰 Gestionar noticias</li>
-                <li>💬 Gestionar hilos del foro</li>
-                <li>📊 Estadísticas completas</li>
-              </ul>
-              <p style="margin-top:12px"><strong>⚠️ Seguridad:</strong></p>
-              <p style="font-size:13px">Este panel está restringido al administrador autorizado únicamente.</p>
-            </div>
+        <aside class="sidebarStack">
+          <div class="card adminInfoCard">
+            <div class="sideInfoCard__badge">Acceso sensible</div>
+            <h2 class="title">Panel interno</h2>
+            <p class="composeCard__intro">
+              Esta area es solo para moderacion. Aqui no se muestran credenciales en pantalla y el
+              objetivo es revisar, corregir y mantener el sistema ordenado.
+            </p>
+            <ul class="featureList">
+              <li>Gestion de usuarios y contrasenas.</li>
+              <li>Revision de noticias y publicaciones.</li>
+              <li>Moderacion de hilos y mensajes.</li>
+              <li>Consulta rapida de estadisticas.</li>
+            </ul>
           </div>
 
-          <!-- Sección de Mensajes -->
           <div id="messagesSection" style="display:none">
-            <div class="card">
-              <h2 class="title">💬 Administración de Mensajes</h2>
+            <div class="card adminMessagesCard">
+              <h2 class="title">Administracion de mensajes</h2>
               <div id="messagesAlert" class="alert" style="display:none"></div>
-              
-              <!-- Estadísticas de Mensajes -->
+
               <div class="statsGrid" style="margin-bottom:20px">
                 <div class="statCard">
-                  <h3>📊 Total de Mensajes</h3>
+                  <h3>Total de mensajes</h3>
                   <div id="totalMensajes" class="statNumber">-</div>
                 </div>
                 <div class="statCard">
-                  <h3>📅 Mensajes Hoy</h3>
+                  <h3>Mensajes hoy</h3>
                   <div id="mensajesHoy" class="statNumber">-</div>
                 </div>
               </div>
 
-              <!-- Botones de Acción -->
               <div class="row" style="margin-bottom:20px">
                 <button class="btn secondary" id="refreshMessagesBtn" type="button">
-                  🔄 Actualizar Estadísticas
+                  Actualizar estadisticas
                 </button>
                 <button class="btn danger" id="deleteMessagesBtn" type="button">
-                  🗑️ BORRAR TODOS LOS MENSAJES
+                  Borrar todos los mensajes
                 </button>
               </div>
 
-              <!-- Advertencia -->
-              <div class="warning-box" style="background:#fff3cd;border:1px solid #ffeaa7;padding:15px;border-radius:8px;margin-bottom:20px">
-                <p><strong>⚠️ ADVERTENCIA:</strong></p>
-                <p>Al hacer clic en "BORRAR TODOS LOS MENSAJES" se eliminarán permanentemente TODOS los mensajes del sistema.</p>
-                <p>Esta acción no se puede deshacer.</p>
+              <div class="warning-box">
+                <p><strong>Advertencia:</strong></p>
+                <p>Si borras todos los mensajes, la accion sera permanente y no se podra deshacer.</p>
               </div>
 
-              <!-- Log de Acciones -->
-              <div id="messagesLog" style="max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:10px;border-radius:4px">
-                <h4>📋 Registro de Acciones:</h4>
+              <div id="messagesLog" class="logPanel">
+                <h4>Registro de acciones</h4>
                 <div id="logContent">Cargando registro...</div>
               </div>
             </div>
@@ -143,40 +153,34 @@
       </div>
     </div>
 
-    <!-- Modal de Confirmación -->
     <div id="confirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;padding:20px">
       <div class="card" style="max-width:400px;width:100%">
-        <h2 class="title">⚠️ Confirmar Eliminación</h2>
-        <p>¿Estás seguro que quieres borrar TODOS los mensajes del sistema?</p>
-        <p style="color:red"><strong>Esta acción no se puede deshacer.</strong></p>
+        <h2 class="title">Confirmar eliminacion</h2>
+        <p>Estas seguro de que quieres borrar todos los mensajes del sistema?</p>
+        <p style="color:var(--danger-light)"><strong>Esta accion no se puede deshacer.</strong></p>
         <div class="row" style="margin-top:20px">
-          <button class="btn danger" id="confirmDeleteBtn" type="button">
-            🗑️ Sí, Borrar Todo
-          </button>
-          <button class="btn secondary" id="cancelDeleteBtn" type="button">
-            ❌ Cancelar
-          </button>
+          <button class="btn danger" id="confirmDeleteBtn" type="button">Si, borrar todo</button>
+          <button class="btn secondary" id="cancelDeleteBtn" type="button">Cancelar</button>
         </div>
       </div>
     </div>
 
-    <!-- Modal para cambiar contraseña -->
     <div id="passwordModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;padding:20px">
       <div class="card" style="max-width:500px;width:100%">
-        <h2 class="title">🔐 Cambiar Contraseña</h2>
+        <h2 class="title">Cambiar contrasena</h2>
         <form id="passwordForm">
           <input type="hidden" id="passwordUserId" />
           <div class="field">
-            <label for="newPassword">Nueva Contraseña</label>
-            <input id="newPassword" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+            <label for="newPassword">Nueva contrasena</label>
+            <input id="newPassword" type="password" required minlength="6" placeholder="Minimo 6 caracteres" />
           </div>
           <div class="field">
-            <label for="confirmPassword">Confirmar Contraseña</label>
-            <input id="confirmPassword" type="password" required minlength="6" placeholder="Repite la contraseña" />
+            <label for="confirmPassword">Confirmar contrasena</label>
+            <input id="confirmPassword" type="password" required minlength="6" placeholder="Repite la contrasena" />
           </div>
           <div class="row" style="margin-top:12px">
-            <button class="btn" type="submit">🔐 Cambiar</button>
-            <button class="btn secondary" type="button" onclick="closePasswordModal()">❌ Cancelar</button>
+            <button class="btn" type="submit">Cambiar</button>
+            <button class="btn secondary" type="button" onclick="closePasswordModal()">Cancelar</button>
           </div>
         </form>
       </div>

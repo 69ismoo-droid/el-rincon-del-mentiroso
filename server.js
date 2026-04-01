@@ -132,6 +132,12 @@ function removeUploadFile(storedName) {
   }
 }
 
+function toPlainObject(doc) {
+  if (!doc) return null;
+  if (typeof doc.toObject === "function") return doc.toObject();
+  return doc;
+}
+
 function censorInviteCode(code) {
   if (!code || code.length < 2) return code;
   return '**' + code.substring(2);
@@ -605,9 +611,14 @@ app.get("/api/news", async (req, res) => {
     const news = await database.getAllNews();
     const newsWithAuthors = await Promise.all(
       news.map(async (n) => {
+        const plainNews = toPlainObject(n);
         const author = await getUserById(n.authorId);
         return {
-          ...n,
+          id: plainNews._id?.toString?.() || plainNews.id,
+          title: plainNews.title,
+          content: plainNews.content,
+          authorId: plainNews.authorId?.toString?.() || plainNews.authorId,
+          createdAt: plainNews.createdAt,
           authorName: author ? author.displayName : "Usuario eliminado",
           authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
           attachments: await database.getAttachmentsByNewsId(n.id),
@@ -704,10 +715,15 @@ app.get("/api/forum/threads", requireAuth, async (req, res) => {
     const threads = await database.getAllThreads();
     const threadsWithAuthors = await Promise.all(
       threads.map(async (t) => {
+        const plainThread = toPlainObject(t);
         const author = await getUserById(t.authorId);
         const replies = await database.getRepliesByThreadId(t.id);
         return {
-          ...t,
+          id: plainThread._id?.toString?.() || plainThread.id,
+          title: plainThread.title,
+          body: plainThread.body,
+          authorId: plainThread.authorId?.toString?.() || plainThread.authorId,
+          createdAt: plainThread.createdAt,
           authorName: author ? author.displayName : "Usuario eliminado",
           authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
           replyCount: replies.length,
@@ -764,18 +780,29 @@ app.get("/api/forum/threads/:threadId", requireAuth, async (req, res) => {
     const replies = await database.getRepliesByThreadId(threadId);
     const repliesWithAuthors = await Promise.all(
       replies.map(async (r) => {
+        const plainReply = toPlainObject(r);
         const replyAuthor = await getUserById(r.authorId);
         return {
-          ...r,
+          id: plainReply._id?.toString?.() || plainReply.id,
+          threadId: plainReply.threadId?.toString?.() || plainReply.threadId,
+          authorId: plainReply.authorId?.toString?.() || plainReply.authorId,
+          body: plainReply.body,
+          createdAt: plainReply.createdAt,
           authorName: replyAuthor ? replyAuthor.displayName : "Usuario eliminado",
           authorCode: replyAuthor ? censorInviteCode(replyAuthor.inviteCode) : "N/A",
         };
       })
     );
 
+    const plainThread = toPlainObject(thread);
+
     return res.json({
       thread: {
-        ...thread,
+        id: plainThread._id?.toString?.() || plainThread.id,
+        title: plainThread.title,
+        body: plainThread.body,
+        authorId: plainThread.authorId?.toString?.() || plainThread.authorId,
+        createdAt: plainThread.createdAt,
         authorName: author ? author.displayName : "Usuario eliminado",
         authorCode: author ? censorInviteCode(author.inviteCode) : "N/A",
         replies: repliesWithAuthors,
@@ -921,8 +948,13 @@ app.post("/api/posts/:postId/comments", requireAuth, async (req, res) => {
     
     // Agregar información del autor
     const author = await getUserById(req.user.id);
+    const plainComment = toPlainObject(savedComment);
     const commentWithAuthor = {
-      ...savedComment,
+      id: plainComment._id?.toString?.() || plainComment.id,
+      postId: plainComment.postId?.toString?.() || plainComment.postId,
+      authorId: plainComment.authorId?.toString?.() || plainComment.authorId,
+      content: plainComment.content,
+      createdAt: plainComment.createdAt,
       authorName: author ? author.displayName : "Anónimo",
       authorCode: author ? censorInviteCode(author.inviteCode) : "N/A"
     };

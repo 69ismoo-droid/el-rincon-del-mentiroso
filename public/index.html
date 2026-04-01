@@ -3,97 +3,152 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>El Rincón del Mentiroso</title>
+    <title>El Rincon del Mentiroso</title>
     <link rel="stylesheet" href="/styles.css" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>R</text></svg>"
+    />
   </head>
   <body>
     <div class="container">
-      <header class="topbar">
-        <div class="brand">El Rincón del Mentiroso</div>
+      <header class="topbar siteTopbar">
+        <div class="brandWrap">
+          <div class="topbarEyebrow">Comunidad privada</div>
+          <div class="brand">El Rincon del Mentiroso</div>
+        </div>
         <div class="row" style="gap:12px">
           <div id="userBox" class="muted"></div>
           <button class="btn secondary" id="logoutBtn" type="button" style="display:none">
-            🚪 Salir
+            Salir
           </button>
         </div>
       </header>
 
+      <section class="card showcasePanel">
+        <div class="showcasePanel__content">
+          <div>
+            <p class="showcasePanel__eyebrow">Portal principal</p>
+            <h1 class="showcasePanel__title">Noticias, debates y actividad en un solo lugar</h1>
+            <p class="showcasePanel__text">
+              La portada ahora concentra lo importante: publicaciones recientes, hilos activos y
+              herramientas claras para crear contenido con una presencia mas ordenada.
+            </p>
+          </div>
+          <div class="showcasePanel__stats" aria-hidden="true">
+            <span>Noticias</span>
+            <span>Foro</span>
+            <span>Comunidad</span>
+          </div>
+        </div>
+      </section>
+
       <main class="grid">
         <section>
           <nav class="tabs">
-            <button class="btn active" id="tabNews" type="button">
-              📰 Noticias
-            </button>
-            <button class="btn" id="tabForum" type="button">
-              💬 Foros
-            </button>
+            <button class="btn active" id="tabNews" type="button">Noticias</button>
+            <button class="btn" id="tabForum" type="button">Foros</button>
           </nav>
 
-          <!-- Sección de Noticias -->
           <div id="newsSection">
             <div class="card">
-              <h2 class="title">📰 Publicaciones Recientes</h2>
+              <div class="sectionHeader">
+                <div>
+                  <p class="sectionHeader__eyebrow">Tablon de novedades</p>
+                  <h2 class="title">Publicaciones recientes</h2>
+                </div>
+              </div>
               <div id="alert" class="alert" style="display:none"></div>
               <div id="newsList">
                 <div class="emptyState">
-                  <h3>📭 No hay publicaciones aún</h3>
-                  <p>Sé el primero en compartir algo con la comunidad.</p>
+                  <h3>No hay publicaciones aun</h3>
+                  <p>Se el primero en compartir algo con la comunidad.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Sección de Foros -->
           <div id="forumSection" style="display:none">
-            <!-- Vista de lista de hilos -->
             <div id="threadListView">
-              <div class="card">
-                <h2 class="title">💬 Hilos de Discusión</h2>
+              <div class="card forumShellCard">
+                <div class="forumHeroBanner">
+                  <div>
+                    <p class="forumHeroBanner__eyebrow">Zona de debate</p>
+                    <h2 class="title">Hilos de discusion</h2>
+                    <p class="forumHeroBanner__text">
+                      Explora conversaciones activas, abre un tema nuevo o entra al hilo que
+                      necesite tu respuesta.
+                    </p>
+                  </div>
+                  <div class="forumHeroBanner__chips" aria-hidden="true">
+                    <span>Debate</span>
+                    <span>Comunidad</span>
+                    <span>Respuestas</span>
+                  </div>
+                </div>
                 <div id="forumAlert" class="alert err" style="display:none"></div>
-                <div id="threadList">
+                <div class="forumListHeader">
+                  <div>
+                    <strong>Hilos recientes</strong>
+                    <p>Ordenados desde la conversacion mas nueva.</p>
+                  </div>
+                </div>
+                <div id="threadList" class="threadList">
                   <div class="emptyState">
-                    <h3>🗣️ No hay hilos de discusión</h3>
-                    <p>Inicia una conversación interesante.</p>
+                    <h3>No hay hilos de discusion</h3>
+                    <p>Inicia una conversacion interesante.</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Vista de detalle de hilo -->
             <div id="threadDetailView" style="display:none">
-              <div class="backButton">
+              <div class="backButton forumBackButton">
                 <button class="btn secondary" id="backToThreads" type="button">
-                  ← Volver a hilos
+                  Volver a hilos
                 </button>
               </div>
-              
-              <div class="card">
-                <div class="newsMeta" style="margin-bottom:12px">
-                  <div class="author" id="threadAuthor">Por -</div>
-                  <div class="muted" id="threadDate" style="font-size:13px">-</div>
-                </div>
-                <h3 class="title" id="threadTitle" style="margin-top:0"></h3>
-                <div class="muted" id="threadBodyView" style="white-space:pre-wrap;font-size:15px;line-height:1.6;margin-bottom:20px"></div>
 
-                <div style="margin-top:20px">
-                  <h4 style="margin-bottom:12px;color:var(--text)">💬 Respuestas</h4>
+              <div class="card forumDetailCard">
+                <div class="forumDetailHeader">
+                  <div class="forumDetailHeader__meta">
+                    <div class="author" id="threadAuthor">Por -</div>
+                    <div class="muted" id="threadDate" style="font-size:13px">-</div>
+                  </div>
+                  <div class="forumDetailBadge">Hilo abierto</div>
+                </div>
+                <h3 class="title forumDetailTitle" id="threadTitle" style="margin-top:0"></h3>
+                <div
+                  class="muted forumDetailBody"
+                  id="threadBodyView"
+                  style="white-space:pre-wrap;font-size:15px;line-height:1.6;margin-bottom:20px"
+                ></div>
+
+                <div class="forumRepliesSection" style="margin-top:20px">
+                  <div class="forumRepliesSection__head">
+                    <h4 style="margin-bottom:12px;color:var(--text)">Respuestas</h4>
+                    <span class="forumRepliesSection__hint">Lee el contexto antes de responder</span>
+                  </div>
                   <div id="replyList" class="replyList">
                     <div class="emptyState">
-                      <p>📭 No hay respuestas aún. ¡Sé el primero en responder!</p>
+                      <p>No hay respuestas aun. Se el primero en responder.</p>
                     </div>
                   </div>
                 </div>
 
-                <form id="replyForm" style="margin-top:20px">
+                <form id="replyForm" class="forumReplyComposer" style="margin-top:20px">
                   <div class="field">
-                    <label for="replyBody">✍️ Escribe tu respuesta</label>
-                    <textarea id="replyBody" required maxlength="2000" placeholder="Comparte tu opinión..."></textarea>
+                    <label for="replyBody">Escribe tu respuesta</label>
+                    <textarea
+                      id="replyBody"
+                      required
+                      maxlength="2000"
+                      placeholder="Comparte tu opinion..."
+                    ></textarea>
                   </div>
                   <div class="row" style="margin-top:12px">
-                    <button class="btn" id="replySubmitBtn" type="submit">
-                      📤 Enviar respuesta
-                    </button>
+                    <button class="btn" id="replySubmitBtn" type="submit">Enviar respuesta</button>
                   </div>
                 </form>
               </div>
@@ -101,88 +156,128 @@
           </div>
         </section>
 
-        <aside>
-          <!-- Card de crear noticia -->
-          <div id="newsCreateCard" class="card">
-            <h2 class="title">📝 Publicar Noticia</h2>
+        <aside class="sidebarStack">
+          <div id="newsCreateCard" class="card composeCard">
+            <h2 class="title">Publicar noticia</h2>
+            <p class="composeCard__intro">
+              Comparte una noticia clara, con titulo fuerte y archivos solo si agregan contexto
+              real.
+            </p>
             <div id="postAlert" class="alert err" style="display:none"></div>
             <form id="postForm">
               <div class="field">
-                <label for="title">📌 Título</label>
-                <input id="title" name="title" type="text" required maxlength="140" placeholder="Título llamativo..." />
+                <label for="title">Titulo</label>
+                <input
+                  id="title"
+                  name="title"
+                  type="text"
+                  required
+                  maxlength="140"
+                  placeholder="Titulo llamativo..."
+                />
               </div>
               <div class="field">
-                <label for="content">📄 Contenido</label>
-                <textarea id="content" name="content" required maxlength="2000" placeholder="¿qué quieres compartir?"></textarea>
+                <label for="content">Contenido</label>
+                <textarea
+                  id="content"
+                  name="content"
+                  required
+                  maxlength="2000"
+                  placeholder="Que quieres compartir?"
+                ></textarea>
               </div>
               <div class="field">
-                <label for="files">📎 Archivos (opcional)</label>
+                <label for="files">Archivos (opcional)</label>
                 <div class="fileInput" id="fileInputContainer">
                   <input id="files" name="files" type="file" multiple />
                   <div class="fileInputLabel">
-                    <span>📁</span>
-                    <span id="fileInputText">Haz clic para seleccionar archivos o arrástralos aquí</span>
+                    <span>Selecciona archivos o arrastralos aqui</span>
                   </div>
                 </div>
                 <div class="filePreview" id="filePreview"></div>
                 <div class="muted" style="font-size:13px;margin-top:8px">
-                  💡 Máximo 10 archivos, 20MB por archivo. Formatos permitidos: imágenes, PDF, Word, Excel.
+                  Maximo 10 archivos, 20MB por archivo. Formatos permitidos: imagenes, PDF, Word
+                  y Excel.
                 </div>
               </div>
               <div class="row" style="margin-top:12px">
-                <button class="btn" id="submitBtn" type="submit">
-                  🚀 Publicar
-                </button>
+                <button class="btn" id="submitBtn" type="submit">Publicar</button>
               </div>
             </form>
           </div>
 
-          <!-- Card de crear hilo -->
-          <div id="forumCreateCard" class="card" style="display:none">
-            <h2 class="title">🗣️ Nuevo Hilo</h2>
+          <div id="forumCreateCard" class="card composeCard" style="display:none">
+            <h2 class="title">Nuevo hilo</h2>
+            <p class="composeCard__intro">
+              Abre temas concretos y deja una idea inicial que invite a responder con sentido.
+            </p>
             <div id="threadPostAlert" class="alert err" style="display:none"></div>
             <form id="threadForm">
               <div class="field">
-                <label for="threadTitleInput">📌 Título</label>
-                <input id="threadTitleInput" name="threadTitle" type="text" required maxlength="140" placeholder="Tema de discusión..." />
+                <label for="threadTitleInput">Titulo</label>
+                <input
+                  id="threadTitleInput"
+                  name="threadTitle"
+                  type="text"
+                  required
+                  maxlength="140"
+                  placeholder="Tema de discusion..."
+                />
               </div>
               <div class="field">
-                <label for="threadBodyInput">💭 Mensaje</label>
-                <textarea id="threadBodyInput" name="threadBody" required maxlength="3000" placeholder="Inicia la conversación..."></textarea>
+                <label for="threadBodyInput">Mensaje</label>
+                <textarea
+                  id="threadBodyInput"
+                  name="threadBody"
+                  required
+                  maxlength="3000"
+                  placeholder="Inicia la conversacion..."
+                ></textarea>
               </div>
               <div class="row" style="margin-top:12px">
-                <button class="btn" id="threadSubmitBtn" type="submit">
-                  🚀 Crear hilo
-                </button>
+                <button class="btn" id="threadSubmitBtn" type="submit">Crear hilo</button>
               </div>
             </form>
+          </div>
+
+          <div class="card sideInfoCard">
+            <div class="sideInfoCard__badge">Guia rapida</div>
+            <h2 class="title">Mejor presencia visual</h2>
+            <ul class="featureList">
+              <li>Usa titulos directos y faciles de leer.</li>
+              <li>Evita publicar texto largo sin estructura.</li>
+              <li>Adjunta archivos cuando aporten contexto.</li>
+              <li>Responde en el hilo correcto para mantener orden.</li>
+            </ul>
           </div>
         </aside>
       </main>
 
-      <footer style="margin-top:32px;text-align:center">
+      <footer class="siteFooter">
         <div class="muted" style="font-size:13px">
-          🔒 Acceso restringido a cuentas autorizadas • 
-          <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--primary)">Términos y Condiciones</a>
+          Acceso restringido a cuentas autorizadas -
+          <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--primary)">
+            Terminos y Condiciones
+          </a>
         </div>
       </footer>
     </div>
 
-    <!-- Modal de Términos y Condiciones -->
-    <div id="termsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;padding:20px">
+    <div
+      id="termsOverlay"
+      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;padding:20px"
+    >
       <div class="card" style="max-width:600px;width:100%;max-height:85vh;overflow:auto" id="termsModal">
-        <h2 class="title" style="margin-top:0">📋 Términos y Condiciones</h2>
+        <h2 class="title" style="margin-top:0">Terminos y condiciones</h2>
         <div class="muted" style="margin-bottom:16px;font-size:14px">
-          Al continuar aceptas estos términos.
+          Al continuar aceptas estos terminos.
         </div>
 
         <div class="termsText">
-          <p style="margin-top:0">
-            📜 Puedes leer el texto completo en otra ventana haciendo clic aquí:
-          </p>
+          <p style="margin-top:0">Puedes leer el texto completo en otra ventana desde aqui:</p>
           <div class="row" style="justify-content:flex-start;margin-top:12px">
             <a class="btn" href="/terms.html" target="_blank" rel="noopener">
-              📖 Ver términos completos
+              Ver terminos completos
             </a>
           </div>
         </div>
@@ -190,13 +285,13 @@
         <div class="field" style="margin-top:16px">
           <label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
             <input id="acceptTerms" type="checkbox" style="margin-top:4px" />
-            <span>✅ Confirmo que he leído y acepto los Términos y Condiciones.</span>
+            <span>Confirmo que he leido y acepto los Terminos y Condiciones.</span>
           </label>
         </div>
 
         <div class="row" style="margin-top:16px">
           <button class="btn" id="acceptTermsBtn" type="button" disabled>
-            ✅ Aceptar y continuar
+            Aceptar y continuar
           </button>
         </div>
       </div>
@@ -205,4 +300,3 @@
     <script src="/app.js"></script>
   </body>
 </html>
-

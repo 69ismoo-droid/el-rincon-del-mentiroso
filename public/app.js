@@ -690,21 +690,31 @@ class App {
 
       for (const t of threads) {
         const canDelete = this.currentUserId === t.authorId;
-        const preview = t.body.length > 100 ? t.body.substring(0, 100) + "..." : t.body;
+        const body = String(t.body || "");
+        const preview = body.length > 100 ? body.substring(0, 100) + "..." : (body || "Sin contenido");
+        const replyCount = Number(t.replyCount || 0);
         
         const item = document.createElement("div");
         item.className = "threadItem";
         item.innerHTML = `
-          <div class="threadMeta">
-            <div class="author">👤 ${escapeHtml(t.authorName || "Desconocido")}</div>
-            <div class="authorCode">🔖 ${escapeHtml(t.authorCode || "N/A")}</div>
-            <div class="muted">📅 ${escapeHtml(formatDate(t.createdAt))}</div>
+          <div class="threadCardTop">
+            <div class="threadCardTop__main">
+              <div class="threadCardAuthorRow">
+                <div class="author">👤 ${escapeHtml(t.authorName || "Desconocido")}</div>
+                <div class="authorCode">🔖 ${escapeHtml(t.authorCode || "N/A")}</div>
+              </div>
+              <div class="muted threadCardDate">📅 ${escapeHtml(formatDate(t.createdAt))}</div>
+            </div>
+            <div class="threadCardBadge">${replyCount} respuesta${replyCount === 1 ? "" : "s"}</div>
           </div>
-          <h3>${escapeHtml(t.title)}</h3>
+          <h3 class="threadCardTitle">${escapeHtml(t.title || "Sin título")}</h3>
           <div class="threadPreview">${escapeHtml(preview)}</div>
-          <div class="threadMeta">
-            <span class="replyCount">💬 ${t.replyCount || 0} respuestas</span>
-            <div class="row">
+          <div class="threadMeta threadMeta--actions">
+            <div class="threadMetaInfo">
+              <span class="replyCount">💬 ${replyCount} respuestas</span>
+              <span class="threadMetaHint">Última actividad visible en este hilo</span>
+            </div>
+            <div class="row threadActions">
               <button class="btn" data-thread-id="${t.id}">📖 Ver hilo</button>
               ${canDelete ? `<button class="btn danger" data-thread-delete="${t.id}">🗑️ Eliminar</button>` : ""}
             </div>
@@ -747,16 +757,16 @@ class App {
 
     try {
       const data = await api(`/api/forum/threads/${threadId}`);
-      const { thread, replies } = data;
+      const thread = data?.thread || {};
+      const repliesArray = Array.isArray(data?.thread?.replies)
+        ? data.thread.replies
+        : (Array.isArray(data?.replies) ? data.replies : []);
 
-      threadAuthor.textContent = `👤 ${thread.authorName} 🔖 ${thread.authorCode}`;
+      threadAuthor.textContent = `👤 ${thread.authorName || "Desconocido"} 🔖 ${thread.authorCode || "N/A"}`;
       threadDate.textContent = `📅 ${formatDate(thread.createdAt)}`;
-      threadTitle.textContent = thread.title;
-      threadBodyView.textContent = thread.body;
+      threadTitle.textContent = thread.title || "Sin título";
+      threadBodyView.textContent = thread.body || "Sin contenido";
 
-      // Cargar respuestas
-      const repliesArray = Array.isArray(replies) ? replies : [];
-      
       if (repliesArray.length === 0) {
         replyList.innerHTML = `
           <div class="emptyState">
@@ -773,11 +783,13 @@ class App {
           item.className = "replyItem";
           item.innerHTML = `
             <div class="replyMeta">
-              <div class="author">👤 ${escapeHtml(r.authorName || "Desconocido")}</div>
-              <div class="authorCode">🔖 ${escapeHtml(r.authorCode || "N/A")}</div>
-              <div class="muted">📅 ${escapeHtml(formatDate(r.createdAt))}</div>
+              <div class="replyMeta__authorBlock">
+                <div class="author">👤 ${escapeHtml(r.authorName || "Desconocido")}</div>
+                <div class="authorCode">🔖 ${escapeHtml(r.authorCode || "N/A")}</div>
+              </div>
+              <div class="muted replyMeta__date">📅 ${escapeHtml(formatDate(r.createdAt))}</div>
             </div>
-            <div class="replyContent">${escapeHtml(r.body)}</div>
+            <div class="replyContent">${escapeHtml(r.body || "Sin contenido")}</div>
             ${canDelete ? '<button class="btn danger" data-reply-delete="' + r.id + '" style="margin-top:8px">🗑️ Eliminar</button>' : ''}
           `;
 

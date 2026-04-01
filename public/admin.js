@@ -22,7 +22,9 @@ function escapeHtml(str) {
 
 function formatDate(iso) {
   try {
+    if (!iso) return "Fecha no disponible";
     const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "Fecha no disponible";
     return d.toLocaleString('es-ES', {
       day: '2-digit',
       month: '2-digit',
@@ -31,7 +33,7 @@ function formatDate(iso) {
       minute: '2-digit'
     });
   } catch {
-    return iso;
+    return "Fecha no disponible";
   }
 }
 
@@ -232,6 +234,7 @@ class AdminApp {
       users.forEach(user => {
         const item = document.createElement("div");
         item.className = "adminItem";
+        const stats = user.stats || {};
         
         const isAdminBadge = user.email === "cruel@admin" ? '<span class="badge danger">👑 ADMIN</span>' : '';
         const canDelete = user.email !== "cruel@admin" && user.id !== this.currentUser.id;
@@ -248,15 +251,15 @@ class AdminApp {
             </div>
             <div class="adminItemStats">
               <div class="statMini">
-                <span class="statMiniNumber">${user.stats.newsCount}</span>
+                <span class="statMiniNumber">${stats.newsCount ?? 0}</span>
                 <span class="statMiniLabel">Noticias</span>
               </div>
               <div class="statMini">
-                <span class="statMiniNumber">${user.stats.threadsCount}</span>
+                <span class="statMiniNumber">${stats.threadsCount ?? 0}</span>
                 <span class="statMiniLabel">Hilos</span>
               </div>
               <div class="statMini">
-                <span class="statMiniNumber">${user.stats.repliesCount}</span>
+                <span class="statMiniNumber">${stats.repliesCount ?? 0}</span>
                 <span class="statMiniLabel">Respuestas</span>
               </div>
             </div>
