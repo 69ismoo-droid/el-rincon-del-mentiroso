@@ -1,0 +1,9 @@
+{
+  "name": "COAR Community & Control Maestro",
+  "description": "Una aplicación integral para la comunidad estudiantil COAR, con foro interactivo, mensajería en tiempo real, ranking de profesores, gestión de objetos perdidos y noticias. Desarrollada para mejorar la comunicación y convivencia escolar.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
