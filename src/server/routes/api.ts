@@ -1,9 +1,9 @@
 import express from 'express';
-import { User } from '../models/User.ts';
-import { Post, Comment } from '../models/Forum.ts';
-import { TeacherRating, Bet, LostItem, News } from '../models/Community.ts';
-import { Message } from '../models/Message.ts';
-import { Notification } from '../models/Notification.ts';
+import { User } from '../models/User.js';
+import { Post, Comment } from '../models/Forum.js';
+import { TeacherRating, Bet, LostItem, News } from '../models/Community.js';
+import { Message } from '../models/Message.js';
+import { Notification } from '../models/Notification.js';
 
 const router = express.Router();
 

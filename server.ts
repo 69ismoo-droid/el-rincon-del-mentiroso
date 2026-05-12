@@ -9,11 +9,11 @@ import dotenv from "dotenv";
 import http from "http";
 import path from "path";
 import { Server } from "socket.io";
-import "./src/server/config/passport.ts";
+import "./src/server/config/passport.js";
 
 // Import Routes
-import apiRoutes from "./src/server/routes/api.ts";
-import authRoutes from "./src/server/routes/auth.ts";
+import apiRoutes from "./src/server/routes/api.js";
+import authRoutes from "./src/server/routes/auth.js";
 
 dotenv.config();
 
@@ -26,7 +26,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Socket.IO mapping
 const userSockets = new Map();
