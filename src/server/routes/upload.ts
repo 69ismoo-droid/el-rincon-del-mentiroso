@@ -1,5 +1,5 @@
 import express from "express";
-import multer from "multer";
+import multer, { FileFilterCallback } from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import {
   requireAuth,
@@ -13,7 +13,11 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  fileFilter: (_req: express.Request, file: Express.Request['file'], cb: FileFilterCallback) => {
+    if (!file) {
+      cb(null, false);
+      return;
+    }
     const ok = /^image\/(jpeg|png|gif|webp)$/.test(file.mimetype);
     cb(null, ok);
   },
