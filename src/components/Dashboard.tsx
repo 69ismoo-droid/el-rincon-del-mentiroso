@@ -11,14 +11,14 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { cn } from '../lib/utils.ts';
+import { cn, apiFetch } from '../lib/utils';
 
 export default function Dashboard() {
   const [news, setNews] = useState<any[]>([]);
 
   useEffect(() => {
     // Fetch some dashboard data
-    fetch('/api/news').then(r => r.json()).then(data => setNews(data.slice(0, 3)));
+    apiFetch('/api/news').then(r => r.json()).then(data => setNews(data.slice(0, 3)));
   }, []);
 
   return (

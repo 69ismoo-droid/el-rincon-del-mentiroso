@@ -1,10 +1,32 @@
 import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema({
-  googleId: { type: String, required: true },
-  name: { type: String, required: true },
-  email: { type: String, required: true },
+  // Autenticación
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    lowercase: true,
+    trim: true,
+    validate: {
+      validator: function(v: string) {
+        return v.endsWith('@cusco.coar.edu.pe');
+      },
+      message: 'Solo se permiten correos institucionales @cusco.coar.edu.pe'
+    }
+  },
+  password: { type: String, required: true, select: false },
+  isVerified: { type: Boolean, default: false },
+  otpCode: { type: String, select: false },
+  otpExpires: { type: Date, select: false },
+  
+  // Perfil
+  nombreCompleto: { type: String, required: false, default: 'Pendiente' },
+  añoIngreso: { type: Number, required: false, default: new Date().getFullYear() },
   picture: { type: String },
+  bio: { type: String, default: '¡Orgullosamente COAR!' },
+  
+  // Sistema
   role: { 
     type: String, 
     enum: ['user', 'moderator', 'admin', 'superadmin'], 
@@ -12,8 +34,12 @@ const UserSchema = new mongoose.Schema({
   },
   credits: { type: Number, default: 100 },
   lastDailyCredit: { type: Date, default: Date.now },
-  bio: { type: String, default: '¡Orgullosamente COAR!' },
   banned: { type: Boolean, default: false },
+  
+  // Legado (mantener por compatibilidad)
+  googleId: { type: String, required: false },
+  name: { type: String, required: false },
+  ingresoColegio: { type: Number, required: false },
 }, { timestamps: true });
 
 export const User = mongoose.model('User', UserSchema);

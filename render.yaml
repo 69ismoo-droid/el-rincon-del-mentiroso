@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: coar-community
+    env: node
+    plan: starter
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: coar-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ALLOWED_EMAIL_DOMAINS
+        value: cusco.coar.edu.pe
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        value: admin@cusco.coar.edu.pe
+
+databases:
+  - name: coar-db
+    databaseName: coar
+    user: coar
+    plan: starter

@@ -1,7 +1,7 @@
 import React from 'react';
-import { useAuth } from '../App.tsx';
+import { useAuth } from '../App';
 import { Bell, Clock, Trash2, CheckCircle } from 'lucide-react';
-import { cn } from '../lib/utils.ts';
+import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 
 export default function NotificationsList() {
@@ -37,7 +37,7 @@ export default function NotificationsList() {
                 )}
               >
                 <div className="w-14 h-14 rounded-2xl border border-slate-700 overflow-hidden shrink-0 shadow-lg group-hover:scale-105 transition-transform">
-                  <img src={notif.sender.picture} alt="" className="w-full h-full object-cover" />
+                  <img src={notif.sender?.picture || ""} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">

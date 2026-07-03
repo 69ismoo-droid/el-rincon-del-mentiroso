@@ -1,26 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, Send, User, Search, MoreVertical, Bell, Shield } from 'lucide-react';
-import { useAuth } from '../App.tsx';
-import { cn } from '../lib/utils.ts';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'motion/react';
+import { MessageCircle, Send, Search, MoreVertical, Shield } from 'lucide-react';
+import { useAuth } from '../App';
+import { cn, apiFetch } from '../lib/utils';
 
 export default function Messages() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [selectedChat, setSelectedChat] = useState<any>(null);
+  const [threadMessages, setThreadMessages] = useState<any[]>([]);
+  const [threadPage, setThreadPage] = useState(1);
+  const [threadTotalPages, setThreadTotalPages] = useState(1);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch('/api/messages');
+      const res = await apiFetch('/api/messages?limit=80&page=1');
       const data = await res.json();
-      setMessages(data);
-      
-      // Group by chat partner
+      const list = data.items ?? data;
+      setMessages(list);
+
       const chatMap = new Map();
-      data.forEach((msg: any) => {
+      list.forEach((msg: any) => {
         const partner = msg.sender._id === user._id ? msg.recipient : msg.sender;
         if (!chatMap.has(partner._id)) {
           chatMap.set(partner._id, {
@@ -34,19 +37,41 @@ export default function Messages() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [user._id]);
+
+  const loadThread = useCallback(async (partnerId: string, page = 1, append = false) => {
+    const res = await apiFetch(`/api/messages/thread/${partnerId}?limit=40&page=${page}`);
+    const data = await res.json();
+    const raw = data.items ?? [];
+    const chronologicalChunk = [...raw].reverse();
+    setThreadPage(page);
+    setThreadTotalPages(data.totalPages ?? 1);
+    setThreadMessages((prev) => {
+      if (append) return [...chronologicalChunk, ...prev];
+      return chronologicalChunk;
+    });
+  }, []);
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchMessages]);
+
+  useEffect(() => {
+    if (!selectedChat?.partner?._id) {
+      setThreadMessages([]);
+      return;
+    }
+    setThreadMessages([]);
+    void loadThread(selectedChat.partner._id, 1, false);
+  }, [selectedChat?.partner?._id, loadThread]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChat) return;
     
     try {
-      const res = await fetch('/api/messages', {
+      const res = await apiFetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,7 +81,8 @@ export default function Messages() {
       });
       if (res.ok) {
         setNewMessage('');
-        fetchMessages();
+        await fetchMessages();
+        await loadThread(selectedChat.partner._id, 1, false);
       }
     } catch (err) {
       console.error(err);
@@ -67,14 +93,10 @@ export default function Messages() {
     chat.partner.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentChatMessages = messages.filter(msg => 
-    (msg.sender._id === selectedChat?.partner._id && msg.recipient._id === user._id) ||
-    (msg.sender._id === user._id && msg.recipient._id === selectedChat?.partner._id)
-  ).reverse();
+  const currentChatMessages = threadMessages;
 
   return (
     <div className="h-[calc(100vh-12rem)] flex bg-slate-900 rounded-[3rem] border border-slate-800 shadow-2xl overflow-hidden">
-      {/* Sidebar */}
       <div className="w-96 border-r border-slate-800 flex flex-col">
         <div className="p-8 space-y-6">
           <div className="flex justify-between items-center">
@@ -106,7 +128,7 @@ export default function Messages() {
               )}
             >
               <div className="w-12 h-12 rounded-2xl border border-slate-700 overflow-hidden shrink-0">
-                <img src={chat.partner.picture} alt="" className="w-full h-full object-cover" />
+                <img src={chat.partner.picture || ''} alt="" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 text-left min-w-0">
                 <div className="flex justify-between items-center mb-1">
@@ -126,14 +148,13 @@ export default function Messages() {
         </div>
       </div>
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-slate-950/20">
         {selectedChat ? (
           <>
             <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl border border-slate-700 overflow-hidden shadow-lg">
-                        <img src={selectedChat.partner.picture} alt="" className="w-full h-full object-cover" />
+                        <img src={selectedChat.partner.picture || ''} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">{selectedChat.partner.name}</h3>
@@ -143,13 +164,24 @@ export default function Messages() {
                         </div>
                     </div>
                 </div>
-                <button className="p-3 hover:bg-slate-800 rounded-2xl text-slate-500">
+                <button type="button" className="p-3 hover:bg-slate-800 rounded-2xl text-slate-500">
                     <MoreVertical size={24} />
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-12 space-y-6 no-scrollbar">
-                {currentChatMessages.map((msg, idx) => (
+                {threadPage < threadTotalPages && (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => selectedChat && loadThread(selectedChat.partner._id, threadPage + 1, true)}
+                      className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300"
+                    >
+                      Ver mensajes anteriores
+                    </button>
+                  </div>
+                )}
+                {currentChatMessages.map((msg) => (
                     <motion.div 
                         initial={{ opacity: 0, x: msg.sender._id === user._id ? 20 : -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -183,6 +215,7 @@ export default function Messages() {
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     />
                     <button 
+                        type="button"
                         onClick={handleSendMessage}
                         className="bg-indigo-600 p-4 rounded-2xl text-white hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20"
                     >

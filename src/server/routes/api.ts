@@ -1,125 +1,320 @@
-import express from 'express';
-import { User } from '../models/User.js';
-import { Post, Comment } from '../models/Forum.js';
-import { TeacherRating, Bet, LostItem, News } from '../models/Community.js';
-import { Message } from '../models/Message.js';
-import { Notification } from '../models/Notification.js';
+import express from "express";
+import mongoose from "mongoose";
+import { User } from "../models/User.js";
+import { Post, Comment } from "../models/Forum.js";
+import { TeacherRating, Bet, LostItem, News } from "../models/Community.js";
+import { Message } from "../models/Message.js";
+import { Notification } from "../models/Notification.js";
+import { escapeRegex } from "../lib/escapeRegex.js";
+import { isValidObjectId } from "../lib/ids.js";
+import { isPostCategory } from "../constants/forum.js";
+import {
+  requireAuth,
+  requireActiveUser,
+  requireRole,
+} from "../middleware/auth.js";
+import { parsePagination } from "../lib/pagination.js";
 
 const router = express.Router();
 
-const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated()) return next();
-  res.status(401).json({ error: 'No autorizado' });
+const MAX_POST_TITLE = 280;
+const MAX_POST_BODY = 50_000;
+const MAX_COMMENT = 10_000;
+const MAX_MESSAGE = 10_000;
+
+const requireDb: express.RequestHandler = (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    res.status(503).json({ error: "Base de datos no disponible" });
+    return;
+  }
+  next();
 };
 
-// --- FORUM ROUTES ---
-router.get('/posts', isAuthenticated, async (req, res) => {
+const modRoles = requireRole("moderator", "admin", "superadmin");
+const modChain = [requireDb, requireAuth, requireActiveUser, modRoles];
+
+const authed = [requireDb, requireAuth, requireActiveUser];
+
+// --- LEADERBOARD (Público pero solo para usuarios verificados) ---
+router.get("/users/leaderboard", ...authed, async (req, res) => {
   try {
-    const { q, author, category, startDate, endDate } = req.query;
-    let filter: any = {};
-
-    if (q) {
-      filter.$or = [
-        { title: { $regex: String(q), $options: 'i' } },
-        { content: { $regex: String(q), $options: 'i' } }
-      ];
+    if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.verified) {
+      return res.status(403).json({ error: "Solo usuarios verificados del COAR pueden acceder al ranking" });
     }
-
-    if (author) {
-      const user = await User.findOne({ name: { $regex: String(author), $options: "i" } } as any);
-      if (user) filter.author = user._id;
-    }
-
-    if (category && category !== 'all') {
-      filter.category = category;
-    }
-
-    if (startDate || endDate) {
-      filter.createdAt = {};
-      if (startDate) filter.createdAt.$gte = new Date(startDate as string);
-      if (endDate) filter.createdAt.$lte = new Date(endDate as string);
-    }
-
-    const posts = await Post.find(filter).populate('author', 'name picture role').sort({ createdAt: -1 });
-    res.json(posts);
+    
+    const leaderboard = await User.find(
+      { verified: true, banned: false, email: { $regex: "@cusco.coar.edu.pe$" } },
+      { nombreCompleto: 1, name: 1, credits: 1, añoIngreso: 1, ingresoColegio: 1 }
+    )
+      .sort({ credits: -1 })
+      .limit(10)
+      .lean();
+    
+    const formattedLeaderboard = leaderboard.map((user, index) => ({
+      rank: index + 1,
+      name: user.nombreCompleto || user.name || "Anónimo",
+      credits: user.credits,
+      añoIngreso: user.añoIngreso || user.ingresoColegio
+    }));
+    
+    res.json(formattedLeaderboard);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
 });
 
-router.post('/posts', isAuthenticated, async (req: any, res) => {
+// --- COMPRAR MONEDAS ---
+router.post("/users/buy-coins", ...authed, async (req, res) => {
   try {
-    const post = await Post.create({ ...req.body, author: req.user._id });
-    // Add activity points
-    req.user.credits += 5;
-    await req.user.save();
+    if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.verified) {
+      return res.status(403).json({ error: "Solo usuarios verificados del COAR pueden comprar monedas" });
+    }
+
+    const { package: packageName } = req.body;
+    let coinsToAdd = 0;
+
+    switch (packageName) {
+      case "basic":
+        coinsToAdd = 100;
+        break;
+      case "standard":
+        coinsToAdd = 500;
+        break;
+      case "premium":
+        coinsToAdd = 2000;
+        break;
+      default:
+        return res.status(400).json({ error: "Paquete inválido" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $inc: { credits: coinsToAdd } },
+      { new: true }
+    );
+
+    res.json({ ok: true, user: updatedUser, coinsAdded: coinsToAdd });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// --- FORUM ---
+router.get("/posts", ...authed, async (req, res) => {
+  try {
+    const { q, author, category, startDate, endDate } = req.query;
+    const filter: Record<string, unknown> = {};
+
+    if (q && String(q).length > 200) {
+      res.status(400).json({ error: "Búsqueda demasiado larga" });
+      return;
+    }
+    if (q) {
+      const safe = escapeRegex(String(q));
+      filter.$or = [
+        { title: { $regex: safe, $options: "i" } },
+        { content: { $regex: safe, $options: "i" } },
+      ];
+    }
+
+    if (author) {
+      const safeAuthor = escapeRegex(String(author).slice(0, 120));
+      const userDoc = await User.findOne({
+        name: { $regex: safeAuthor, $options: "i" },
+      });
+      if (userDoc) filter.author = userDoc._id;
+    }
+
+    if (category && category !== "all") {
+      if (!isPostCategory(String(category))) {
+        res.status(400).json({ error: "Categoría no válida" });
+        return;
+      }
+      filter.category = category;
+    }
+
+    if (startDate || endDate) {
+      const range: { $gte?: Date; $lte?: Date } = {};
+      if (startDate) {
+        const d = new Date(String(startDate));
+        if (Number.isNaN(d.getTime())) {
+          res.status(400).json({ error: "Fecha inicial inválida" });
+          return;
+        }
+        range.$gte = d;
+      }
+      if (endDate) {
+        const d = new Date(String(endDate));
+        if (Number.isNaN(d.getTime())) {
+          res.status(400).json({ error: "Fecha final inválida" });
+          return;
+        }
+        range.$lte = d;
+      }
+      filter.createdAt = range;
+    }
+
+    const { page, limit, skip } = parsePagination(req.query, 20, 50);
+    const [items, total] = await Promise.all([
+      Post.find(filter)
+        .populate("author", "name picture role ingresoColegio")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Post.countDocuments(filter),
+    ]);
+    res.json({
+      items,
+      total,
+      page,
+      pageSize: limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/posts", ...authed, async (req: express.Request, res) => {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const content =
+      typeof body.content === "string" ? body.content.trim() : "";
+    const rawCat = typeof body.category === "string" ? body.category : "General";
+    const category = isPostCategory(rawCat) ? rawCat : "General";
+
+    if (!title || !content) {
+      res.status(400).json({ error: "Título y contenido son obligatorios" });
+      return;
+    }
+    if (title.length > MAX_POST_TITLE || content.length > MAX_POST_BODY) {
+      res.status(400).json({ error: "Texto demasiado largo" });
+      return;
+    }
+
+    const user = req.user as { _id: mongoose.Types.ObjectId; credits?: number };
+    const post = await Post.create({
+      title,
+      content,
+      category,
+      author: user._id,
+    });
+
+    user.credits = (user.credits ?? 0) + 5;
+    await (req.user as { save: () => Promise<unknown> }).save();
+
     res.json(post);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
 });
 
-router.get('/posts/:id', isAuthenticated, async (req, res) => {
+router.get("/posts/:id", ...authed, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate('author', 'name picture role');
-    if (!post) return res.status(404).json({ error: 'Post no encontrado' });
+    if (!isValidObjectId(req.params.id)) {
+      res.status(400).json({ error: "ID inválido" });
+      return;
+    }
+    const post = await Post.findById(req.params.id).populate(
+      "author",
+      "name picture role ingresoColegio"
+    );
+    if (!post) {
+      res.status(404).json({ error: "Post no encontrado" });
+      return;
+    }
     post.views += 1;
     await post.save();
-    const comments = await Comment.find({ post: post._id }).populate('author', 'name picture role').sort({ createdAt: 1 });
+    const comments = await Comment.find({ post: post._id })
+      .populate("author", "name picture role ingresoColegio")
+      .sort({ createdAt: 1 });
     res.json({ post, comments });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
 });
 
-router.post('/posts/:id/comments', isAuthenticated, async (req: any, res) => {
+router.post("/posts/:id/comments", ...authed, async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      res.status(400).json({ error: "ID inválido" });
+      return;
+    }
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      res.status(404).json({ error: "Post no encontrado" });
+      return;
+    }
+
+    const content =
+      typeof req.body?.content === "string" ? req.body.content.trim() : "";
+    if (!content) {
+      res.status(400).json({ error: "Comentario vacío" });
+      return;
+    }
+    if (content.length > MAX_COMMENT) {
+      res.status(400).json({ error: "Comentario demasiado largo" });
+      return;
+    }
+
+    const user = req.user as {
+      _id: mongoose.Types.ObjectId;
+      name: string;
+      credits?: number;
+    };
+
     const comment = await Comment.create({
-      content: req.body.content,
-      author: req.user._id,
-      post: req.params.id
+      content,
+      author: user._id,
+      post: post._id,
     });
 
-    const post = await Post.findById(req.params.id);
-    if (post && post.author.toString() !== req.user._id.toString()) {
+    if (post.author.toString() !== user._id.toString()) {
       const notif = await Notification.create({
         recipient: post.author,
-        sender: req.user._id,
-        type: 'comment',
+        sender: user._id,
+        type: "comment",
         post: post._id,
-        content: `${req.user.name} comentó en tu publicación: "${post.title}"`
+        content: `${user.name} comentó en tu publicación: "${post.title}"`,
       });
 
       const recipientSocket = req.userSockets.get(post.author.toString());
       if (recipientSocket) {
-        req.io.to(recipientSocket).emit('notification', notif);
+        req.io.to(recipientSocket).emit("notification", notif);
       }
     }
 
-    // Mentions logic
-    const mentions = req.body.content.match(/@(\w+)/g);
+    const mentions = content.match(/@(\w+)/g);
     if (mentions) {
       for (const mention of mentions) {
         const username = mention.slice(1);
-        const mentionedUser = await User.findOne({ name: { $regex: new RegExp('^' + username + '$', 'i') } });
-        if (mentionedUser && mentionedUser._id.toString() !== req.user._id.toString()) {
+        const mentionedUser = await User.findOne({
+          name: new RegExp(`^${escapeRegex(username)}$`, "i"),
+        });
+        if (
+          mentionedUser &&
+          mentionedUser._id.toString() !== user._id.toString()
+        ) {
           const mNotif = await Notification.create({
             recipient: mentionedUser._id,
-            sender: req.user._id,
-            type: 'mention',
-            post: post?._id,
-            content: `${req.user.name} te mencionó en un comentario.`
+            sender: user._id,
+            type: "mention",
+            post: post._id,
+            content: `${user.name} te mencionó en un comentario.`,
           });
           const mSocket = req.userSockets.get(mentionedUser._id.toString());
           if (mSocket) {
-            req.io.to(mSocket).emit('notification', mNotif);
+            req.io.to(mSocket).emit("notification", mNotif);
           }
         }
       }
     }
 
-    req.user.credits += 2;
-    await req.user.save();
+    user.credits = (user.credits ?? 0) + 2;
+    await (req.user as { save: () => Promise<unknown> }).save();
+
     res.json(comment);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -127,37 +322,121 @@ router.post('/posts/:id/comments', isAuthenticated, async (req: any, res) => {
 });
 
 // --- MESSAGING ---
-router.get('/messages', isAuthenticated, async (req: any, res) => {
+router.get("/messages", ...authed, async (req, res) => {
   try {
-    const messages = await Message.find({
-      $or: [{ sender: req.user._id }, { recipient: req.user._id }]
-    }).populate('sender recipient', 'name picture').sort({ createdAt: -1 });
-    res.json(messages);
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+    const { page, limit, skip } = parsePagination(req.query, 30, 80);
+    const baseFilter = {
+      $or: [{ sender: user._id }, { recipient: user._id }],
+    };
+    const [items, total] = await Promise.all([
+      Message.find(baseFilter)
+        .populate("sender recipient", "name picture")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Message.countDocuments(baseFilter),
+    ]);
+    res.json({
+      items,
+      total,
+      page,
+      pageSize: limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
 });
 
-router.post('/messages', isAuthenticated, async (req: any, res) => {
+router.get("/messages/thread/:partnerId", ...authed, async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.partnerId)) {
+      res.status(400).json({ error: "ID inválido" });
+      return;
+    }
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+    const partnerId = req.params.partnerId;
+    const { page, limit, skip } = parsePagination(req.query, 30, 60);
+    const threadFilter = {
+      $or: [
+        { sender: user._id, recipient: partnerId },
+        { sender: partnerId, recipient: user._id },
+      ],
+    };
+    const [items, total] = await Promise.all([
+      Message.find(threadFilter)
+        .populate("sender recipient", "name picture")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Message.countDocuments(threadFilter),
+    ]);
+    res.json({
+      items,
+      total,
+      page,
+      pageSize: limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/messages", ...authed, async (req, res) => {
+  try {
+    const recipientRaw = req.body?.recipient;
+    const content =
+      typeof req.body?.content === "string" ? req.body.content.trim() : "";
+
+    if (!content) {
+      res.status(400).json({ error: "Mensaje vacío" });
+      return;
+    }
+    if (content.length > MAX_MESSAGE) {
+      res.status(400).json({ error: "Mensaje demasiado largo" });
+      return;
+    }
+    if (typeof recipientRaw !== "string" || !isValidObjectId(recipientRaw)) {
+      res.status(400).json({ error: "Destinatario inválido" });
+      return;
+    }
+
+    const user = req.user as { _id: mongoose.Types.ObjectId; name: string };
+    if (recipientRaw === user._id.toString()) {
+      res.status(400).json({ error: "No puedes enviarte un mensaje a ti mismo" });
+      return;
+    }
+
+    const recipientUser = await User.findById(recipientRaw);
+    if (!recipientUser) {
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
+    }
+
     const msg = await Message.create({
-      ...req.body,
-      sender: req.user._id
+      recipient: recipientRaw,
+      content,
+      sender: user._id,
     });
 
-    if (req.body.recipient !== req.user._id.toString()) {
+    if (recipientRaw !== user._id.toString()) {
       const notif = await Notification.create({
-        recipient: req.body.recipient,
-        sender: req.user._id,
-        type: 'message',
-        content: `${req.user.name} te envió un mensaje privado.`
+        recipient: recipientRaw,
+        sender: user._id,
+        type: "message",
+        content: `${user.name} te envió un mensaje privado.`,
       });
 
-      const recipientSocket = req.userSockets.get(req.body.recipient);
+      const recipientSocket = req.userSockets.get(recipientRaw);
       if (recipientSocket) {
-        req.io.to(recipientSocket).emit('notification', notif);
+        req.io.to(recipientSocket).emit("notification", notif);
       }
     }
+
     res.json(msg);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -165,10 +444,11 @@ router.post('/messages', isAuthenticated, async (req: any, res) => {
 });
 
 // --- NOTIFICATIONS ---
-router.get('/notifications', isAuthenticated, async (req: any, res) => {
+router.get("/notifications", ...authed, async (req, res) => {
   try {
-    const notifs = await Notification.find({ recipient: req.user._id })
-      .populate('sender', 'name picture')
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+    const notifs = await Notification.find({ recipient: user._id })
+      .populate("sender", "name picture")
       .sort({ createdAt: -1 })
       .limit(20);
     res.json(notifs);
@@ -177,29 +457,491 @@ router.get('/notifications', isAuthenticated, async (req: any, res) => {
   }
 });
 
-router.patch('/notifications/read', isAuthenticated, async (req: any, res) => {
+router.patch("/notifications/read", ...authed, async (req, res) => {
   try {
-    await Notification.updateMany({ recipient: req.user._id, read: false }, { read: true });
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+    await Notification.updateMany(
+      { recipient: user._id, read: false },
+      { read: true }
+    );
     res.json({ message: "Notifications marked as read" });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
 });
 
+// --- BETS (créditos / predicciones) ---
+router.get("/bets", ...authed, async (req, res) => {
+  try {
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+    const bets = await Bet.find({ "participants.user": user._id }).sort({
+      updatedAt: -1,
+    });
+    const uid = user._id.toString();
+    const flat = bets.flatMap((b) =>
+      b.participants
+        .filter(
+          (p) =>
+            p.user && (p.user as mongoose.Types.ObjectId).toString() === uid
+        )
+        .map((p) => ({
+          _id: `${b._id}_${(p as { _id?: mongoose.Types.ObjectId })._id ?? ""}`,
+          event: b.event,
+          prediction: p.option,
+          amount: p.amount,
+          outcome:
+            b.status === "resolved"
+              ? b.winner === p.option
+                ? "won"
+                : "lost"
+              : undefined,
+        }))
+    );
+    res.json(flat);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/bets", ...authed, async (req, res) => {
+  try {
+    const { event, amount, prediction } = req.body ?? {};
+    if (typeof event !== "string" || typeof prediction !== "string") {
+      res.status(400).json({ error: "Datos inválidos" });
+      return;
+    }
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt < 1 || !Number.isInteger(amt)) {
+      res.status(400).json({ error: "Monto inválido" });
+      return;
+    }
+    const e = event.trim().slice(0, 200);
+    const pred = prediction.trim().slice(0, 500);
+    if (!e || !pred) {
+      res.status(400).json({ error: "Completa evento y predicción" });
+      return;
+    }
+
+    const userId = (req.user as { _id: mongoose.Types.ObjectId })._id;
+    const updated = await User.findOneAndUpdate(
+      { _id: userId, credits: { $gte: amt }, banned: { $ne: true } },
+      { $inc: { credits: -amt } },
+      { new: true }
+    );
+    if (!updated) {
+      res
+        .status(400)
+        .json({ error: "Créditos insuficientes o cuenta no disponible" });
+      return;
+    }
+
+    let bet = await Bet.findOne({ event: e, status: "open" });
+    if (!bet) {
+      bet = await Bet.create({
+        event: e,
+        creator: userId,
+        options: [{ name: pred, pool: amt }],
+        participants: [{ user: userId, option: pred, amount: amt }],
+        status: "open",
+      });
+    } else {
+      bet.participants.push({ user: userId, option: pred, amount: amt });
+      const opt = bet.options.find((o) => o.name === pred);
+      if (opt) opt.pool += amt;
+      else bet.options.push({ name: pred, pool: amt });
+      await bet.save();
+    }
+
+    res.json({ ok: true, credits: updated.credits });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// --- ADMIN ---
+router.get(
+  "/admin/stats",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req, res) => {
+    try {
+      const [users, posts, moderators, bets] = await Promise.all([
+        User.countDocuments(),
+        Post.countDocuments(),
+        User.countDocuments({ role: "moderator" }),
+        Bet.countDocuments(),
+      ]);
+      res.json({ users, posts, moderators, bets });
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
+// --- ADMIN: USERS ---
+router.get(
+  "/admin/users",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req, res) => {
+    try {
+      const users = await User.find().sort({ createdAt: -1 }).lean();
+      res.json(users);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
+router.patch(
+  "/admin/users/:id",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req, res) => {
+    try {
+      if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: "ID inválido" });
+      }
+      
+      const { role, banned, credits } = req.body;
+      const updateData: Record<string, unknown> = {};
+      
+      if (role !== undefined) updateData.role = role;
+      if (banned !== undefined) updateData.banned = banned;
+      if (credits !== undefined) updateData.credits = credits;
+      
+      const updatedUser = await User.findByIdAndUpdate(
+        req.params.id,
+        updateData,
+        { new: true }
+      );
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+      
+      res.json(updatedUser);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
+// --- ADMIN: BETS ---
+router.get(
+  "/admin/bets",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req, res) => {
+    try {
+      const bets = await Bet.find()
+        .populate("creator", "name email")
+        .sort({ createdAt: -1 })
+        .lean();
+      res.json(bets);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
+router.patch(
+  "/admin/bets/:id",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req, res) => {
+    try {
+      if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: "ID inválido" });
+      }
+      
+      const { status, winner } = req.body;
+      const bet = await Bet.findById(req.params.id);
+      
+      if (!bet) {
+        return res.status(404).json({ error: "Apuesta no encontrada" });
+      }
+      
+      if (status) bet.status = status;
+      if (winner) {
+        bet.winner = winner;
+        
+        // Distribuir ganancias si la apuesta se resuelve
+        if (status === "resolved") {
+          const totalPool = bet.options.reduce((sum, opt) => sum + opt.pool, 0);
+          const winningOption = bet.options.find(opt => opt.name === winner);
+          
+          if (winningOption && winningOption.pool > 0) {
+            const winningParticipants = bet.participants.filter(p => p.option === winner);
+            const totalWinnersAmount = winningParticipants.reduce((sum, p) => sum + (p.amount || 0), 0);
+            
+            for (const participant of winningParticipants) {
+              if (participant.amount && totalWinnersAmount > 0) {
+                const userWinnings = Math.floor((participant.amount / totalWinnersAmount) * totalPool);
+                await User.findByIdAndUpdate(
+                  participant.user,
+                  { $inc: { credits: userWinnings } }
+                );
+              }
+            }
+          }
+        }
+      }
+      
+      await bet.save();
+      res.json(bet);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
+router.delete(
+  "/admin/bets/:id",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req, res) => {
+    try {
+      if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: "ID inválido" });
+      }
+      
+      const bet = await Bet.findById(req.params.id);
+      if (!bet) {
+        return res.status(404).json({ error: "Apuesta no encontrada" });
+      }
+      
+      // Devolver créditos a los participantes
+      for (const participant of bet.participants) {
+        await User.findByIdAndUpdate(
+          participant.user,
+          { $inc: { credits: participant.amount } }
+        );
+      }
+      
+      await Bet.findByIdAndDelete(req.params.id);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
+// --- MODERACIÓN FORO ---
+router.get("/admin/forum/posts", ...modChain, async (req, res) => {
+  try {
+    const { page, limit, skip } = parsePagination(req.query, 15, 40);
+    const filter: Record<string, unknown> = {};
+    const q = req.query.q;
+    if (q && String(q).length <= 200) {
+      const safe = escapeRegex(String(q));
+      filter.$or = [
+        { title: { $regex: safe, $options: "i" } },
+        { content: { $regex: safe, $options: "i" } },
+      ];
+    }
+    const [items, total] = await Promise.all([
+      Post.find(filter)
+        .populate("author", "name email picture")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Post.countDocuments(filter),
+    ]);
+    res.json({
+      items,
+      total,
+      page,
+      pageSize: limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.delete("/admin/forum/posts/:id", ...modChain, async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      res.status(400).json({ error: "ID inválido" });
+      return;
+    }
+    const deleted = await Post.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ error: "Publicación no encontrada" });
+      return;
+    }
+    await Comment.deleteMany({ post: req.params.id });
+    await Notification.deleteMany({ post: req.params.id });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.delete("/admin/forum/comments/:id", ...modChain, async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      res.status(400).json({ error: "ID inválido" });
+      return;
+    }
+    const deleted = await Comment.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ error: "Comentario no encontrado" });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// --- NEWS ---
+router.get("/news", ...authed, async (req, res) => {
+  try {
+    const news = await News.find()
+      .populate("author", "name")
+      .sort({ createdAt: -1 });
+    res.json(news);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/news", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+  try {
+    const { title, content, category } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ error: "Título y contenido son obligatorios" });
+    }
+    
+    const news = await News.create({
+      title,
+      content,
+      category: category || "ACADEMICO",
+      author: (req.user as { _id: mongoose.Types.ObjectId })._id,
+    });
+    
+    res.json(news);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.delete("/news/:id", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+    
+    await News.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// --- TEACHER RATINGS ---
+router.get("/teachers", ...authed, async (req, res) => {
+  try {
+    const teachers = await TeacherRating.find().sort({ rating: -1 }).lean();
+    res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.get("/teachers/:id", ...authed, async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+    
+    const teacher = await TeacherRating.findById(req.params.id).lean();
+    if (!teacher) {
+      return res.status(404).json({ error: "Profesor no encontrado" });
+    }
+    
+    res.json(teacher);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/teachers", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+  try {
+    const { name, subject } = req.body;
+    if (!name || !subject) {
+      return res.status(400).json({ error: "Nombre y materia son obligatorios" });
+    }
+    
+    const teacher = await TeacherRating.create({
+      name,
+      subject,
+      rating: 0,
+      reviews: [],
+    });
+    
+    res.json(teacher);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.delete("/teachers/:id", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+    
+    await TeacherRating.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 // --- COMMUNITY FEATURES ---
-router.get('/teacher-ratings', isAuthenticated, async (req, res) => {
-  const ratings = await TeacherRating.find().sort({ rating: -1 });
-  res.json(ratings);
+
+router.get("/lost-found", ...authed, async (req, res) => {
+  try {
+    const items = await LostItem.find()
+      .populate("founder", "name")
+      .sort({ createdAt: -1 });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
-router.get('/news', isAuthenticated, async (req, res) => {
-  const news = await News.find().populate('author', 'name').sort({ createdAt: -1 });
-  res.json(news);
+// --- USER PROFILE ---
+router.patch("/user/ingreso-colegio", ...authed, async (req, res) => {
+  try {
+    const { ingresoColegio } = req.body;
+    
+    if (typeof ingresoColegio !== 'number' || ingresoColegio < 2000 || ingresoColegio > new Date().getFullYear()) {
+      res.status(400).json({ error: "Año de ingreso inválido" });
+      return;
+    }
+    
+    if (!req.user) {
+      res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+    
+    await User.findByIdAndUpdate((req.user as any)._id, { 
+      ingresoColegio, 
+      añoIngreso: ingresoColegio 
+    });
+    res.json({ ok: true, ingresoColegio });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
-router.get('/lost-found', isAuthenticated, async (req, res) => {
-  const items = await LostItem.find().populate('founder', 'name').sort({ createdAt: -1 });
-  res.json(items);
+router.use(requireDb, requireAuth, requireActiveUser, (req, res) => {
+  res.status(404).json({ error: "Recurso no encontrado" });
 });
 
 export default router;

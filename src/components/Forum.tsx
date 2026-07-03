@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Plus, Search, Filter, MessageCircle, Clock, LayoutDashboard } from 'lucide-react';
-import { useAuth } from '../App.tsx';
-import { cn } from '../lib/utils.ts';
+import { MessageSquare, Plus, Search, Filter, MessageCircle, Clock, LayoutDashboard, Eye, X } from 'lucide-react';
+import { useAuth } from '../App';
+import { cn, apiFetch } from '../lib/utils';
 
 export default function Forum() {
   const { user } = useAuth();
@@ -23,36 +23,44 @@ export default function Forum() {
     startDate: '',
     endDate: ''
   });
+  const [listPage, setListPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (page = 1, append = false) => {
     setLoading(true);
     const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('limit', '20');
     if (filters.q) params.append('q', filters.q);
     if (filters.author) params.append('author', filters.author);
     if (filters.category !== 'all') params.append('category', filters.category);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
 
-    const res = await fetch(`/api/posts?${params.toString()}`);
+    const res = await apiFetch(`/api/posts?${params.toString()}`);
     const data = await res.json();
-    setPosts(data);
+    const items = Array.isArray(data.items) ? data.items : data;
+    setPosts((prev) => (append ? [...prev, ...items] : items));
+    setListPage(page);
+    setTotalPages(data.totalPages ?? 1);
     setLoading(false);
   };
 
   useEffect(() => {
-    const timeoutId = setTimeout(fetchPosts, 300); // Debounce search
+    setListPage(1);
+    const timeoutId = setTimeout(() => fetchPosts(1, false), 300);
     return () => clearTimeout(timeoutId);
   }, [filters]);
 
   const handlePostClick = async (post: any) => {
-    const res = await fetch(`/api/posts/${post._id}`);
+    const res = await apiFetch(`/api/posts/${post._id}`);
     const data = await res.json();
     setSelectedPost(data.post);
     setComments(data.comments);
   };
 
   const handleCreatePost = async () => {
-    const res = await fetch('/api/posts', {
+    const res = await apiFetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newPost)
@@ -60,19 +68,19 @@ export default function Forum() {
     if (res.ok) {
       setIsCreating(false);
       setNewPost({ title: '', content: '', category: 'General' });
-      fetchPosts();
+      fetchPosts(1, false);
     }
   };
 
   const handleAddComment = async () => {
-    const res = await fetch(`/api/posts/${selectedPost._id}/comments`, {
+    const res = await apiFetch(`/api/posts/${selectedPost._id}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: newComment })
     });
     if (res.ok) {
         setNewComment('');
-        const cRes = await fetch(`/api/posts/${selectedPost._id}`);
+        const cRes = await apiFetch(`/api/posts/${selectedPost._id}`);
         const cData = await cRes.json();
         setComments(cData.comments);
     }
@@ -228,12 +236,14 @@ export default function Forum() {
               <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
                 <div className="flex gap-4">
                   <div className="w-12 h-12 rounded-xl border border-slate-700 overflow-hidden shrink-0">
-                    <img src={post.author.picture} alt="" className="w-full h-full object-cover" />
+                    <img src={post.author?.picture || ''} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors leading-snug">{post.title}</h3>
                     <p className="text-xs text-slate-500 flex items-center gap-2 font-medium mt-1">
-                      Por <span className="text-indigo-400/80 font-bold">{post.author.name}</span> • {new Date(post.createdAt).toLocaleDateString()}
+                      Por <span className="text-indigo-400/80 font-bold">
+                        Anónimo · Promo {post.author.ingresoColegio || post.author.añoIngreso || 'Desconocido'}
+                      </span> • {new Date(post.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -257,6 +267,18 @@ export default function Forum() {
             </div>
           ))}
         </div>
+        {listPage < totalPages && (
+          <div className="flex justify-center py-8">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => fetchPosts(listPage + 1, true)}
+              className="px-8 py-3 rounded-2xl border border-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50"
+            >
+              {loading ? 'Cargando…' : 'Cargar más publicaciones'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Selected Post Modal */}
@@ -284,7 +306,7 @@ export default function Forum() {
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">{selectedPost.title}</h2>
-                            <p className="text-xs text-slate-500 font-bold uppercase">De <span className="text-indigo-400">{selectedPost.author.name}</span> • {new Date(selectedPost.createdAt).toLocaleString()}</p>
+                            <p className="text-xs text-slate-500 font-bold uppercase">De <span className="text-indigo-400">Anónimo · Promo {selectedPost.author.ingresoColegio || selectedPost.author.añoIngreso || 'Desconocido'}</span> • {new Date(selectedPost.createdAt).toLocaleString()}</p>
                         </div>
                     </div>
                     <button onClick={() => setSelectedPost(null)} className="p-3 hover:bg-slate-800 rounded-2xl text-slate-500">
@@ -311,7 +333,7 @@ export default function Forum() {
                          </div>
                          <div className="flex-1">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs font-bold text-white">{comment.author.name}</span>
+                                <span className="text-xs font-bold text-white">Anónimo · Promo {comment.author.ingresoColegio || comment.author.añoIngreso || 'Desconocido'}</span>
                                 <span className="text-[10px] text-slate-600 italic">{new Date(comment.createdAt).toLocaleDateString()}</span>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed">{comment.content}</p>

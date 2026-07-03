@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { useAuth } from '../App.tsx';
+import { useAuth } from '../App';
 import { GraduationCap, ShieldCheck, Globe } from 'lucide-react';
 
 export default function Login() {

@@ -5,7 +5,8 @@ import { io, Socket } from 'socket.io-client';
 import { 
   Users, 
   MessageSquare, 
-  Trophy, 
+  Trophy,
+  Coins,
   Search, 
   Plus, 
   Bell, 
@@ -22,141 +23,197 @@ import {
   User,
   Info,
   Shield,
-  LayoutDashboard
+  LayoutDashboard,
+  Cookie,
+  FileText,
+  Lock,
+  CheckCircle,
+  Calendar
 } from 'lucide-react';
-import { cn } from './lib/utils.ts';
+import { cn, apiFetch } from './lib/utils';
 
 // Components (will be created)
-import Forum from './components/Forum.tsx';
-import TeacherRanking from './components/TeacherRanking.tsx';
-import LostFound from './components/LostFound.tsx';
-import NewsList from './components/NewsList.tsx';
-import Messages from './components/Messages.tsx';
-import AdminPanel from './components/AdminPanel.tsx';
-import NotificationsList from './components/NotificationsList.tsx';
+import Forum from './components/Forum';
+import TeacherRanking from './components/TeacherRanking';
+import LostFound from './components/LostFound';
+import NewsList from './components/NewsList';
+import Register from './components/Register';
+import LoginNew from './components/LoginNew';
+import VerifyOTP from './components/VerifyOTP';
+import CompleteProfile from './components/CompleteProfile';
+import Messages from './components/Messages';
+import AdminPanel from './components/AdminPanel';
+import NotificationsList from './components/NotificationsList';
+import Betting from './components/Betting';
+import CookieConsent from './components/CookieConsent';
+import TerminosCondiciones from './components/TerminosCondiciones';
+import PoliticaPrivacidad from './components/PoliticaPrivacidad';
+import PoliticaCookies from './components/PoliticaCookies';
+import AnioIngresoForm from './components/AnioIngresoForm';
+import Leaderboard from './components/Leaderboard';
+import TeacherProfile from './components/TeacherProfile';
 
 // --- AUTH CONTEXT ---
+interface User {
+  _id: string;
+  email: string;
+  nombreCompleto: string;
+  name: string;
+  añoIngreso: number;
+  ingresoColegio?: number;
+  role: 'user' | 'moderator' | 'admin' | 'superadmin';
+  isVerified: boolean;
+  credits: number;
+  bio: string;
+  picture: string;
+}
+
+interface Notification {
+  _id: string;
+  content: string;
+  read: boolean;
+  createdAt: Date;
+  sender?: {
+    picture: string;
+  };
+}
+
 interface AuthContextType {
-  user: any;
+  user: User | null;
   authenticated: boolean;
   loading: boolean;
-  notifications: any[];
+  notifications: Notification[];
   unreadCount: number;
+  loginError: string | null;
   login: () => void;
   logout: () => void;
   refresh: () => Promise<void>;
   markAsRead: () => void;
 }
 
-const AuthContext = React.createContext<AuthContextType | null>(null);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = React.useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const socketRef = useRef<Socket | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const checkAuth = async () => {
+  const fetchUser = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (data.authenticated) {
+      const res = await apiFetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
         setUser(data.user);
-        setAuthenticated(true);
-        fetchNotifications();
-      } else {
-        setUser(null);
-        setAuthenticated(false);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch user:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch('/api/notifications');
-      const data = await res.json();
-      setNotifications(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const markAsRead = async () => {
-    try {
-      await fetch('/api/notifications/read', { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    checkAuth();
-    
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'AUTH_SUCCESS') {
-        checkAuth();
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  useEffect(() => {
-    if (authenticated && user) {
-      socketRef.current = io();
-      socketRef.current.emit('register', user._id);
-
-      socketRef.current.on('notification', (newNotif) => {
-        setNotifications(prev => [newNotif, ...prev]);
-      });
-
-      return () => {
-        socketRef.current?.disconnect();
-      };
-    }
-  }, [authenticated, user]);
-
   const login = () => {
-    const width = 600, height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    window.open('/api/auth/google', 'Google Login', `width=${width},height=${height},left=${left},top=${top}`);
+    // El login ahora se maneja en el componente LoginNew
+    console.log('Login function called - should be handled by LoginNew component');
   };
 
   const logout = async () => {
-    await fetch('/api/auth/logout');
-    setUser(null);
-    setAuthenticated(false);
-    setNotifications([]);
+    try {
+      await apiFetch('/api/auth/logout');
+      setUser(null);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const refresh = async () => {
+    await fetchUser();
+  };
+
+  const markAsRead = async () => {
+    if (!user) return;
+    try {
+      await apiFetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark notifications as read:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  // Detectar cambios en la sesión (cuando el usuario hace login/logout)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      fetchUser();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return; // Solo cargar notificaciones si hay usuario autenticado
+      
+      try {
+        const res = await apiFetch('/api/notifications');
+        if (res.ok) {
+          const notifs = await res.json();
+          setNotifications(notifs);
+          setUnreadCount(notifs.filter((n: any) => !n.read).length);
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const authenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      authenticated, 
-      loading, 
-      notifications, 
-      unreadCount, 
-      login, 
-      logout, 
-      refresh: checkAuth,
-      markAsRead
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        authenticated,
+        loading,
+        notifications,
+        unreadCount,
+        loginError,
+        login,
+        logout,
+        refresh,
+        markAsRead,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -164,14 +221,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 // --- NOTIFICATION COMPONENT ---
 function NotificationCenter() {
-  const { notifications, markAsRead, unreadCount } = useAuth();
+  const { notifications, unreadCount } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
-    if (!isOpen && unreadCount > 0) {
-      markAsRead();
-    }
   };
 
   return (
@@ -212,7 +266,13 @@ function NotificationCenter() {
                       )}
                     >
                       <div className="w-10 h-10 rounded-xl border border-slate-700 overflow-hidden shrink-0">
-                        <img src={notif.sender.picture} alt="" className="w-full h-full object-cover" />
+                        {notif.sender?.picture ? (
+                          <img src={notif.sender.picture} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                            <User size={16} className="text-slate-400" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className="text-sm font-bold text-slate-200 leading-tight mb-1">{notif.content}</p>
@@ -251,29 +311,30 @@ function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { name: 'Foro', icon: MessageSquare, path: '/foro' },
-    { name: 'Mensajería', icon: MessageCircle, path: '/mensajeria' },
     { name: 'Profesores', icon: Trophy, path: '/ranking' },
+    { name: 'Top 10 Monedas', icon: Coins, path: '/leaderboard' },
     { name: 'Objetos Perdidos', icon: Search, path: '/objetos-perdidos' },
     { name: 'Noticias', icon: Bell, path: '/noticias' },
+    { name: 'Apuestas', icon: Coins, path: '/apuestas' },
   ];
 
-  if (['admin', 'superadmin'].includes(user.role)) {
+  if (user && ['moderator', 'admin', 'superadmin'].includes(user.role)) {
     navItems.push({ name: 'Admin', icon: Shield, path: '/admin' });
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row">
+    <div className="min-h-screen gradient-bg flex flex-col md:flex-row">
       {/* Sidebar for Desktop */}
       <aside className={cn(
-        "bg-slate-900 border-r border-slate-800 transition-all duration-300 hidden md:flex flex-col z-20",
+        "glass-effect transition-all duration-300 hidden md:flex flex-col z-20",
         isSidebarOpen ? "w-80" : "w-20"
       )}>
         <div className="p-6 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+          <Link to="/" className="flex items-center gap-3 hover-lift">
+             <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/40 border-gradient">
                 <span className="font-black text-white text-xl">C</span>
              </div>
-             {isSidebarOpen && <span className="font-black text-2xl text-white tracking-tighter uppercase italic">COAR</span>}
+             {isSidebarOpen && <span className="font-black text-2xl text-white tracking-tighter uppercase italic text-glow">COAR</span>}
           </Link>
         </div>
 
@@ -282,7 +343,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <Link 
               key={item.name} 
               to={item.path}
-              className="flex items-center gap-4 px-4 py-4 text-slate-400 hover:text-white hover:bg-slate-800 rounded-2xl transition-all group"
+              className="flex items-center gap-4 px-4 py-4 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-2xl transition-all group hover-lift"
             >
               <item.icon size={22} className="shrink-0 group-hover:scale-110 transition-transform" />
               {isSidebarOpen && <span className="font-bold text-sm uppercase tracking-widest">{item.name}</span>}
@@ -293,7 +354,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-6 border-t border-slate-800 space-y-4">
             <button 
                 onClick={logout}
-                className="w-full flex items-center gap-4 px-4 py-4 text-red-400 hover:bg-red-500/10 rounded-2xl transition-all"
+                className="w-full flex items-center gap-4 px-4 py-4 text-red-400 hover:bg-red-500/20 rounded-2xl transition-all hover-lift"
             >
                 <LogOut size={22} />
                 {isSidebarOpen && <span className="font-bold text-sm uppercase tracking-widest">Cerrar Sesión</span>}
@@ -303,7 +364,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between px-8 z-10 sticky top-0">
+        <header className="h-20 glass-effect border-b border-slate-800/50 flex items-center justify-between px-8 z-10 sticky top-0">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hidden md:block">
               <Menu size={24} />
@@ -314,14 +375,20 @@ function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 px-4 py-2 bg-slate-900 border border-slate-800 rounded-2xl">
-              <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-800">
-                <img src={user.picture} alt="" className="w-full h-full object-cover" />
+            <div className="flex items-center gap-3 px-4 py-2 glass-effect rounded-2xl hover-lift">
+              <div className="w-8 h-8 rounded-lg overflow-hidden border-2 border-indigo-500/30">
+                {user?.picture ? (
+                  <img src={user.picture} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                    <User size={16} className="text-slate-400" />
+                  </div>
+                )}
               </div>
               <div className="hidden sm:block">
-                <p className="text-xs font-black text-white uppercase tracking-tighter truncate max-w-[120px]">{user.name}</p>
+                <p className="text-xs font-black text-white uppercase tracking-tighter truncate max-w-[120px]">{user?.nombreCompleto || user?.name || 'Usuario'}</p>
                 <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{user.role}</span>
+                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{user?.role || 'user'}</span>
                 </div>
               </div>
             </div>
@@ -339,10 +406,11 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 // --- PROTECTED ROUTE ---
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { authenticated, loading, login } = useAuth();
+  const { authenticated, loading, loginError } = useAuth();
+  const navigate = useNavigate();
   
   if (loading) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen gradient-bg flex items-center justify-center">
         <motion.div 
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
@@ -354,15 +422,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
-        <div className="max-w-md w-full py-12 px-8 bg-slate-900 border border-slate-800 rounded-[3rem] shadow-2xl text-center">
-           <div className="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl shadow-indigo-600/40 mb-8 overflow-hidden hover:scale-110 transition-transform">
-              <span className="text-4xl font-black text-white italic">C</span>
+        <div className="max-w-md w-full py-12 px-8 glass-effect rounded-[3rem] shadow-2xl text-center border-gradient">
+           <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl shadow-indigo-600/40 mb-8 overflow-hidden hover:scale-110 transition-transform border-gradient">
+              <span className="text-4xl font-black text-white italic animate-pulse">C</span>
            </div>
            <h1 className="text-4xl font-black text-white tracking-tighter uppercase mb-4 italic">Bienvenido</h1>
-           <p className="text-slate-400 text-sm font-medium mb-12">Accede a la plataforma central de la comunidad estudiantil para interactuar con tus compañeros.</p>
+           <p className="text-slate-400 text-sm font-medium mb-8">Accede a la plataforma central de la comunidad estudiantil para interactuar con tus compañeros.</p>
+           {loginError && (
+             <p className="text-amber-400 text-sm font-medium mb-8 text-left bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3">
+               {loginError}
+             </p>
+           )}
            <button 
-             onClick={login}
-             className="w-full bg-white text-slate-950 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-200 transition-all flex items-center justify-center gap-3 shadow-xl"
+             onClick={() => navigate('/login')}
+             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-3 shadow-xl hover-lift border-gradient"
            >
              <User size={20} /> Autenticarse
            </button>
@@ -376,26 +449,159 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // --- DASHBOARD COMPONENT ---
 function Dashboard() {
-    const { user } = useAuth();
+    const { user, refresh } = useAuth();
+    const [showAnioForm, setShowAnioForm] = useState(false);
+    const [buying, setBuying] = useState<string | null>(null);
+
+    const handleBuyCoins = async (pkg: string) => {
+        try {
+            setBuying(pkg);
+            const res = await apiFetch("/api/users/buy-coins", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ package: pkg }),
+            });
+            if (res.ok) {
+                await refresh();
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setBuying(null);
+        }
+    };
+
+    const coinPackages = [
+        { name: "basic", label: "Paquete Básico", coins: 100, price: "Gratis", color: "from-blue-600 to-cyan-600" },
+        { name: "standard", label: "Paquete Estándar", coins: 500, price: "Gratis", color: "from-purple-600 to-pink-600" },
+        { name: "premium", label: "Paquete Premium", coins: 2000, price: "Gratis", color: "from-yellow-600 to-orange-600" },
+    ];
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-             <div className="bg-indigo-600 p-12 rounded-[3.5rem] relative overflow-hidden shadow-2xl shadow-indigo-600/20">
+             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-12 rounded-[3.5rem] relative overflow-hidden shadow-2xl shadow-indigo-600/20 border-gradient">
                 <div className="relative z-10">
-                    <h1 className="text-6xl font-black text-white tracking-tighter italic uppercase mb-4">Hola, {user.name.split(' ')[0]}!</h1>
-                    <p className="text-indigo-100 text-lg font-bold uppercase tracking-widest max-w-2xl opacity-80 leading-relaxed">
+                    <h1 className="text-6xl font-black text-white tracking-tighter italic uppercase mb-4 text-glow animate-fade-in-up">Hola, {(user?.nombreCompleto || user?.name || 'Usuario').split(' ')[0]}!</h1>
+                    <p className="text-indigo-100 text-lg font-bold uppercase tracking-widest max-w-2xl opacity-90 leading-relaxed">
                         Bienvenido al Centro de Control Maestro de la Comunidad Estudiantil. 
                     </p>
+                    <div className="mt-8 flex items-center gap-4 bg-white/10 p-6 rounded-2xl">
+                        <Coins size={40} className="text-yellow-400" />
+                        <div>
+                            <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest">Créditos disponibles</p>
+                            <p className="text-5xl font-black text-white">{user?.credits?.toLocaleString() || 0}</p>
+                        </div>
+                    </div>
                 </div>
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full blur-3xl -ml-20 -mb-20"></div>
              </div>
-             {/* Add more dashboard items here */}
+
+             {/* Paquetes de Monedas */}
+             <div className="glass-effect rounded-3xl p-8 border-gradient">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-8">
+                    <Coins size={24} className="text-yellow-500" />
+                    Obtener más créditos
+                </h2>
+                <div className="grid md:grid-cols-3 gap-6">
+                    {coinPackages.map((pkg) => (
+                        <div key={pkg.name} className="bg-slate-900 rounded-2xl p-8 border border-slate-800 hover:border-indigo-600/50 transition-all hover-lift">
+                            <div className={`w-full h-20 bg-gradient-to-r ${pkg.color} rounded-xl flex items-center justify-center mb-6`}>
+                                <Coins size={40} className="text-white" />
+                            </div>
+                            <h3 className="text-xl font-black text-white mb-2">{pkg.label}</h3>
+                            <p className="text-3xl font-black text-yellow-500 mb-6">+{pkg.coins.toLocaleString()} 🪙</p>
+                            <button
+                                onClick={() => handleBuyCoins(pkg.name)}
+                                disabled={buying === pkg.name}
+                                className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${
+                                    buying === pkg.name
+                                        ? "bg-slate-700 text-slate-400"
+                                        : `bg-gradient-to-r ${pkg.color} text-white hover:opacity-90`
+                                }`}
+                            >
+                                {buying === pkg.name ? "Agregando..." : "Obtener"}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+             </div>
+
+             {/* Año de Ingreso Card */}
+             <div className="glass-effect rounded-3xl p-8 border-gradient">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                        <Calendar size={24} className="text-indigo-400" />
+                        Información de Perfil
+                    </h2>
+                    {!(user?.ingresoColegio || user?.añoIngreso) && (
+                        <button
+                            onClick={() => setShowAnioForm(true)}
+                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient text-sm"
+                        >
+                            Completar Perfil
+                        </button>
+                    )}
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-bold text-white mb-2">Año de Ingreso</h3>
+                        <p className="text-slate-400">
+                            {user?.ingresoColegio || user?.añoIngreso ? (
+                                <span className="text-indigo-400 font-bold">{user?.ingresoColegio || user?.añoIngreso}</span>
+                            ) : (
+                                <span className="text-slate-500">No especificado</span>
+                            )}
+                        </p>
+                        {!user?.ingresoColegio && !user?.añoIngreso && (
+                            <p className="text-xs text-slate-500 mt-2">
+                                Agrega tu año de ingreso para que la comunidad conozca tu generación en el foro.
+                            </p>
+                        )}
+                    </div>
+                    
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-bold text-white mb-2">Rol en el Foro</h3>
+                        <p className="text-slate-400">
+                            <span className="text-indigo-400 font-bold">Estudiante 🎭</span>
+                        </p>
+                        <p className="text-xs text-slate-500 mt-2">
+                            Tus publicaciones en el foro aparecerán de forma anónima.
+                        </p>
+                    </div>
+                </div>
+
+                {(user?.ingresoColegio || user?.añoIngreso) && (
+                    <button
+                        onClick={() => setShowAnioForm(true)}
+                        className="mt-6 px-4 py-2 bg-slate-700 text-slate-300 rounded-xl font-medium hover:bg-slate-600 transition-all hover-lift text-sm"
+                    >
+                        Editar Año de Ingreso
+                    </button>
+                )}
+             </div>
+
+             {/* Anio Ingreso Form Modal */}
+             {showAnioForm && (
+                <AnioIngresoForm onClose={() => setShowAnioForm(false)} />
+             )}
         </div>
     );
 }
 
 // --- APP COMPONENT ---
 export default function App() {
+  const [showCookieConsent, setShowCookieConsent] = useState(false);
+
+  const handleCookieAccept = () => {
+    setShowCookieConsent(false);
+  };
+
+  const handleCookieReject = () => {
+    setShowCookieConsent(false);
+  };
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -403,12 +609,27 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/foro" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
           <Route path="/ranking" element={<ProtectedRoute><TeacherRanking /></ProtectedRoute>} />
+          <Route path="/ranking/:id" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />
           <Route path="/objetos-perdidos" element={<ProtectedRoute><LostFound /></ProtectedRoute>} />
           <Route path="/noticias" element={<ProtectedRoute><NewsList /></ProtectedRoute>} />
-          <Route path="/mensajeria" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="/notificaciones" element={<ProtectedRoute><NotificationsList /></ProtectedRoute>} />
+          <Route path="/apuestas" element={<ProtectedRoute><Betting /></ProtectedRoute>} />
+          <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+          <Route path="/login" element={<LoginNew />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verificar-otp" element={<VerifyOTP />} />
+          <Route path="/complete-profile" element={<CompleteProfile />} />
+          <Route path="/terminos" element={<TerminosCondiciones />} />
+          <Route path="/privacidad" element={<PoliticaPrivacidad />} />
+          <Route path="/cookies" element={<PoliticaCookies />} />
         </Routes>
+        
+        {/* Cookie Consent Banner */}
+        <CookieConsent 
+          onAccept={handleCookieAccept} 
+          onReject={handleCookieReject} 
+        />
       </BrowserRouter>
     </AuthProvider>
   );

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, Plus, MapPin, Calendar, Tag, Package, HelpCircle } from 'lucide-react';
-import { useAuth } from '../App.tsx';
-import { cn } from '../lib/utils.ts';
+import { useAuth } from '../App';
+import { cn, apiFetch } from '../lib/utils';
 
 export default function LostFound() {
   const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/lost-found')
+    apiFetch('/api/lost-found')
       .then(res => res.json())
       .then(data => setItems(data));
   }, []);
