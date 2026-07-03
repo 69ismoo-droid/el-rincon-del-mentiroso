@@ -79,7 +79,7 @@ router.post('/register', requireDb, async (req, res) => {
         const emailHtml = emailService.generateOTPEmail(otpCode, email);
         await emailService.sendEmail({
           to: email,
-          subject: '🎓 Tu código de verificación - Foro-COAR',
+          subject: '🔑 Código de verificación para tu cuenta - Foro COAR',
           html: emailHtml,
         });
       } catch (emailError) {
