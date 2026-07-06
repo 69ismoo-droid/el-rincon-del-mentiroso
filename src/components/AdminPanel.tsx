@@ -19,7 +19,7 @@ import { apiFetch } from "../lib/utils";
 interface AdminStats {
   users: number;
   posts: number;
-  moderators: number;
+  semiadmins: number;
   bets: number;
 }
 
@@ -56,7 +56,7 @@ interface Bet {
 export default function AdminPanel() {
   const { user } = useAuth();
   const role = user?.role ?? "";
-  const canModerate = ["moderator", "admin", "superadmin"].includes(role);
+  const canModerate = ["semiadmin", "admin", "superadmin"].includes(role);
   const canAdmin = ["admin", "superadmin"].includes(role);
 
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -248,10 +248,10 @@ export default function AdminPanel() {
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
               <Shield size={32} className="text-green-500" />
               <p className="text-4xl font-black text-white">
-                {stats?.moderators ?? "—"}
+                {stats?.semiadmins ?? "—"}
               </p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                Moderadores
+                Semi-Admins
               </p>
             </div>
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
@@ -434,8 +434,8 @@ export default function AdminPanel() {
                         onChange={(e) => updateUser(u._id, { role: e.target.value })}
                         className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white"
                       >
-                        <option value="user">User</option>
-                        <option value="moderator">Moderator</option>
+                        <option value="user">Usuario</option>
+                        <option value="semiadmin">Semi Admin</option>
                         <option value="admin">Admin</option>
                         <option value="superadmin">Superadmin</option>
                       </select>

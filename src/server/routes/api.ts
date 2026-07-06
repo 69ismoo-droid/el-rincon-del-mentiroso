@@ -30,7 +30,7 @@ const requireDb: express.RequestHandler = (req, res, next) => {
   next();
 };
 
-const modRoles = requireRole("moderator", "admin", "superadmin");
+const modRoles = requireRole("semiadmin", "admin", "superadmin");
 const modChain = [requireDb, requireAuth, requireActiveUser, modRoles];
 
 const authed = [requireDb, requireAuth, requireActiveUser];
@@ -38,21 +38,21 @@ const authed = [requireDb, requireAuth, requireActiveUser];
 // --- LEADERBOARD (Público pero solo para usuarios verificados) ---
 router.get("/users/leaderboard", ...authed, async (req, res) => {
   try {
-    if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.verified) {
+    if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.isVerified) {
       return res.status(403).json({ error: "Solo usuarios verificados del COAR pueden acceder al ranking" });
     }
     
     const leaderboard = await User.find(
-      { verified: true, banned: false, email: { $regex: "@cusco.coar.edu.pe$" } },
-      { nombreCompleto: 1, name: 1, credits: 1, añoIngreso: 1, ingresoColegio: 1 }
+      { isVerified: true, banned: false, email: { $regex: "@cusco.coar.edu.pe$" } },
+      { nombreCompleto: 1, displayName: 1, name: 1, credits: 1, añoIngreso: 1, ingresoColegio: 1 }
     )
       .sort({ credits: -1 })
       .limit(10)
       .lean();
-    
+
     const formattedLeaderboard = leaderboard.map((user, index) => ({
       rank: index + 1,
-      name: user.nombreCompleto || user.name || "Anónimo",
+      name: user.displayName || user.nombreCompleto || user.name || "Anónimo",
       credits: user.credits,
       añoIngreso: user.añoIngreso || user.ingresoColegio
     }));
@@ -66,7 +66,7 @@ router.get("/users/leaderboard", ...authed, async (req, res) => {
 // --- COMPRAR MONEDAS ---
 router.post("/users/buy-coins", ...authed, async (req, res) => {
   try {
-    if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.verified) {
+    if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.isVerified) {
       return res.status(403).json({ error: "Solo usuarios verificados del COAR pueden comprar monedas" });
     }
 
@@ -565,13 +565,13 @@ router.get(
   requireRole("admin", "superadmin"),
   async (req, res) => {
     try {
-      const [users, posts, moderators, bets] = await Promise.all([
+      const [users, posts, semiadmins, bets] = await Promise.all([
         User.countDocuments(),
         Post.countDocuments(),
-        User.countDocuments({ role: "moderator" }),
+        User.countDocuments({ role: "semiadmin" }),
         Bet.countDocuments(),
       ]);
-      res.json({ users, posts, moderators, bets });
+      res.json({ users, posts, semiadmins, bets });
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
     }
@@ -916,23 +916,64 @@ router.get("/lost-found", ...authed, async (req, res) => {
 });
 
 // --- USER PROFILE ---
-router.patch("/user/ingreso-colegio", ...authed, async (req, res) => {
+router.patch("/user/display-name", ...authed, async (req, res) => {
   try {
-    const { ingresoColegio } = req.body;
-    
-    if (typeof ingresoColegio !== 'number' || ingresoColegio < 2000 || ingresoColegio > new Date().getFullYear()) {
-      res.status(400).json({ error: "Año de ingreso inválido" });
-      return;
-    }
-    
+    const { displayName } = req.body;
+
     if (!req.user) {
       res.status(401).json({ error: "No autorizado" });
       return;
     }
-    
-    await User.findByIdAndUpdate((req.user as any)._id, { 
-      ingresoColegio, 
-      añoIngreso: ingresoColegio 
+
+    if (!displayName || typeof displayName !== 'string') {
+      res.status(400).json({ error: "Nombre de usuario es requerido" });
+      return;
+    }
+
+    if (displayName.length < 3 || displayName.length > 20) {
+      res.status(400).json({ error: "El nombre debe tener entre 3 y 20 caracteres" });
+      return;
+    }
+
+    await User.findByIdAndUpdate((req.user as any)._id, { displayName });
+    res.json({ ok: true, displayName });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.patch("/user/ingreso-colegio", ...authed, async (req, res) => {
+  try {
+    const { ingresoColegio } = req.body;
+
+    if (!req.user) {
+      res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+
+    // Verificar si ya ha cambiado el año de ingreso
+    const user = await User.findById((req.user as any)._id).select('+ingresoColegioChanged');
+    if (!user) {
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
+    }
+
+    if (user.ingresoColegioChanged) {
+      res.status(403).json({ error: "Solo puedes cambiar tu año de ingreso una vez" });
+      return;
+    }
+
+    // Validar que el año sea 2024, 2025 o 2026
+    const allowedYears = [2024, 2025, 2026];
+    if (typeof ingresoColegio !== 'number' || !allowedYears.includes(ingresoColegio)) {
+      res.status(400).json({ error: "El año de ingreso debe ser 2024, 2025 o 2026" });
+      return;
+    }
+
+    await User.findByIdAndUpdate((req.user as any)._id, {
+      ingresoColegio,
+      añoIngreso: ingresoColegio,
+      ingresoColegioChanged: true
     });
     res.json({ ok: true, ingresoColegio });
   } catch (err) {

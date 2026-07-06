@@ -1,34 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Save, X } from 'lucide-react';
+import { User as UserIcon, Save, X } from 'lucide-react';
 import { useAuth } from '../App';
 
-interface AnioIngresoFormProps {
+interface DisplayNameFormProps {
   onClose: () => void;
 }
 
-export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
+export default function DisplayNameForm({ onClose }: DisplayNameFormProps) {
   const { user, refresh } = useAuth();
-  const [anio, setAnio] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user?.ingresoColegio) {
-      setAnio(user.ingresoColegio.toString());
+    if (user?.displayName) {
+      setDisplayName(user.displayName);
     }
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!anio || isNaN(Number(anio))) {
-      setError('Por favor selecciona un año válido');
-      return;
-    }
-
-    const allowedYears = [2024, 2025, 2026];
-    if (!allowedYears.includes(Number(anio))) {
-      setError('El año debe ser 2024, 2025 o 2026');
+    if (!displayName || displayName.length < 3 || displayName.length > 20) {
+      setError('El nombre debe tener entre 3 y 20 caracteres');
       return;
     }
 
@@ -36,12 +30,12 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
     setError('');
 
     try {
-      const response = await fetch('/api/user/ingreso-colegio', {
+      const response = await fetch('/api/user/display-name', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ingresoColegio: Number(anio) }),
+        body: JSON.stringify({ displayName }),
         credentials: 'include',
       });
 
@@ -50,10 +44,8 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
       if (response.ok) {
         await refresh();
         onClose();
-      } else if (response.status === 403) {
-        setError(data.error || 'Solo puedes cambiar tu año de ingreso una vez');
       } else {
-        setError(data.error || 'Error al actualizar el año de ingreso');
+        setError(data.error || 'Error al actualizar el nombre de usuario');
       }
     } catch (err) {
       setError('Error de conexión. Intenta nuevamente.');
@@ -65,14 +57,14 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
-      
+
       <div className="relative glass-effect rounded-3xl shadow-2xl border-gradient max-w-md w-full mx-auto overflow-hidden animate-fade-in-up">
         {/* Header */}
         <div className="p-6 border-b border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="text-indigo-400" size={24} />
-              <h2 className="text-xl font-bold text-white">Año de Ingreso al Colegio</h2>
+              <UserIcon className="text-indigo-400" size={24} />
+              <h2 className="text-xl font-bold text-white">Nombre de Usuario</h2>
             </div>
             <button
               onClick={onClose}
@@ -88,27 +80,35 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                ¿En qué año ingresaste al colegio?
+                ¿Cómo quieres que te llamen?
               </label>
               <div className="relative">
-                <select
-                  value={anio}
-                  onChange={(e) => setAnio(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Ej: DragonMaster"
+                  minLength={3}
+                  maxLength={20}
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
-                >
-                  <option value="">Selecciona un año</option>
-                  <option value="2024">2024</option>
-                  <option value="2025">2025</option>
-                  <option value="2026">2026</option>
-                </select>
-                <Calendar className="absolute right-3 top-3.5 text-slate-500 pointer-events-none" size={20} />
+                />
+                <UserIcon className="absolute right-3 top-3.5 text-slate-500" size={20} />
               </div>
+              <p className="mt-2 text-xs text-slate-500">
+                {displayName.length}/20 caracteres
+              </p>
               {error && (
                 <p className="mt-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
                   {error}
                 </p>
               )}
+            </div>
+
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+              <p className="text-xs text-indigo-300">
+                ℹ️ Este nombre se mostrará en el ranking y en tu perfil. En el foro seguirás siendo anónimo.
+              </p>
             </div>
 
             <div className="flex gap-3">
@@ -132,19 +132,12 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
                 ) : (
                   <>
                     <Save size={18} />
-                    Guardar Año
+                    Guardar Nombre
                   </>
                 )}
               </button>
             </div>
           </form>
-        </div>
-
-        {/* Footer Info */}
-        <div className="p-4 bg-slate-800/50 border-t border-slate-700">
-          <p className="text-xs text-slate-400 text-center">
-            ⚠️ Solo puedes cambiar tu año de ingreso una vez. Elige cuidadosamente.
-          </p>
         </div>
       </div>
     </div>

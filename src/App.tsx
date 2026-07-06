@@ -52,16 +52,18 @@ import PoliticaCookies from './components/PoliticaCookies';
 import AnioIngresoForm from './components/AnioIngresoForm';
 import Leaderboard from './components/Leaderboard';
 import TeacherProfile from './components/TeacherProfile';
+import DisplayNameForm from './components/DisplayNameForm';
 
 // --- AUTH CONTEXT ---
 interface User {
   _id: string;
   email: string;
   nombreCompleto: string;
+  displayName?: string;
   name: string;
   añoIngreso: number;
   ingresoColegio?: number;
-  role: 'user' | 'moderator' | 'admin' | 'superadmin';
+  role: 'user' | 'semiadmin' | 'admin' | 'superadmin';
   isVerified: boolean;
   credits: number;
   bio: string;
@@ -318,7 +320,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     { name: 'Apuestas', icon: Coins, path: '/apuestas' },
   ];
 
-  if (user && ['moderator', 'admin', 'superadmin'].includes(user.role)) {
+  if (user && ['semiadmin', 'admin', 'superadmin'].includes(user.role)) {
     navItems.push({ name: 'Admin', icon: Shield, path: '/admin' });
   }
 
@@ -386,9 +388,13 @@ function Layout({ children }: { children: React.ReactNode }) {
                 )}
               </div>
               <div className="hidden sm:block">
-                <p className="text-xs font-black text-white uppercase tracking-tighter truncate max-w-[120px]">{user?.nombreCompleto || user?.name || 'Usuario'}</p>
+                <p className="text-xs font-black text-white uppercase tracking-tighter truncate max-w-[120px]">{user?.displayName || user?.nombreCompleto || user?.name || 'Usuario'}</p>
                 <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">{user?.role || 'user'}</span>
+                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">
+                      {user?.role === 'semiadmin' ? 'Semi Admin' : 
+                       user?.role === 'admin' ? 'Admin' : 
+                       user?.role === 'superadmin' ? 'Superadmin' : 'Usuario'}
+                    </span>
                 </div>
               </div>
             </div>
@@ -451,24 +457,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function Dashboard() {
     const { user, refresh } = useAuth();
     const [showAnioForm, setShowAnioForm] = useState(false);
-    const [buying, setBuying] = useState<string | null>(null);
+    const [showDisplayNameForm, setShowDisplayNameForm] = useState(false);
 
     const handleBuyCoins = async (pkg: string) => {
-        try {
-            setBuying(pkg);
-            const res = await apiFetch("/api/users/buy-coins", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ package: pkg }),
-            });
-            if (res.ok) {
-                await refresh();
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setBuying(null);
-        }
+        const packageInfo = coinPackages.find(p => p.name === pkg);
+        const message = `Hola, quiero comprar el ${packageInfo?.label} (+${packageInfo?.coins} créditos). Mi email: ${user?.email}`;
+        const whatsappUrl = `https://wa.me/51900842735?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
     };
 
     const coinPackages = [
@@ -513,14 +508,9 @@ function Dashboard() {
                             <p className="text-3xl font-black text-yellow-500 mb-6">+{pkg.coins.toLocaleString()} 🪙</p>
                             <button
                                 onClick={() => handleBuyCoins(pkg.name)}
-                                disabled={buying === pkg.name}
-                                className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${
-                                    buying === pkg.name
-                                        ? "bg-slate-700 text-slate-400"
-                                        : `bg-gradient-to-r ${pkg.color} text-white hover:opacity-90`
-                                }`}
+                                className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all bg-gradient-to-r ${pkg.color} text-white hover:opacity-90`}
                             >
-                                {buying === pkg.name ? "Agregando..." : "Obtener"}
+                                Obtener
                             </button>
                         </div>
                     ))}
@@ -543,8 +533,27 @@ function Dashboard() {
                         </button>
                     )}
                 </div>
-                
+
                 <div className="grid md:grid-cols-2 gap-6">
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-bold text-white mb-2">Nombre de Usuario</h3>
+                        <p className="text-slate-400">
+                            {user?.displayName ? (
+                                <span className="text-indigo-400 font-bold">{user.displayName}</span>
+                            ) : (
+                                <span className="text-slate-500">No establecido</span>
+                            )}
+                        </p>
+                        {!user?.displayName && (
+                            <button
+                                onClick={() => setShowDisplayNameForm(true)}
+                                className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                            >
+                                Establecer nombre
+                            </button>
+                        )}
+                    </div>
+
                     <div className="glass-effect rounded-xl p-6">
                         <h3 className="text-lg font-bold text-white mb-2">Año de Ingreso</h3>
                         <p className="text-slate-400">
@@ -560,31 +569,34 @@ function Dashboard() {
                             </p>
                         )}
                     </div>
-                    
-                    <div className="glass-effect rounded-xl p-6">
-                        <h3 className="text-lg font-bold text-white mb-2">Rol en el Foro</h3>
-                        <p className="text-slate-400">
-                            <span className="text-indigo-400 font-bold">Estudiante 🎭</span>
-                        </p>
-                        <p className="text-xs text-slate-500 mt-2">
-                            Tus publicaciones en el foro aparecerán de forma anónima.
-                        </p>
-                    </div>
                 </div>
 
-                {(user?.ingresoColegio || user?.añoIngreso) && (
-                    <button
-                        onClick={() => setShowAnioForm(true)}
-                        className="mt-6 px-4 py-2 bg-slate-700 text-slate-300 rounded-xl font-medium hover:bg-slate-600 transition-all hover-lift text-sm"
-                    >
-                        Editar Año de Ingreso
-                    </button>
-                )}
+                <div className="flex gap-3 mt-6">
+                    {user?.displayName && (
+                        <button
+                            onClick={() => setShowDisplayNameForm(true)}
+                            className="px-4 py-2 bg-slate-700 text-slate-300 rounded-xl font-medium hover:bg-slate-600 transition-all hover-lift text-sm"
+                        >
+                            Editar Nombre
+                        </button>
+                    )}
+                    {(user?.ingresoColegio || user?.añoIngreso) && (
+                        <button
+                            onClick={() => setShowAnioForm(true)}
+                            className="px-4 py-2 bg-slate-700 text-slate-300 rounded-xl font-medium hover:bg-slate-600 transition-all hover-lift text-sm"
+                        >
+                            Editar Año
+                        </button>
+                    )}
+                </div>
              </div>
 
-             {/* Anio Ingreso Form Modal */}
+             {/* Modals */}
              {showAnioForm && (
                 <AnioIngresoForm onClose={() => setShowAnioForm(false)} />
+             )}
+             {showDisplayNameForm && (
+                <DisplayNameForm onClose={() => setShowDisplayNameForm(false)} />
              )}
         </div>
     );

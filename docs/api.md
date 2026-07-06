@@ -821,7 +821,7 @@ Obtiene estadísticas generales del sistema.
 {
   "users": 150,
   "posts": 500,
-  "moderators": 5,
+  "semiadmins": 5,
   "bets": 20
 }
 ```
@@ -866,7 +866,7 @@ Actualiza información de un usuario.
 **Body:**
 ```json
 {
-  "role": "moderator",
+  "role": "semiadmin",
   "banned": true,
   "credits": 500
 }
@@ -973,7 +973,7 @@ Elimina una apuesta y devuelve créditos a los participantes.
 
 Obtiene todas las publicaciones para moderación.
 
-**Requiere:** Autenticación + Rol: moderator, admin, o superadmin
+**Requiere:** Autenticación + Rol: semiadmin, admin, o superadmin
 
 **Query Params:**
 - `q` (string): Búsqueda

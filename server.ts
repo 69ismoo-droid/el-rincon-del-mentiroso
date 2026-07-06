@@ -170,8 +170,12 @@ async function startServer() {
   const mongoUri = process.env.MONGODB_URI;
   if (mongoUri) {
     try {
-      await mongoose.connect(mongoUri);
-      logger.info("Connected to MongoDB");
+      // Forzar explícitamente el uso de la base de datos 'coar'
+      const options = {
+        dbName: 'coar',
+      };
+      await mongoose.connect(mongoUri, options);
+      logger.info("Connected to MongoDB (coar)");
     } catch (e) {
       logger.error("MongoDB connection error", { err: String(e) });
       if (isProd) {

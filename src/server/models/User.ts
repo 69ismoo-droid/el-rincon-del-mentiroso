@@ -19,17 +19,21 @@ const UserSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   otpCode: { type: String, select: false },
   otpExpires: { type: Date, select: false },
+  otpResendCount: { type: Number, default: 0, select: false },
+  otpResendBlockedUntil: { type: Date, select: false },
   
   // Perfil
   nombreCompleto: { type: String, required: false, default: 'Pendiente' },
+  displayName: { type: String, required: false, default: '' },
   añoIngreso: { type: Number, required: false, default: new Date().getFullYear() },
+  ingresoColegioChanged: { type: Boolean, default: false },
   picture: { type: String },
   bio: { type: String, default: '¡Orgullosamente COAR!' },
   
   // Sistema
   role: { 
     type: String, 
-    enum: ['user', 'moderator', 'admin', 'superadmin'], 
+    enum: ['user', 'semiadmin', 'admin', 'superadmin'], 
     default: 'user' 
   },
   credits: { type: Number, default: 100 },

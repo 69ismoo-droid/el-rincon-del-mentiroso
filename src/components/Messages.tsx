@@ -14,6 +14,7 @@ export default function Messages() {
   const [threadTotalPages, setThreadTotalPages] = useState(1);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sending, setSending] = useState(false);
 
   const fetchMessages = useCallback(async () => {
     try {

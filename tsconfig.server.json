@@ -16,6 +16,6 @@
     "noEmit": false,
     "types": ["node"]
   },
-  "include": ["server.ts", "src/server/**/*.ts"],
+  "include": ["server.ts", "src/server/**/*.ts", "src/server/types/*.d.ts"],
   "exclude": ["node_modules"]
 }

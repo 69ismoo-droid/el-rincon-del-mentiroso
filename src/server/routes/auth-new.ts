@@ -114,16 +114,18 @@ router.post('/verify', requireDb, async (req, res) => {
       email: email.toLowerCase(),
       otpCode: code,
       otpExpires: { $gt: new Date() }
-    });
+    }).select('+otpResendCount +otpResendBlockedUntil');
 
     if (!user) {
       return res.status(400).json({ error: 'Código inválido o expirado' });
     }
 
-    // Marcar como verificado
+    // Marcar como verificado y resetear contadores
     user.isVerified = true;
     user.otpCode = undefined;
     user.otpExpires = undefined;
+    user.otpResendCount = 0;
+    user.otpResendBlockedUntil = undefined;
     await user.save();
 
     res.json({
@@ -133,6 +135,100 @@ router.post('/verify', requireDb, async (req, res) => {
     });
 
   } catch (error) {
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
+// Reenviar código OTP
+router.post('/resend-otp', requireDb, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email es requerido' });
+    }
+
+    // Buscar usuario no verificado con campos de rate limiting
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      isVerified: false
+    }).select('+otpResendCount +otpResendBlockedUntil');
+
+    if (!user) {
+      return res.status(404).json({ error: 'No se encontró un usuario pendiente de verificación con ese email' });
+    }
+
+    // Verificar si está bloqueado por exceso de reenvíos
+    const now = new Date();
+    if (user.otpResendBlockedUntil && user.otpResendBlockedUntil > now) {
+      const blockedMinutes = Math.ceil((user.otpResendBlockedUntil.getTime() - now.getTime()) / (1000 * 60));
+      return res.status(429).json({ 
+        error: `Has excedido el límite de reenvíos. Intenta nuevamente en ${blockedMinutes} minutos.`,
+        blockedUntil: user.otpResendBlockedUntil
+      });
+    }
+
+    // Incrementar contador de reenvíos
+    user.otpResendCount = (user.otpResendCount || 0) + 1;
+
+    // Si ha excedido 3 reenvíos, bloquear por 3 horas
+    if (user.otpResendCount >= 3) {
+      const blockDuration = 3 * 60 * 60 * 1000; // 3 horas en milisegundos
+      user.otpResendBlockedUntil = new Date(Date.now() + blockDuration);
+      
+      await user.save();
+      
+      return res.status(429).json({ 
+        error: 'Has excedido el límite de 3 reenvíos de código. Tu cuenta está bloqueada por 3 horas.',
+        blockedUntil: user.otpResendBlockedUntil
+      });
+    }
+
+    // Generar nuevo código OTP
+    const otpCode = generateOTPCode();
+    const otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+    user.otpCode = otpCode;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    // TEMPORAL: Auto-verificar en desarrollo para pruebas
+    if (process.env.NODE_ENV === 'development') {
+      user.isVerified = true;
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      user.otpResendCount = 0;
+      user.otpResendBlockedUntil = undefined;
+      await user.save();
+
+      res.json({
+        message: 'Código reenviado exitosamente (modo desarrollo).',
+        email: email.toLowerCase(),
+        verified: true,
+        needsProfile: true
+      });
+    } else {
+      // En producción, enviar email con código OTP
+      try {
+        const emailHtml = emailService.generateOTPEmail(otpCode, email);
+        await emailService.sendEmail({
+          to: email,
+          subject: '🔑 Nuevo código de verificación - Foro COAR',
+          html: emailHtml,
+        });
+      } catch (emailError) {
+        return res.status(500).json({ error: 'No se pudo enviar el correo de verificación. Verifica tu configuración SMTP.' });
+      }
+
+      res.json({
+        message: 'Nuevo código enviado a tu correo institucional',
+        email: email.toLowerCase(),
+        remainingAttempts: 3 - user.otpResendCount
+      });
+    }
+
+  } catch (error) {
+    console.error('Error al reenviar OTP:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
@@ -223,6 +319,7 @@ router.post('/login', requireDb, async (req, res) => {
       user: {
         email: user.email,
         nombreCompleto: user.nombreCompleto,
+        displayName: user.displayName,
         añoIngreso: user.añoIngreso,
         role: user.role,
         isVerified: user.isVerified,
@@ -264,6 +361,7 @@ router.get('/me', requireDb, async (req, res) => {
       user: {
         email: user.email,
         nombreCompleto: user.nombreCompleto,
+        displayName: user.displayName,
         name: user.nombreCompleto,
         añoIngreso: user.añoIngreso,
         ingresoColegio: user.ingresoColegio || user.añoIngreso,
