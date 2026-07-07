@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
-    "types": ["node"]
+    "types": ["node", "express", "express-session"]
   },
   "include": ["server.ts", "src/server/**/*.ts", "src/server/types/*.d.ts"],
   "exclude": ["node_modules"]

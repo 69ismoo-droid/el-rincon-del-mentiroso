@@ -128,7 +128,7 @@ export default function Register() {
   const renderStep1 = () => (
     <div className="max-w-md mx-auto">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+        <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
           <Mail className="text-white" size={40} />
         </div>
         <h1 className="text-3xl font-black text-white tracking-tighter uppercase mb-4">Registro</h1>
@@ -147,7 +147,7 @@ export default function Register() {
               value={registerData.email}
               onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
               placeholder="tu.nombre@cusco.coar.edu.pe"
-              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -164,7 +164,7 @@ export default function Register() {
               value={registerData.password}
               onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
               placeholder="Mínimo 6 caracteres"
-              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent transition-all"
               required
               minLength={6}
             />
@@ -180,7 +180,7 @@ export default function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-blue-800 hover:to-red-800 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -215,7 +215,7 @@ export default function Register() {
           ¿Ya tienes cuenta?{' '}
           <button
             onClick={() => navigate('/login')}
-            className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
           >
             Inicia sesión
           </button>
@@ -226,7 +226,7 @@ export default function Register() {
 
   const renderStep2 = () => (
     <div className="max-w-md mx-auto text-center">
-      <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+      <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
         <CheckCircle className="text-white" size={40} />
       </div>
       
@@ -236,11 +236,11 @@ export default function Register() {
       
       <p className="text-slate-400 mb-8">
         Enviamos un enlace de verificación a:<br />
-        <span className="text-indigo-400 font-bold">{verificationData.email}</span>
+        <span className="text-blue-400 font-bold">{verificationData.email}</span>
       </p>
 
       <div className="glass-effect rounded-xl p-6 mb-8">
-        <div className="flex items-center gap-3 text-amber-400 mb-3">
+        <div className="flex items-center gap-3 text-amber-700 mb-3">
           <Clock size={20} />
           <span className="font-bold">El enlace expira en 24 horas</span>
         </div>
@@ -259,7 +259,7 @@ export default function Register() {
             value={verificationData.token}
             onChange={(e) => setVerificationData({ ...verificationData, token: e.target.value })}
             placeholder="Pega el token del correo"
-            className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-center font-mono text-lg"
+            className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent transition-all text-center font-mono text-lg"
             required
           />
         </div>
@@ -283,7 +283,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 bg-gradient-to-r from-blue-700 to-red-700 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-blue-800 hover:to-red-800 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -305,7 +305,7 @@ export default function Register() {
   const renderStep3 = () => (
     <div className="max-w-md mx-auto">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+        <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
           <User className="text-white" size={40} />
         </div>
         <h1 className="text-3xl font-black text-white tracking-tighter uppercase mb-4">
@@ -328,7 +328,7 @@ export default function Register() {
               value={registerData.nombreCompleto}
               onChange={(e) => setRegisterData({ ...registerData, nombreCompleto: e.target.value })}
               placeholder="Tu nombre completo"
-              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -347,17 +347,17 @@ export default function Register() {
               placeholder="Ej: 2021"
               min="2000"
               max={new Date().getFullYear()}
-              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-transparent transition-all"
               required
             />
           </div>
         </div>
 
         {/* Mensaje de privacidad */}
-        <div className="glass-effect rounded-xl p-4 border border-indigo-500/20">
+        <div className="glass-effect rounded-xl p-4 border border-blue-700/20">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Lock size={16} className="text-indigo-400" />
+            <div className="w-8 h-8 bg-blue-700/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Lock size={16} className="text-blue-400" />
             </div>
             <div>
               <h3 className="text-white font-bold mb-2">🔒 Tu Privacidad es Protegida</h3>
@@ -366,7 +366,7 @@ export default function Register() {
                 En el foro aparecerás siempre como:
               </p>
               <div className="mt-3 p-3 bg-slate-800 rounded-lg border border-slate-700">
-                <p className="text-indigo-400 font-bold text-center">
+                <p className="text-blue-400 font-bold text-center">
                   Anónimo · Ingreso {registerData.añoIngreso}
                 </p>
               </div>
@@ -383,7 +383,7 @@ export default function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-blue-800 hover:to-red-800 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -413,7 +413,7 @@ export default function Register() {
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                       s <= step
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                        ? 'bg-gradient-to-r from-blue-700 to-red-700 text-white'
                         : 'bg-slate-700 text-slate-400'
                     }`}
                   >
@@ -422,7 +422,7 @@ export default function Register() {
                   {s < 3 && (
                     <div
                       className={`w-full h-1 mx-2 transition-all ${
-                        s < step ? 'bg-gradient-to-r from-indigo-600 to-purple-600' : 'bg-slate-700'
+                        s < step ? 'bg-gradient-to-r from-blue-700 to-red-700' : 'bg-slate-700'
                       }`}
                     />
                   )}

@@ -34,21 +34,21 @@ mongodb+srv://coar_admin:tu_password@cluster0.xxxxx.mongodb.net/coar?retryWrites
 
 ---
 
-### 2. Resend (Envío de Emails)
+### 2. Brevo (Envío de Emails)
 
-**Por qué:** Servicio de emails confiable y gratuito para desarrollo.
+**Por qué:** Servicio de emails transaccionales con SMTP gratuito (300 emails/día en plan free).
 
 **Pasos:**
-1. Ve a [Resend](https://resend.com)
+1. Ve a [Brevo](https://www.brevo.com)
 2. Crea una cuenta gratuita
-3. Ve a [API Keys](https://resend.com/api-keys)
-4. Crea una nueva API key
-5. Copia la API key (empieza con `re_`)
+3. Ve a **Configuración → SMTP y API → Claves SMTP y API**
+4. Crea una nueva clave SMTP
+5. Copia la clave (empieza con `xsmtpsib-`)
 
 **Para producción:**
-- Configura tu propio dominio en Resend
-- Verifica el dominio con DNS records
-- Usa tu dominio como remitente en lugar de `onboarding@resend.dev`
+- Verifica tu dominio en **Remitentes y dominios**
+- Configura registros SPF, DKIM y DMARC en tu DNS
+- Usa un email del dominio verificado en `BREVO_FROM_EMAIL`
 
 ---
 
@@ -73,7 +73,9 @@ mongodb+srv://coar_admin:tu_password@cluster0.xxxxx.mongodb.net/coar?retryWrites
    - `MONGODB_URI`: Tu connection string de MongoDB Atlas
    - `SESSION_SECRET`: Genera uno seguro
    - `ALLOWED_EMAIL_DOMAINS`: `cusco.coar.edu.pe`
-   - `RESEND_API_KEY`: Tu API key de Resend
+   - `BREVO_SMTP_KEY`: Tu clave SMTP de Brevo
+   - `BREVO_SMTP_USER`: Email de tu cuenta Brevo
+   - `BREVO_FROM_EMAIL`: Email remitente verificado
    - `NODE_ENV`: `production`
 6. Despliega y espera a que Render construya la aplicación
 7. Obtén la URL pública (ej: `https://coar-community.onrender.com`)
@@ -111,8 +113,13 @@ SESSION_SECRET=genera_una_clave_segura_de_al_menos_32_caracteres
 # Dominios de email permitidos
 ALLOWED_EMAIL_DOMAINS=cusco.coar.edu.pe
 
-# API Key de Resend
-RESEND_API_KEY=re_tu_api_key_aqui
+# Email Brevo (SMTP)
+BREVO_SMTP_HOST=smtp-relay.brevo.com
+BREVO_SMTP_PORT=587
+BREVO_SMTP_USER=tu-email@ejemplo.com
+BREVO_SMTP_KEY=xsmtpsib-tu_clave_smtp
+BREVO_FROM_EMAIL=noreply@cusco.coar.edu.pe
+BREVO_FROM_NAME=Foro COAR
 
 # Entorno de producción
 NODE_ENV=production
@@ -173,7 +180,9 @@ En el panel de Render, agrega estas variables:
 | `MONGODB_URI` | Tu connection string de MongoDB Atlas |
 | `SESSION_SECRET` | Tu secret generado |
 | `ALLOWED_EMAIL_DOMAINS` | `cusco.coar.edu.pe` |
-| `RESEND_API_KEY` | Tu API key de Resend |
+| `BREVO_SMTP_KEY` | Tu clave SMTP de Brevo |
+| `BREVO_SMTP_USER` | Email de tu cuenta Brevo |
+| `BREVO_FROM_EMAIL` | Email remitente verificado |
 | `NODE_ENV` | `production` |
 | `PUBLIC_URL` | Tu URL de Render |
 
@@ -223,11 +232,11 @@ Una vez desplegado en la nube:
 - Habilita encryption at rest (incluido en M0 gratuito)
 - Habilita MongoDB Atlas backups (opcional, pago)
 
-### Resend
+### Brevo
 
-- Usa tu propio dominio en producción
+- Verifica tu dominio remitente en producción
 - Configura SPF, DKIM, DMARC records
-- No expongas tu API key en el código
+- No expongas tu clave SMTP en el código
 
 ### Aplicación
 
@@ -274,7 +283,7 @@ Para actualizar la aplicación:
 **Plan Gratuito:**
 - MongoDB Atlas M0: 512 MB storage (gratis)
 - Render: 750 hours/month (gratis)
-- Resend: 3,000 emails/month (gratis)
+- Brevo: 300 emails/día (plan gratuito)
 
 **Total: $0/mes** para uso moderado del COAR.
 
@@ -290,13 +299,13 @@ Para actualizar la aplicación:
 - En MongoDB Atlas → Network Access
 - Agrega `0.0.0.0/0` para permitir acceso desde cualquier lugar
 
-### Error: "RESEND_API_KEY no está configurada"
+### Error: "BREVO_SMTP_KEY es obligatoria en producción"
 
-**Causa:** Variable de entorno no configurada en Render
+**Causa:** Variables de Brevo no configuradas en Render
 
 **Solución:**
 - En Render dashboard → Environment
-- Agrega `RESEND_API_KEY=re_tu_key`
+- Agrega `BREVO_SMTP_KEY`, `BREVO_SMTP_USER` y `BREVO_FROM_EMAIL`
 
 ### Error: "Build failed"
 

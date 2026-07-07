@@ -22,7 +22,7 @@ const MAX_POST_BODY = 50_000;
 const MAX_COMMENT = 10_000;
 const MAX_MESSAGE = 10_000;
 
-const requireDb: express.RequestHandler = (req, res, next) => {
+const requireDb: express.RequestHandler = (req: any, res, next) => {
   if (mongoose.connection.readyState !== 1) {
     res.status(503).json({ error: "Base de datos no disponible" });
     return;
@@ -36,7 +36,7 @@ const modChain = [requireDb, requireAuth, requireActiveUser, modRoles];
 const authed = [requireDb, requireAuth, requireActiveUser];
 
 // --- LEADERBOARD (Público pero solo para usuarios verificados) ---
-router.get("/users/leaderboard", ...authed, async (req, res) => {
+router.get("/users/leaderboard", ...authed, async (req: any, res) => {
   try {
     if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.isVerified) {
       return res.status(403).json({ error: "Solo usuarios verificados del COAR pueden acceder al ranking" });
@@ -64,7 +64,7 @@ router.get("/users/leaderboard", ...authed, async (req, res) => {
 });
 
 // --- COMPRAR MONEDAS ---
-router.post("/users/buy-coins", ...authed, async (req, res) => {
+router.post("/users/buy-coins", ...authed, async (req: any, res) => {
   try {
     if (!req.user?.email?.endsWith("@cusco.coar.edu.pe") || !req.user?.isVerified) {
       return res.status(403).json({ error: "Solo usuarios verificados del COAR pueden comprar monedas" });
@@ -100,7 +100,7 @@ router.post("/users/buy-coins", ...authed, async (req, res) => {
 });
 
 // --- FORUM ---
-router.get("/posts", ...authed, async (req, res) => {
+router.get("/posts", ...authed, async (req: any, res) => {
   try {
     const { q, author, category, startDate, endDate } = req.query;
     const filter: Record<string, unknown> = {};
@@ -176,7 +176,7 @@ router.get("/posts", ...authed, async (req, res) => {
   }
 });
 
-router.post("/posts", ...authed, async (req: express.Request, res) => {
+router.post("/posts", ...authed, async (req: any, res) => {
   try {
     const body = req.body as Record<string, unknown>;
     const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -211,7 +211,7 @@ router.post("/posts", ...authed, async (req: express.Request, res) => {
   }
 });
 
-router.get("/posts/:id", ...authed, async (req, res) => {
+router.get("/posts/:id", ...authed, async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       res.status(400).json({ error: "ID inválido" });
@@ -236,7 +236,7 @@ router.get("/posts/:id", ...authed, async (req, res) => {
   }
 });
 
-router.post("/posts/:id/comments", ...authed, async (req, res) => {
+router.post("/posts/:id/comments", ...authed, async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       res.status(400).json({ error: "ID inválido" });
@@ -322,7 +322,7 @@ router.post("/posts/:id/comments", ...authed, async (req, res) => {
 });
 
 // --- MESSAGING ---
-router.get("/messages", ...authed, async (req, res) => {
+router.get("/messages", ...authed, async (req: any, res) => {
   try {
     const user = req.user as { _id: mongoose.Types.ObjectId };
     const { page, limit, skip } = parsePagination(req.query, 30, 80);
@@ -350,7 +350,7 @@ router.get("/messages", ...authed, async (req, res) => {
   }
 });
 
-router.get("/messages/thread/:partnerId", ...authed, async (req, res) => {
+router.get("/messages/thread/:partnerId", ...authed, async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.partnerId)) {
       res.status(400).json({ error: "ID inválido" });
@@ -386,7 +386,7 @@ router.get("/messages/thread/:partnerId", ...authed, async (req, res) => {
   }
 });
 
-router.post("/messages", ...authed, async (req, res) => {
+router.post("/messages", ...authed, async (req: any, res) => {
   try {
     const recipientRaw = req.body?.recipient;
     const content =
@@ -444,7 +444,7 @@ router.post("/messages", ...authed, async (req, res) => {
 });
 
 // --- NOTIFICATIONS ---
-router.get("/notifications", ...authed, async (req, res) => {
+router.get("/notifications", ...authed, async (req: any, res) => {
   try {
     const user = req.user as { _id: mongoose.Types.ObjectId };
     const notifs = await Notification.find({ recipient: user._id })
@@ -457,7 +457,7 @@ router.get("/notifications", ...authed, async (req, res) => {
   }
 });
 
-router.patch("/notifications/read", ...authed, async (req, res) => {
+router.patch("/notifications/read", ...authed, async (req: any, res) => {
   try {
     const user = req.user as { _id: mongoose.Types.ObjectId };
     await Notification.updateMany(
@@ -471,7 +471,19 @@ router.patch("/notifications/read", ...authed, async (req, res) => {
 });
 
 // --- BETS (créditos / predicciones) ---
-router.get("/bets", ...authed, async (req, res) => {
+router.get("/bets/events", ...authed, async (_req: any, res) => {
+  try {
+    const bets = await Bet.find({ status: { $in: ["open", "closed"] } })
+      .sort({ createdAt: -1 })
+      .select("event status options createdAt winner")
+      .lean();
+    res.json(bets);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.get("/bets", ...authed, async (req: any, res) => {
   try {
     const user = req.user as { _id: mongoose.Types.ObjectId };
     const bets = await Bet.find({ "participants.user": user._id }).sort({
@@ -503,7 +515,7 @@ router.get("/bets", ...authed, async (req, res) => {
   }
 });
 
-router.post("/bets", ...authed, async (req, res) => {
+router.post("/bets", ...authed, async (req: any, res) => {
   try {
     const { event, amount, prediction } = req.body ?? {};
     if (typeof event !== "string" || typeof prediction !== "string") {
@@ -563,7 +575,7 @@ router.get(
   "/admin/stats",
   ...authed,
   requireRole("admin", "superadmin"),
-  async (req, res) => {
+  async (req: any, res) => {
     try {
       const [users, posts, semiadmins, bets] = await Promise.all([
         User.countDocuments(),
@@ -583,7 +595,7 @@ router.get(
   "/admin/users",
   ...authed,
   requireRole("admin", "superadmin"),
-  async (req, res) => {
+  async (req: any, res) => {
     try {
       const users = await User.find().sort({ createdAt: -1 }).lean();
       res.json(users);
@@ -597,7 +609,7 @@ router.patch(
   "/admin/users/:id",
   ...authed,
   requireRole("admin", "superadmin"),
-  async (req, res) => {
+  async (req: any, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
         return res.status(400).json({ error: "ID inválido" });
@@ -628,11 +640,43 @@ router.patch(
 );
 
 // --- ADMIN: BETS ---
+router.post(
+  "/admin/bets",
+  ...authed,
+  requireRole("admin", "superadmin"),
+  async (req: any, res) => {
+    try {
+      const { event, options } = req.body ?? {};
+      if (typeof event !== "string" || !event.trim()) {
+        return res.status(400).json({ error: "Nombre del evento requerido" });
+      }
+      const e = event.trim().slice(0, 200);
+      const optionNames: string[] = Array.isArray(options)
+        ? options
+            .filter((o: unknown) => typeof o === "string" && o.trim())
+            .map((o: string) => o.trim().slice(0, 500))
+        : [];
+      const bet = await Bet.create({
+        event: e,
+        creator: (req.user as { _id: mongoose.Types.ObjectId })._id,
+        options: optionNames.length
+          ? optionNames.map((name) => ({ name, pool: 0 }))
+          : [{ name: "Opción A", pool: 0 }, { name: "Opción B", pool: 0 }],
+        participants: [],
+        status: "open",
+      });
+      res.status(201).json(bet);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  }
+);
+
 router.get(
   "/admin/bets",
   ...authed,
   requireRole("admin", "superadmin"),
-  async (req, res) => {
+  async (req: any, res) => {
     try {
       const bets = await Bet.find()
         .populate("creator", "name email")
@@ -649,7 +693,7 @@ router.patch(
   "/admin/bets/:id",
   ...authed,
   requireRole("admin", "superadmin"),
-  async (req, res) => {
+  async (req: any, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
         return res.status(400).json({ error: "ID inválido" });
@@ -700,7 +744,7 @@ router.delete(
   "/admin/bets/:id",
   ...authed,
   requireRole("admin", "superadmin"),
-  async (req, res) => {
+  async (req: any, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
         return res.status(400).json({ error: "ID inválido" });
@@ -728,7 +772,7 @@ router.delete(
 );
 
 // --- MODERACIÓN FORO ---
-router.get("/admin/forum/posts", ...modChain, async (req, res) => {
+router.get("/admin/forum/posts", ...modChain, async (req: any, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query, 15, 40);
     const filter: Record<string, unknown> = {};
@@ -761,7 +805,7 @@ router.get("/admin/forum/posts", ...modChain, async (req, res) => {
   }
 });
 
-router.delete("/admin/forum/posts/:id", ...modChain, async (req, res) => {
+router.delete("/admin/forum/posts/:id", ...modChain, async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       res.status(400).json({ error: "ID inválido" });
@@ -780,7 +824,7 @@ router.delete("/admin/forum/posts/:id", ...modChain, async (req, res) => {
   }
 });
 
-router.delete("/admin/forum/comments/:id", ...modChain, async (req, res) => {
+router.delete("/admin/forum/comments/:id", ...modChain, async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       res.status(400).json({ error: "ID inválido" });
@@ -798,7 +842,7 @@ router.delete("/admin/forum/comments/:id", ...modChain, async (req, res) => {
 });
 
 // --- NEWS ---
-router.get("/news", ...authed, async (req, res) => {
+router.get("/news", ...authed, async (req: any, res) => {
   try {
     const news = await News.find()
       .populate("author", "name")
@@ -809,7 +853,7 @@ router.get("/news", ...authed, async (req, res) => {
   }
 });
 
-router.post("/news", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+router.post("/news", ...authed, requireRole("admin", "superadmin"), async (req: any, res) => {
   try {
     const { title, content, category } = req.body;
     if (!title || !content) {
@@ -829,7 +873,7 @@ router.post("/news", ...authed, requireRole("admin", "superadmin"), async (req, 
   }
 });
 
-router.delete("/news/:id", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+router.delete("/news/:id", ...authed, requireRole("admin", "superadmin"), async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
@@ -843,7 +887,7 @@ router.delete("/news/:id", ...authed, requireRole("admin", "superadmin"), async 
 });
 
 // --- TEACHER RATINGS ---
-router.get("/teachers", ...authed, async (req, res) => {
+router.get("/teachers", ...authed, async (req: any, res) => {
   try {
     const teachers = await TeacherRating.find().sort({ rating: -1 }).lean();
     res.json(teachers);
@@ -852,7 +896,7 @@ router.get("/teachers", ...authed, async (req, res) => {
   }
 });
 
-router.get("/teachers/:id", ...authed, async (req, res) => {
+router.get("/teachers/:id", ...authed, async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
@@ -869,7 +913,7 @@ router.get("/teachers/:id", ...authed, async (req, res) => {
   }
 });
 
-router.post("/teachers", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+router.post("/teachers", ...authed, requireRole("admin", "superadmin"), async (req: any, res) => {
   try {
     const { name, subject } = req.body;
     if (!name || !subject) {
@@ -889,7 +933,7 @@ router.post("/teachers", ...authed, requireRole("admin", "superadmin"), async (r
   }
 });
 
-router.delete("/teachers/:id", ...authed, requireRole("admin", "superadmin"), async (req, res) => {
+router.delete("/teachers/:id", ...authed, requireRole("admin", "superadmin"), async (req: any, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
@@ -904,7 +948,7 @@ router.delete("/teachers/:id", ...authed, requireRole("admin", "superadmin"), as
 
 // --- COMMUNITY FEATURES ---
 
-router.get("/lost-found", ...authed, async (req, res) => {
+router.get("/lost-found", ...authed, async (req: any, res) => {
   try {
     const items = await LostItem.find()
       .populate("founder", "name")
@@ -916,7 +960,7 @@ router.get("/lost-found", ...authed, async (req, res) => {
 });
 
 // --- USER PROFILE ---
-router.patch("/user/display-name", ...authed, async (req, res) => {
+router.patch("/user/display-name", ...authed, async (req: any, res) => {
   try {
     const { displayName } = req.body;
 
@@ -942,7 +986,7 @@ router.patch("/user/display-name", ...authed, async (req, res) => {
   }
 });
 
-router.patch("/user/ingreso-colegio", ...authed, async (req, res) => {
+router.patch("/user/ingreso-colegio", ...authed, async (req: any, res) => {
   try {
     const { ingresoColegio } = req.body;
 

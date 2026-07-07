@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Star, MessageSquare, Trash2, Plus } from "lucide-react";
 import { useAuth } from "../App";
-import { apiFetch } from "../lib/utils";
+import { apiFetch, isAdminRole } from "../lib/utils";
 
 interface Teacher {
   _id: string;
@@ -87,7 +87,7 @@ export default function TeacherProfile() {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Cargando...</p>
         </div>
       </div>
@@ -104,7 +104,7 @@ export default function TeacherProfile() {
           </Link>
           <div className="bg-slate-900 rounded-3xl p-8 border border-slate-800 text-center">
             <p className="text-red-400 font-bold text-xl mb-4">{error || "Profesor no encontrado"}</p>
-            <Link to="/ranking" className="text-indigo-400 hover:text-indigo-300 font-medium">
+            <Link to="/ranking" className="text-blue-400 hover:text-indigo-300 font-medium">
               Volver al ranking
             </Link>
           </div>
@@ -121,13 +121,13 @@ export default function TeacherProfile() {
           <span className="font-bold text-sm uppercase tracking-widest">Volver al ranking</span>
         </Link>
 
-        <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-[3rem] border border-indigo-800/50 p-8 md:p-12 shadow-2xl">
+        <div className="bg-gradient-to-r from-blue-900/50 to-red-900/50 rounded-[3rem] border border-blue-800/50 p-8 md:p-12 shadow-2xl">
           <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
             <div>
               <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-3">
                 {teacher.name}
               </h1>
-              <p className="text-2xl font-bold text-indigo-400 mb-2">
+              <p className="text-2xl font-bold text-blue-400 mb-2">
                 {teacher.subject}
               </p>
               <div className="flex items-center gap-3">
@@ -136,11 +136,11 @@ export default function TeacherProfile() {
                     <Star
                       key={star}
                       size={24}
-                      className={star <= Math.round(teacher.rating) ? "text-yellow-500 fill-yellow-500" : "text-slate-600"}
+                      className={star <= Math.round(teacher.rating) ? "text-yellow-800 fill-yellow-800" : "text-slate-600"}
                     />
                   ))}
                 </div>
-                <span className="text-3xl font-black text-yellow-500">
+                <span className="text-3xl font-black text-yellow-800">
                   {teacher.rating.toFixed(1)}
                 </span>
                 <span className="text-slate-500 font-bold">
@@ -149,7 +149,7 @@ export default function TeacherProfile() {
               </div>
             </div>
 
-            {["admin", "superadmin"].includes(user?.role) && (
+            {isAdminRole(user?.role) && (
               <button
                 onClick={handleDeleteTeacher}
                 className="flex items-center gap-2 px-6 py-3 bg-red-500/10 text-red-400 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-red-500/20 transition-all"
@@ -163,7 +163,7 @@ export default function TeacherProfile() {
           {/* Calificar Profesor */}
           <div className="bg-slate-900/80 rounded-3xl p-8 border border-slate-800 mb-8">
             <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
-              <Star size={24} className="text-yellow-500" />
+              <Star size={24} className="text-yellow-800" />
               Califica a este profesor
             </h2>
             <div className="space-y-4">
@@ -181,7 +181,7 @@ export default function TeacherProfile() {
                     >
                       <Star
                         size={32}
-                        className={star <= newRating ? "text-yellow-500 fill-yellow-500" : "text-slate-600"}
+                        className={star <= newRating ? "text-yellow-800 fill-yellow-800" : "text-slate-600"}
                       />
                     </button>
                   ))}
@@ -201,7 +201,7 @@ export default function TeacherProfile() {
               <button
                 onClick={handleSubmitRating}
                 disabled={submitting}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50"
               >
                 {submitting ? "Enviando..." : "Enviar Calificación"}
               </button>
@@ -211,7 +211,7 @@ export default function TeacherProfile() {
           {/* Reseñas */}
           <div>
             <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
-              <MessageSquare size={24} className="text-indigo-400" />
+              <MessageSquare size={24} className="text-blue-400" />
               Reseñas de la comunidad
             </h2>
             <div className="space-y-4">
@@ -229,7 +229,7 @@ export default function TeacherProfile() {
                           <Star
                             key={star}
                             size={16}
-                            className={star <= review.rating ? "text-yellow-500 fill-yellow-500" : "text-slate-600"}
+                            className={star <= review.rating ? "text-yellow-800 fill-yellow-800" : "text-slate-600"}
                           />
                         ))}
                       </div>

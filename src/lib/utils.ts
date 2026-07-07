@@ -12,3 +12,7 @@ export function apiFetch(
 ): Promise<Response> {
   return fetch(input, { credentials: "include", ...init });
 }
+
+export function isAdminRole(role?: string | null): boolean {
+  return role === "admin" || role === "superadmin";
+}

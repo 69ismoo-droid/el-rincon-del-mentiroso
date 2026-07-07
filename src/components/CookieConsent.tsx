@@ -18,14 +18,12 @@ export default function CookieConsent({ onAccept, onReject }: CookieConsentProps
 
   const handleAccept = () => {
     localStorage.setItem('cookie-consent', 'accepted');
-    localStorage.setItem('analytics-consent', 'true');
     onAccept();
     setIsVisible(false);
   };
 
   const handleReject = () => {
     localStorage.setItem('cookie-consent', 'rejected');
-    localStorage.setItem('analytics-consent', 'false');
     onReject();
     setIsVisible(false);
   };
@@ -38,21 +36,17 @@ export default function CookieConsent({ onAccept, onReject }: CookieConsentProps
         <div className="flex flex-col md:flex-row items-start gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
-              <Cookie size={24} className="text-indigo-400" />
+              <Cookie size={24} className="text-blue-400" />
               <h3 className="text-lg font-bold text-white">Usamos Cookies</h3>
             </div>
             <p className="text-slate-300 text-sm leading-relaxed mb-4">
-              Utilizamos cookies esenciales para el funcionamiento del sitio y cookies de análisis para mejorar tu experiencia. 
-              Los datos son anónimos y nos ayudan a entender cómo interactúas con nuestra plataforma.
+              Utilizamos cookies esenciales para mantener tu sesión y el funcionamiento de la plataforma.
+              No usamos cookies de publicidad ni rastreo de terceros.
             </p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-green-400" />
-                <span className="text-slate-300 text-sm">Cookies Esenciales: Siempre activos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Cookie size={16} className="text-indigo-400" />
-                <span className="text-slate-300 text-sm">Cookies de Análisis: Opcionales</span>
+                <span className="text-slate-300 text-sm">Cookies de sesión: necesarias para iniciar sesión</span>
               </div>
             </div>
           </div>
@@ -66,9 +60,9 @@ export default function CookieConsent({ onAccept, onReject }: CookieConsentProps
             </button>
             <button
               onClick={handleAccept}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient"
+              className="px-6 py-3 bg-gradient-to-r from-blue-700 to-red-700 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient"
             >
-              Aceptar Todas
+              Aceptar
             </button>
           </div>
         </div>
@@ -77,19 +71,19 @@ export default function CookieConsent({ onAccept, onReject }: CookieConsentProps
           <div className="flex flex-col sm:flex-row gap-4 text-xs text-slate-400">
             <a 
               href="/terminos" 
-              className="hover:text-indigo-400 transition-colors flex items-center gap-1"
+              className="hover:text-blue-400 transition-colors flex items-center gap-1"
             >
               Términos y Condiciones
             </a>
             <a 
               href="/privacidad" 
-              className="hover:text-indigo-400 transition-colors flex items-center gap-1"
+              className="hover:text-blue-400 transition-colors flex items-center gap-1"
             >
               Política de Privacidad
             </a>
             <a 
               href="/cookies" 
-              className="hover:text-indigo-400 transition-colors flex items-center gap-1"
+              className="hover:text-blue-400 transition-colors flex items-center gap-1"
             >
               Política de Cookies
             </a>

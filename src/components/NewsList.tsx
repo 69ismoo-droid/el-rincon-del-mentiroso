@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, Newspaper, Calendar, ArrowRight, Plus, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../App';
-import { apiFetch } from '../lib/utils';
+import { apiFetch, isAdminRole } from '../lib/utils';
 
 interface NewsItem {
   _id: string;
@@ -77,22 +77,22 @@ export default function NewsList() {
     <div className="max-w-4xl mx-auto space-y-12">
       <div className="text-center space-y-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center shadow-xl shadow-indigo-600/20">
+          <div className="w-16 h-16 bg-blue-700 rounded-3xl mx-auto flex items-center justify-center shadow-xl shadow-blue-700/20">
             <Newspaper size={32} className="text-white" />
           </div>
           <div>
             <h1 className="text-6xl font-black text-white italic uppercase tracking-tighter">
-              Diario <span className="text-indigo-500">Mural</span>
+              Diario <span className="text-blue-600">Mural</span>
             </h1>
             <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs mt-2">
               Información oficial y eventos institucionales.
             </p>
           </div>
         </div>
-        {["admin", "superadmin"].includes(user?.role) && (
+        {isAdminRole(user?.role) && (
           <button
             onClick={() => setShowAddNews(true)}
-            className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all"
+            className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-700 to-red-700 text-white rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all"
           >
             <Plus size={18} />
             Agregar Noticia
@@ -129,7 +129,7 @@ export default function NewsList() {
                   value={newNews.title}
                   onChange={(e) => setNewNews({ ...newNews, title: e.target.value })}
                   placeholder="Título de la noticia"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
               <div>
@@ -155,7 +155,7 @@ export default function NewsList() {
                   value={newNews.content}
                   onChange={(e) => setNewNews({ ...newNews, content: e.target.value })}
                   placeholder="Escribe el contenido de la noticia..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-48"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-blue-600 resize-none h-48"
                 />
               </div>
             </div>
@@ -169,7 +169,7 @@ export default function NewsList() {
               <button
                 onClick={handleAddNews}
                 disabled={adding}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-all"
+                className="bg-gradient-to-r from-blue-700 to-red-700 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-all"
               >
                 {adding ? "Publicando..." : "Publicar Noticia"}
               </button>
@@ -180,7 +180,7 @@ export default function NewsList() {
 
       {loading ? (
         <div className="text-center py-20">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">
             Cargando noticias...
           </p>
@@ -210,10 +210,10 @@ export default function NewsList() {
                 </div>
                 <div className="flex-1 space-y-6">
                   <div className="flex items-start justify-between gap-4">
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/20">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-600/10 px-4 py-2 rounded-full border border-blue-600/20">
                       {item.category}
                     </span>
-                    {["admin", "superadmin"].includes(user?.role) && (
+                    {isAdminRole(user?.role) && (
                       <button
                         onClick={() => handleDeleteNews(item._id)}
                         className="p-2 hover:bg-red-500/10 text-red-400 rounded-xl"
@@ -222,7 +222,7 @@ export default function NewsList() {
                       </button>
                     )}
                   </div>
-                  <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-tight group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
                     {item.title}
                   </h3>
                   <p className="text-slate-400 text-sm leading-relaxed line-clamp-3">
@@ -232,7 +232,7 @@ export default function NewsList() {
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2">
                       <Calendar size={14} /> {new Date(item.createdAt).toLocaleDateString()}
                     </span>
-                    <button className="text-indigo-400 font-black text-xs uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                    <button className="text-blue-400 font-black text-xs uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
                       Leer más <ArrowRight size={16} />
                     </button>
                   </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { MessageCircle, Send, Search, MoreVertical, Shield } from 'lucide-react';
 import { useAuth } from '../App';
-import { cn, apiFetch } from '../lib/utils';
+import { cn, apiFetch, isAdminRole } from '../lib/utils';
 
 export default function Messages() {
   const { user } = useAuth();
@@ -14,9 +14,11 @@ export default function Messages() {
   const [threadTotalPages, setThreadTotalPages] = useState(1);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sending, setSending] = useState(false);
+
+  const userId = user?._id;
 
   const fetchMessages = useCallback(async () => {
+    if (!userId) return;
     try {
       const res = await apiFetch('/api/messages?limit=80&page=1');
       const data = await res.json();
@@ -25,12 +27,12 @@ export default function Messages() {
 
       const chatMap = new Map();
       list.forEach((msg: any) => {
-        const partner = msg.sender._id === user._id ? msg.recipient : msg.sender;
+        const partner = msg.sender._id === userId ? msg.recipient : msg.sender;
         if (!chatMap.has(partner._id)) {
           chatMap.set(partner._id, {
             partner,
             lastMessage: msg,
-            unread: !msg.read && msg.recipient._id === user._id
+            unread: !msg.read && msg.recipient._id === userId
           });
         }
       });
@@ -38,7 +40,7 @@ export default function Messages() {
     } catch (err) {
       console.error(err);
     }
-  }, [user._id]);
+  }, [userId]);
 
   const loadThread = useCallback(async (partnerId: string, page = 1, append = false) => {
     const res = await apiFetch(`/api/messages/thread/${partnerId}?limit=40&page=${page}`);
@@ -54,10 +56,11 @@ export default function Messages() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
     fetchMessages();
     const interval = setInterval(fetchMessages, 8000);
     return () => clearInterval(interval);
-  }, [fetchMessages]);
+  }, [fetchMessages, userId]);
 
   useEffect(() => {
     if (!selectedChat?.partner?._id) {
@@ -96,6 +99,14 @@ export default function Messages() {
 
   const currentChatMessages = threadMessages;
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-500 font-bold uppercase tracking-widest text-sm">
+        Cargando mensajes...
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-12rem)] flex bg-slate-900 rounded-[3rem] border border-slate-800 shadow-2xl overflow-hidden">
       <div className="w-96 border-r border-slate-800 flex flex-col">
@@ -111,7 +122,7 @@ export default function Messages() {
              <input 
                 type="text" 
                 placeholder="Buscar contacto..." 
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-xs text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-xs text-white outline-none focus:ring-2 focus:ring-blue-600"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
              />
@@ -125,7 +136,7 @@ export default function Messages() {
               onClick={() => setSelectedChat(chat)}
               className={cn(
                 "w-full p-4 rounded-3xl flex gap-4 items-center transition-all group",
-                selectedChat?.partner._id === chat.partner._id ? "bg-indigo-600 shadow-lg shadow-indigo-600/20" : "hover:bg-slate-800"
+                selectedChat?.partner._id === chat.partner._id ? "bg-blue-700 shadow-lg shadow-blue-700/20" : "hover:bg-slate-800"
               )}
             >
               <div className="w-12 h-12 rounded-2xl border border-slate-700 overflow-hidden shrink-0">
@@ -137,11 +148,11 @@ export default function Messages() {
                         "text-sm font-black uppercase truncate",
                         selectedChat?.partner._id === chat.partner._id ? "text-white" : "text-slate-200"
                     )}>{chat.partner.name}</p>
-                    {chat.unread && <span className="w-2 h-2 bg-indigo-400 rounded-full"></span>}
+                    {chat.unread && <span className="w-2 h-2 bg-blue-400 rounded-full"></span>}
                 </div>
                 <p className={cn(
                     "text-[10px] font-bold uppercase truncate",
-                    selectedChat?.partner._id === chat.partner._id ? "text-indigo-100/70" : "text-slate-500"
+                    selectedChat?.partner._id === chat.partner._id ? "text-blue-100/70" : "text-slate-500"
                 )}>{chat.lastMessage.content}</p>
               </div>
             </button>
@@ -176,7 +187,7 @@ export default function Messages() {
                     <button
                       type="button"
                       onClick={() => selectedChat && loadThread(selectedChat.partner._id, threadPage + 1, true)}
-                      className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300"
+                      className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300"
                     >
                       Ver mensajes anteriores
                     </button>
@@ -184,17 +195,17 @@ export default function Messages() {
                 )}
                 {currentChatMessages.map((msg) => (
                     <motion.div 
-                        initial={{ opacity: 0, x: msg.sender._id === user._id ? 20 : -20 }}
+                        initial={{ opacity: 0, x: msg.sender._id === userId ? 20 : -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         key={msg._id} 
                         className={cn(
                             "flex flex-col max-w-[70%]",
-                            msg.sender._id === user._id ? "ml-auto items-end" : "mr-auto items-start"
+                            msg.sender._id === userId ? "ml-auto items-end" : "mr-auto items-start"
                         )}
                     >
                         <div className={cn(
                             "p-5 rounded-3xl text-sm font-medium leading-relaxed shadow-lg",
-                            msg.sender._id === user._id ? "bg-indigo-600 text-white rounded-tr-none" : "bg-slate-800 text-slate-200 rounded-tl-none"
+                            msg.sender._id === userId ? "bg-blue-700 text-white rounded-tr-none" : "bg-slate-800 text-slate-200 rounded-tl-none"
                         )}>
                             {msg.content}
                         </div>
@@ -210,7 +221,7 @@ export default function Messages() {
                     <input 
                         type="text" 
                         placeholder="Escribe un mensaje seguro..." 
-                        className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-blue-600"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -218,7 +229,7 @@ export default function Messages() {
                     <button 
                         type="button"
                         onClick={handleSendMessage}
-                        className="bg-indigo-600 p-4 rounded-2xl text-white hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20"
+                        className="bg-blue-700 p-4 rounded-2xl text-white hover:bg-blue-600 transition-all shadow-xl shadow-blue-700/20"
                     >
                         <Send size={24} />
                     </button>
@@ -228,7 +239,7 @@ export default function Messages() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
             <div className="w-24 h-24 bg-slate-900 rounded-[2.5rem] border border-slate-800 flex items-center justify-center mb-8 shadow-2xl">
-                <Shield size={48} className="text-indigo-600" />
+                <Shield size={48} className="text-blue-700" />
             </div>
             <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-4">Chat Encriptado</h2>
             <p className="text-slate-600 text-xs font-bold uppercase tracking-[0.2em] max-w-xs leading-loose">

@@ -11,19 +11,25 @@ import dotenv from "dotenv";
 import http from "http";
 import path from "path";
 import { Server } from "socket.io";
-import { validateEnvOrExit } from "./src/server/config/validateEnv.js";
+import {
+  getPublicUrl,
+  isProductionEnv,
+  shouldUseSecureSessionCookies,
+} from "./src/server/config/env.js";
 import { logger } from "./src/server/lib/logger.js";
 import { HttpError } from "./src/server/lib/httpError.js";
 
 import apiRoutes from "./src/server/routes/api.js";
-import authNewRoutes from "./src/server/routes/auth-new.js";
+import authRoutes from "./src/server/routes/auth.js";
+import verificationRoutes from "./src/server/routes/verification.js";
 import uploadRoutes from "./src/server/routes/upload.js";
+import { mailService } from "./src/server/mail/mailService.js";
 
 dotenv.config();
 validateEnvOrExit();
 
 const NODE_ENV = process.env.NODE_ENV ?? "development";
-const isProd = NODE_ENV === "production";
+const isProd = isProductionEnv();
 
 function parseCorsOrigin(): boolean | string | string[] {
   const raw = process.env.CORS_ORIGINS ?? process.env.CLIENT_ORIGIN;
@@ -106,6 +112,10 @@ function parseSameSite(): "lax" | "strict" | "none" {
   return "lax";
 }
 
+function shouldUseSecureCookies(sameSite: "lax" | "strict" | "none"): boolean {
+  return shouldUseSecureSessionCookies(sameSite);
+}
+
 function buildSessionMiddleware(mongoUri: string | undefined) {
   const store =
     mongoUri && mongoUri.length > 0
@@ -117,12 +127,7 @@ function buildSessionMiddleware(mongoUri: string | undefined) {
       : undefined;
 
   const sameSite = parseSameSite();
-  const cookieSecure =
-    process.env.SESSION_COOKIE_SECURE === "true"
-      ? true
-      : process.env.SESSION_COOKIE_SECURE === "false"
-        ? false
-        : isProd || sameSite === "none";
+  const cookieSecure = shouldUseSecureCookies(sameSite);
 
   const cookieName = process.env.SESSION_COOKIE_NAME?.trim() || "coar.sid";
   const cookieDomain = process.env.COOKIE_DOMAIN?.trim() || undefined;
@@ -194,17 +199,36 @@ async function startServer() {
       "Sesiones en memoria (solo desarrollo). Configura MONGODB_URI para persistencia."
     );
   }
-  app.use(buildSessionMiddleware(sessionMongoUri));
+  const sessionMiddleware = buildSessionMiddleware(sessionMongoUri);
+  app.use(sessionMiddleware);
+  if (!shouldUseSecureCookies(parseSameSite()) && isProd) {
+    logger.warn(
+      "Cookies de sesión sin Secure. Configura PUBLIC_URL con https:// o despliega en Render con HTTPS."
+    );
+  }
+
+  if (isProd) {
+    const publicUrl = getPublicUrl();
+    if (publicUrl) {
+      logger.info("Public URL", { url: publicUrl });
+    }
+  }
 
   app.get("/api/health", (req, res) => {
     const db =
       mongoose.connection.readyState === 1 ? "connected" : "disconnected";
-    res.json({ status: "ok", db });
+    res.json({
+      status: db === "connected" ? "ok" : "degraded",
+      db,
+      mail: mailService.isConfigured() ? "configured" : "missing",
+      env: isProd ? "production" : "development",
+    });
   });
 
   app.use("/api", apiLimiter);
   app.use("/api/auth", authLimiter);
-  app.use("/api/auth", authNewRoutes);
+  app.use("/api/auth", authRoutes);
+  app.use("/api/auth", verificationRoutes);
   app.use("/api", uploadRoutes);
   app.use("/api", apiRoutes);
 
@@ -235,7 +259,10 @@ async function startServer() {
     ) => {
       if (err instanceof HttpError) {
         logger.warn("HttpError", { status: err.status, message: err.message });
-        res.status(err.status).json({ error: err.message });
+        res.status(err.status).json({
+          error: err.message,
+          ...(err.details ?? {}),
+        });
         return;
       }
       const e = err as Error & { name?: string; code?: number };

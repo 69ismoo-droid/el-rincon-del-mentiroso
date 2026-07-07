@@ -88,7 +88,7 @@ export default function CompleteProfile() {
             </p>
             <button
               onClick={() => navigate('/register')}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient"
+              className="px-6 py-3 bg-gradient-to-r from-blue-700 to-red-700 text-white rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient"
             >
               Ir al Registro
             </button>
@@ -128,7 +128,7 @@ export default function CompleteProfile() {
         <div className="glass-effect rounded-3xl shadow-2xl border-gradient overflow-hidden">
           <div className="p-8">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
                 <User className="text-white" size={40} />
               </div>
               <h1 className="text-3xl font-black text-white tracking-tighter uppercase mb-4">
@@ -162,7 +162,7 @@ export default function CompleteProfile() {
                   onChange={(e) => setFormData({ ...formData, nombreCompleto: e.target.value })}
                   placeholder="Juan Pérez"
                   className={`w-full px-4 py-3 bg-slate-800 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                    fieldErrors.nombreCompleto ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-indigo-500 focus:border-transparent'
+                    fieldErrors.nombreCompleto ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-blue-600 focus:border-transparent'
                   }`}
                   required
                 />
@@ -183,7 +183,7 @@ export default function CompleteProfile() {
                     min="2000"
                     max={new Date().getFullYear()}
                     className={`w-full pl-12 pr-4 py-3 bg-slate-800 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                      fieldErrors.añoIngreso ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-indigo-500 focus:border-transparent'
+                      fieldErrors.añoIngreso ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-blue-600 focus:border-transparent'
                     }`}
                     required
                   />
@@ -200,7 +200,7 @@ export default function CompleteProfile() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

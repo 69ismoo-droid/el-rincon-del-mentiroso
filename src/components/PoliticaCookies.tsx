@@ -13,7 +13,7 @@ export default function PoliticaCookies() {
 
         <div className="bg-slate-900 rounded-[3rem] border border-slate-800 p-8 md:p-12 shadow-2xl">
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-r from-amber-900 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Cookie size={32} className="text-white" />
             </div>
             <div>
@@ -43,7 +43,7 @@ export default function PoliticaCookies() {
               
               <div className="space-y-6">
                 <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-                  <h3 className="text-lg font-bold text-indigo-400 mb-3">
+                  <h3 className="text-lg font-bold text-blue-400 mb-3">
                     Cookies Esenciales
                   </h3>
                   <p className="leading-relaxed">
@@ -61,7 +61,7 @@ export default function PoliticaCookies() {
                 </div>
 
                 <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-                  <h3 className="text-lg font-bold text-yellow-400 mb-3">
+                  <h3 className="text-lg font-bold text-yellow-700 mb-3">
                     Cookies de Analítica
                   </h3>
                   <p className="leading-relaxed">

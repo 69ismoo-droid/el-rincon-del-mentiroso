@@ -63,7 +63,7 @@ export default function DisplayNameForm({ onClose }: DisplayNameFormProps) {
         <div className="p-6 border-b border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <UserIcon className="text-indigo-400" size={24} />
+              <UserIcon className="text-blue-400" size={24} />
               <h2 className="text-xl font-bold text-white">Nombre de Usuario</h2>
             </div>
             <button
@@ -90,7 +90,7 @@ export default function DisplayNameForm({ onClose }: DisplayNameFormProps) {
                   placeholder="Ej: DragonMaster"
                   minLength={3}
                   maxLength={20}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                   required
                 />
                 <UserIcon className="absolute right-3 top-3.5 text-slate-500" size={20} />
@@ -105,7 +105,7 @@ export default function DisplayNameForm({ onClose }: DisplayNameFormProps) {
               )}
             </div>
 
-            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+            <div className="bg-blue-600/10 border border-blue-600/20 rounded-xl p-4">
               <p className="text-xs text-indigo-300">
                 ℹ️ Este nombre se mostrará en el ranking y en tu perfil. En el foro seguirás siendo anónimo.
               </p>
@@ -122,7 +122,7 @@ export default function DisplayNameForm({ onClose }: DisplayNameFormProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-700 to-red-700 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

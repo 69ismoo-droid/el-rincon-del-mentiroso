@@ -13,7 +13,7 @@ export default function TerminosCondiciones() {
 
         <div className="bg-slate-900 rounded-[3rem] border border-slate-800 p-8 md:p-12 shadow-2xl">
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-700 to-red-700 rounded-2xl flex items-center justify-center shadow-lg">
               <FileText size={32} className="text-white" />
             </div>
             <div>

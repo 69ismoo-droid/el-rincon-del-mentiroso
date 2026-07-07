@@ -71,7 +71,7 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
         <div className="p-6 border-b border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="text-indigo-400" size={24} />
+              <Calendar className="text-blue-400" size={24} />
               <h2 className="text-xl font-bold text-white">Año de Ingreso al Colegio</h2>
             </div>
             <button
@@ -94,7 +94,7 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
                 <select
                   value={anio}
                   onChange={(e) => setAnio(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all appearance-none cursor-pointer"
                   required
                 >
                   <option value="">Selecciona un año</option>
@@ -122,7 +122,7 @@ export default function AnioIngresoForm({ onClose }: AnioIngresoFormProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-700 to-red-700 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

@@ -53,6 +53,7 @@ Plataforma de comunidad estudiantil para el COAR Cusco con foro anónimo, rankin
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
+
 - React 18 con TypeScript
 - React Router DOM para navegación
 - TailwindCSS v4 para estilos
@@ -62,12 +63,13 @@ Plataforma de comunidad estudiantil para el COAR Cusco con foro anónimo, rankin
 - Zod para validación de formularios
 
 ### Backend
+
 - Node.js con Express.js
 - MongoDB con Mongoose
 - Socket.io para WebSockets
 - Express Session con connect-mongo
 - Bcryptjs para hashing de contraseñas
-- Resend para emails de verificación
+- Brevo (SMTP) para emails de verificación
 - Winston para logging
 - Helmet para seguridad
 - Rate limiting con express-rate-limit
@@ -77,7 +79,7 @@ Plataforma de comunidad estudiantil para el COAR Cusco con foro anónimo, rankin
 - **Node.js**: >= 22 < 27
 - **MongoDB**: 4.4+ (local o en la nube)
 - **npm**: >= 9.0
-- **Cuenta de Resend**: Para envío de emails (obtén API key en resend.com)
+- **Cuenta de Brevo**: Para envío de emails (obtén clave SMTP en [app.brevo.com](https://app.brevo.com))
 
 ## 🔧 Instalación y Configuración
 
@@ -93,19 +95,16 @@ Para desplegar en producción y que funcione desde cualquier lugar, consulta [do
    cd coar-community-&-control-maestro
    npm install
    ```
-
 2. **Configurar variables de entorno:**
    ```bash
    cp .env.example .env
    # Editar .env con tus configuraciones
    npm run generate:secret  # Generar SESSION_SECRET seguro
    ```
-
 3. **Ejecutar en desarrollo:**
    ```bash
    npm run dev
    ```
-
 4. **Construir para producción:**
    ```bash
    npm run build
@@ -181,38 +180,13 @@ La documentación completa de la API está disponible en [docs/api.md](docs/api.
 
 ## 🧪 Testing
 
-El proyecto incluye suites de tests para garantizar la calidad del código.
-
-### Ejecutar Tests
+Actualmente el proyecto se valida con verificación de tipos:
 
 ```bash
-# Ejecutar todos los tests
-npm test
-
-# Ejecutar tests unitarios
-npm run test:unit
-
-# Ejecutar tests de integración
-npm run test:integration
-
-# Ejecutar tests con coverage
-npm run test:coverage
+npm run lint
 ```
 
-### Estructura de Tests
-
-```
-tests/
-├── unit/              # Tests unitarios
-│   ├── models/        # Tests de modelos Mongoose
-│   ├── services/      # Tests de servicios (emailService, etc)
-│   └── utils/         # Tests de utilidades
-├── integration/       # Tests de integración
-│   ├── routes/        # Tests de rutas API
-│   └── middleware/    # Tests de middleware
-└── e2e/              # Tests end-to-end
-    └── flows/         # Flujos completos de usuario
-```
+Las suites automatizadas (unitarias, integración y e2e) están planificadas pero aún no implementadas.
 
 ## � Seguridad
 
@@ -233,6 +207,7 @@ tests/
 ### Plataformas Soportadas
 
 #### Render
+
 El proyecto incluye configuración para Render en `render.yaml`.
 
 ```bash
@@ -241,6 +216,7 @@ git push render main
 ```
 
 #### Docker
+
 ```bash
 # Construir imagen
 docker build -t coar-community .
@@ -255,27 +231,23 @@ docker run -p 3002:3002 --env-file .env coar-community
 - `MONGODB_URI`: URL de MongoDB Atlas o instancia propia
 - `SESSION_SECRET`: Generar con `npm run generate:secret` (mínimo 32 caracteres)
 - `ALLOWED_EMAIL_DOMAINS`: Dominios permitidos separados por coma
-- `RESEND_API_KEY`: API key de Resend para envío de emails
+- `BREVO_SMTP_KEY`, `BREVO_SMTP_USER`, `BREVO_FROM_EMAIL`: Configuración Brevo para envío de emails
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: Configuración Cloudinary
 - `CLIENT_ORIGIN`: URL del frontend en producción
 
 ## 📝 Scripts Disponibles
 
 ### Desarrollo
+
 - `npm run dev` - Iniciar servidor en desarrollo con hot reload
 - `npm run build` - Construir para producción (frontend + backend)
 - `npm start` - Iniciar servidor en producción
 - `npm run lint` - Verificar tipos TypeScript
 
 ### Utilidades
-- `npm run generate:secret` - Generar SESSION_SECRET seguro
-- `npm run deploy:local` - Script de despliegue local
 
-### Testing
-- `npm test` - Ejecutar todos los tests
-- `npm run test:unit` - Ejecutar tests unitarios
-- `npm run test:integration` - Ejecutar tests de integración
-- `npm run test:coverage` - Ejecutar tests con coverage report
+- `npm run generate:secret` - Generar SESSION\_SECRET seguro
+- `npm run deploy:local` - Script de despliegue local
 
 ## 🤝 Contribución
 
@@ -308,3 +280,7 @@ Para reportar bugs o solicitar features, abre un issue en el repositorio.
 
 - Comunidad estudiantil del COAR Cusco
 - Contribuidores del proyecto
+
+       CAMBIO DE CONTRASEÑAS:
+
+node scripts/reset-password.js [USUARIO123@cusco.coar.edu.pe](mailto:admin@cusco.coar.edu.pe) TU\_NUEVA\_CONTRASEÑA

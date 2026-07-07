@@ -39,11 +39,11 @@ export default function Leaderboard() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy size={28} className="text-yellow-500 animate-pulse" />;
+        return <Trophy size={28} className="text-yellow-800 animate-pulse" />;
       case 2:
         return <Trophy size={24} className="text-gray-400" />;
       case 3:
-        return <Trophy size={22} className="text-amber-600" />;
+        return <Trophy size={22} className="text-amber-800" />;
       default:
         return <span className="text-2xl font-black text-slate-600">{rank}</span>;
     }
@@ -52,16 +52,16 @@ export default function Leaderboard() {
   return (
     <div className="min-h-screen bg-slate-950 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="bg-gradient-to-r from-indigo-900/50 via-purple-900/50 to-pink-900/50 rounded-[3rem] border border-indigo-800/50 p-8 md:p-12 shadow-2xl">
+        <div className="bg-gradient-to-r from-blue-900/50 via-red-900/50 to-blue-950/50 rounded-[3rem] border border-blue-800/50 p-8 md:p-12 shadow-2xl">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-3 bg-yellow-500/10 px-6 py-3 rounded-full mb-6">
-              <Trophy size={28} className="text-yellow-500" />
-              <span className="font-black text-yellow-500 uppercase tracking-widest text-sm">
+            <div className="inline-flex items-center gap-3 bg-yellow-800/10 px-6 py-3 rounded-full mb-6">
+              <Trophy size={28} className="text-yellow-800" />
+              <span className="font-black text-yellow-800 uppercase tracking-widest text-sm">
                 Top 10
               </span>
             </div>
             <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter mb-3">
-              Ranking de <span className="text-yellow-400">Monedas</span>
+              Ranking de <span className="text-yellow-700">Monedas</span>
             </h1>
             <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
               Los líderes de la economía del Foro-COAR
@@ -76,7 +76,7 @@ export default function Leaderboard() {
 
           {loading ? (
             <div className="text-center py-16">
-              <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="w-16 h-16 border-4 border-blue-700 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">
                 Cargando ranking...
               </p>
@@ -96,12 +96,12 @@ export default function Leaderboard() {
                     key={user.rank}
                     className={`bg-slate-900/80 rounded-2xl p-6 border transition-all ${
                       user.rank === 1
-                        ? "border-yellow-500/50 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 shadow-lg"
+                        ? "border-yellow-800/50 bg-gradient-to-r from-yellow-800/10 to-orange-900/10 shadow-lg"
                         : user.rank === 2
                         ? "border-gray-400/30 bg-gradient-to-r from-gray-500/10 to-slate-800"
                         : user.rank === 3
-                        ? "border-amber-600/30 bg-gradient-to-r from-amber-600/10 to-slate-800"
-                        : "border-slate-800 hover:border-indigo-600/30"
+                        ? "border-amber-800/30 bg-gradient-to-r from-amber-800/10 to-slate-800"
+                        : "border-slate-800 hover:border-blue-700/30"
                     }`}
                   >
                     <div className="flex items-center gap-5">
@@ -122,9 +122,9 @@ export default function Leaderboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 bg-yellow-500/10 px-5 py-3 rounded-xl">
-                        <Coins size={24} className="text-yellow-500" />
-                        <span className="text-2xl font-black text-yellow-400">
+                      <div className="flex items-center gap-3 bg-yellow-800/10 px-5 py-3 rounded-xl">
+                        <Coins size={24} className="text-yellow-800" />
+                        <span className="text-2xl font-black text-yellow-700">
                           {user.credits.toLocaleString()}
                         </span>
                       </div>

@@ -1,34 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, Link, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { 
-  Users, 
   MessageSquare, 
   Trophy,
   Coins,
   Search, 
-  Plus, 
   Bell, 
-  Settings, 
   LogOut, 
-  Home, 
-  ChevronDown, 
   Menu, 
   X,
-  ChevronRight,
-  Eye,
-  MessageCircle,
   Clock,
   User,
-  Info,
   Shield,
   LayoutDashboard,
-  Cookie,
-  FileText,
-  Lock,
-  CheckCircle,
-  Calendar
+  MessageCircle,
 } from 'lucide-react';
 import { cn, apiFetch } from './lib/utils';
 
@@ -53,6 +40,8 @@ import AnioIngresoForm from './components/AnioIngresoForm';
 import Leaderboard from './components/Leaderboard';
 import TeacherProfile from './components/TeacherProfile';
 import DisplayNameForm from './components/DisplayNameForm';
+import NotFound from './components/NotFound';
+import { Calendar } from 'lucide-react';
 
 // --- AUTH CONTEXT ---
 interface User {
@@ -157,6 +146,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const res = await apiFetch('/api/notifications');
+      if (res.ok) {
+        const notifs = await res.json();
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter((n: Notification) => !n.read).length);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUser();
   }, []);
@@ -177,27 +180,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user) return; // Solo cargar notificaciones si hay usuario autenticado
-      
-      try {
-        const res = await apiFetch('/api/notifications');
-        if (res.ok) {
-          const notifs = await res.json();
-          setNotifications(notifs);
-          setUnreadCount(notifs.filter((n: any) => !n.read).length);
-        }
-      } catch (err) {
-        console.error('Failed to fetch notifications:', err);
-      }
-    };
-
     if (user) {
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 30000);
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const socket = io({ withCredentials: true });
+
+    socket.on('connect', () => {
+      socket.emit('register', user._id);
+    });
+
+    socket.on('notification', (notif: Notification) => {
+      setNotifications((prev) => [notif, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id]);
 
   const authenticated = !!user;
 
@@ -254,7 +261,7 @@ function NotificationCenter() {
             >
               <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                 <h3 className="font-bold text-white text-lg flex items-center gap-2">
-                   <Bell size={18} className="text-indigo-400" /> Notificaciones
+                   <Bell size={18} className="text-blue-400" /> Notificaciones
                 </h3>
               </div>
               <div className="max-h-[400px] overflow-y-auto no-scrollbar">
@@ -264,7 +271,7 @@ function NotificationCenter() {
                       key={notif._id} 
                       className={cn(
                         "p-5 border-b border-slate-800 hover:bg-slate-800/30 transition-colors flex gap-4 items-start",
-                        !notif.read && "bg-indigo-500/5"
+                        !notif.read && "bg-blue-600/5"
                       )}
                     >
                       <div className="w-10 h-10 rounded-xl border border-slate-700 overflow-hidden shrink-0">
@@ -293,7 +300,7 @@ function NotificationCenter() {
                 )}
               </div>
               <div className="p-4 bg-slate-950/50 text-center border-t border-slate-800">
-                  <Link to="/notificaciones" onClick={() => setIsOpen(false)} className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                  <Link to="/notificaciones" onClick={() => setIsOpen(false)} className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
                     Ver todas las notificaciones
                   </Link>
               </div>
@@ -309,10 +316,12 @@ function NotificationCenter() {
 function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { name: 'Foro', icon: MessageSquare, path: '/foro' },
+    { name: 'Mensajes', icon: MessageCircle, path: '/mensajes' },
     { name: 'Profesores', icon: Trophy, path: '/ranking' },
     { name: 'Top 10 Monedas', icon: Coins, path: '/leaderboard' },
     { name: 'Objetos Perdidos', icon: Search, path: '/objetos-perdidos' },
@@ -324,61 +333,138 @@ function Layout({ children }: { children: React.ReactNode }) {
     navItems.push({ name: 'Admin', icon: Shield, path: '/admin' });
   }
 
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group hover-lift',
+      isActive
+        ? 'bg-blue-700/20 text-white border border-blue-700/30'
+        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+    );
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
   return (
     <div className="min-h-screen gradient-bg flex flex-col md:flex-row">
-      {/* Sidebar for Desktop */}
+      {/* Sidebar Desktop */}
       <aside className={cn(
-        "glass-effect transition-all duration-300 hidden md:flex flex-col z-20",
-        isSidebarOpen ? "w-80" : "w-20"
+        'glass-effect transition-all duration-300 hidden md:flex flex-col z-20',
+        isSidebarOpen ? 'w-80' : 'w-20'
       )}>
         <div className="p-6 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 hover-lift">
-             <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/40 border-gradient">
-                <span className="font-black text-white text-xl">C</span>
-             </div>
-             {isSidebarOpen && <span className="font-black text-2xl text-white tracking-tighter uppercase italic text-glow">COAR</span>}
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-700 to-red-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40 border-gradient">
+              <span className="font-black text-white text-xl">C</span>
+            </div>
+            {isSidebarOpen && <span className="font-black text-2xl text-white tracking-tighter uppercase italic text-glow">COAR</span>}
           </Link>
         </div>
 
         <nav className="flex-1 px-4 py-8 space-y-2">
           {navItems.map((item) => (
-            <Link 
-              key={item.name} 
+            <NavLink
+              key={item.name}
               to={item.path}
-              className="flex items-center gap-4 px-4 py-4 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-2xl transition-all group hover-lift"
+              end={item.path === '/'}
+              className={navLinkClass}
             >
               <item.icon size={22} className="shrink-0 group-hover:scale-110 transition-transform" />
               {isSidebarOpen && <span className="font-bold text-sm uppercase tracking-widest">{item.name}</span>}
-            </Link>
+            </NavLink>
           ))}
         </nav>
 
         <div className="p-6 border-t border-slate-800 space-y-4">
-            <button 
-                onClick={logout}
-                className="w-full flex items-center gap-4 px-4 py-4 text-red-400 hover:bg-red-500/20 rounded-2xl transition-all hover-lift"
-            >
-                <LogOut size={22} />
-                {isSidebarOpen && <span className="font-bold text-sm uppercase tracking-widest">Cerrar Sesión</span>}
-            </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="w-full flex items-center gap-4 px-4 py-4 text-red-400 hover:bg-red-500/20 rounded-2xl transition-all hover-lift"
+          >
+            <LogOut size={22} />
+            {isSidebarOpen && <span className="font-bold text-sm uppercase tracking-widest">Cerrar Sesión</span>}
+          </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 glass-effect border-b border-slate-800/50 flex items-center justify-between px-8 z-10 sticky top-0">
+      {/* Menú móvil */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-40 md:hidden"
+              onClick={closeMobileMenu}
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-72 glass-effect z-50 flex flex-col md:hidden"
+            >
+              <div className="p-6 flex items-center justify-between border-b border-slate-800">
+                <span className="font-black text-xl text-white uppercase italic">COAR</span>
+                <button type="button" onClick={closeMobileMenu} className="p-2 text-slate-400 hover:text-white" aria-label="Cerrar menú">
+                  <X size={24} />
+                </button>
+              </div>
+              <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.path}
+                    end={item.path === '/'}
+                    className={navLinkClass}
+                    onClick={closeMobileMenu}
+                  >
+                    <item.icon size={22} />
+                    <span className="font-bold text-sm uppercase tracking-widest">{item.name}</span>
+                  </NavLink>
+                ))}
+              </nav>
+              <div className="p-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { logout(); closeMobileMenu(); }}
+                  className="w-full flex items-center gap-4 px-4 py-4 text-red-400 hover:bg-red-500/20 rounded-2xl"
+                >
+                  <LogOut size={22} />
+                  <span className="font-bold text-sm uppercase tracking-widest">Cerrar Sesión</span>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="h-20 glass-effect border-b border-slate-800/50 flex items-center justify-between px-4 md:px-8 z-10 sticky top-0">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hidden md:block">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hidden md:block"
+              aria-label="Alternar sidebar"
+            >
               <Menu size={24} />
             </button>
-            <div className="md:hidden w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 md:hidden"
+              aria-label="Abrir menú"
+            >
+              <Menu size={24} />
+            </button>
+            <Link to="/" className="md:hidden w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center">
               <span className="font-black text-white">C</span>
-            </div>
+            </Link>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 px-4 py-2 glass-effect rounded-2xl hover-lift">
-              <div className="w-8 h-8 rounded-lg overflow-hidden border-2 border-indigo-500/30">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="flex items-center gap-3 px-3 md:px-4 py-2 glass-effect rounded-2xl hover-lift">
+              <div className="w-8 h-8 rounded-lg overflow-hidden border-2 border-blue-700/30">
                 {user?.picture ? (
                   <img src={user.picture} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -389,21 +475,19 @@ function Layout({ children }: { children: React.ReactNode }) {
               </div>
               <div className="hidden sm:block">
                 <p className="text-xs font-black text-white uppercase tracking-tighter truncate max-w-[120px]">{user?.displayName || user?.nombreCompleto || user?.name || 'Usuario'}</p>
-                <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">
-                      {user?.role === 'semiadmin' ? 'Semi Admin' : 
-                       user?.role === 'admin' ? 'Admin' : 
-                       user?.role === 'superadmin' ? 'Superadmin' : 'Usuario'}
-                    </span>
-                </div>
+                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">
+                  {user?.role === 'semiadmin' ? 'Semi Admin' :
+                   user?.role === 'admin' ? 'Admin' :
+                   user?.role === 'superadmin' ? 'Superadmin' : 'Usuario'}
+                </span>
               </div>
             </div>
             <NotificationCenter />
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-12 no-scrollbar">
-           {children}
+        <div className="flex-1 overflow-y-auto p-4 md:p-12 no-scrollbar pb-24 md:pb-12">
+          {children}
         </div>
       </main>
     </div>
@@ -420,7 +504,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <motion.div 
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-            className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full"
+            className="w-12 h-12 border-4 border-blue-900/20 border-t-blue-700 rounded-full"
         />
     </div>
   );
@@ -429,19 +513,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
         <div className="max-w-md w-full py-12 px-8 glass-effect rounded-[3rem] shadow-2xl text-center border-gradient">
-           <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl shadow-indigo-600/40 mb-8 overflow-hidden hover:scale-110 transition-transform border-gradient">
+           <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl shadow-blue-900/40 mb-8 overflow-hidden hover:scale-110 transition-transform border-gradient">
               <span className="text-4xl font-black text-white italic animate-pulse">C</span>
            </div>
            <h1 className="text-4xl font-black text-white tracking-tighter uppercase mb-4 italic">Bienvenido</h1>
            <p className="text-slate-400 text-sm font-medium mb-8">Accede a la plataforma central de la comunidad estudiantil para interactuar con tus compañeros.</p>
            {loginError && (
-             <p className="text-amber-400 text-sm font-medium mb-8 text-left bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3">
+             <p className="text-amber-700 text-sm font-medium mb-8 text-left bg-amber-800/10 border border-amber-800/20 rounded-2xl px-4 py-3">
                {loginError}
              </p>
            )}
            <button 
              onClick={() => navigate('/login')}
-             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-3 shadow-xl hover-lift border-gradient"
+             className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:from-blue-800 hover:to-red-800 transition-all flex items-center justify-center gap-3 shadow-xl hover-lift border-gradient"
            >
              <User size={20} /> Autenticarse
            </button>
@@ -467,23 +551,23 @@ function Dashboard() {
     };
 
     const coinPackages = [
-        { name: "basic", label: "Paquete Básico", coins: 100, price: "Gratis", color: "from-blue-600 to-cyan-600" },
-        { name: "standard", label: "Paquete Estándar", coins: 500, price: "Gratis", color: "from-purple-600 to-pink-600" },
-        { name: "premium", label: "Paquete Premium", coins: 2000, price: "Gratis", color: "from-yellow-600 to-orange-600" },
+        { name: "basic", label: "Paquete Básico", coins: 100, price: "Vía WhatsApp", color: "from-blue-600 to-cyan-600" },
+        { name: "standard", label: "Paquete Estándar", coins: 500, price: "Vía WhatsApp", color: "from-red-700 to-pink-600" },
+        { name: "premium", label: "Paquete Premium", coins: 2000, price: "Vía WhatsApp", color: "from-yellow-900 to-orange-600" },
     ];
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-12 rounded-[3.5rem] relative overflow-hidden shadow-2xl shadow-indigo-600/20 border-gradient">
+             <div className="bg-gradient-to-r from-blue-700 to-red-700 p-12 rounded-[3.5rem] relative overflow-hidden shadow-2xl shadow-blue-900/20 border-gradient">
                 <div className="relative z-10">
                     <h1 className="text-6xl font-black text-white tracking-tighter italic uppercase mb-4 text-glow animate-fade-in-up">Hola, {(user?.nombreCompleto || user?.name || 'Usuario').split(' ')[0]}!</h1>
-                    <p className="text-indigo-100 text-lg font-bold uppercase tracking-widest max-w-2xl opacity-90 leading-relaxed">
+                    <p className="text-blue-100 text-lg font-bold uppercase tracking-widest max-w-2xl opacity-90 leading-relaxed">
                         Bienvenido al Centro de Control Maestro de la Comunidad Estudiantil. 
                     </p>
                     <div className="mt-8 flex items-center gap-4 bg-white/10 p-6 rounded-2xl">
-                        <Coins size={40} className="text-yellow-400" />
+                        <Coins size={40} className="text-yellow-800" />
                         <div>
-                            <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest">Créditos disponibles</p>
+                            <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">Créditos disponibles</p>
                             <p className="text-5xl font-black text-white">{user?.credits?.toLocaleString() || 0}</p>
                         </div>
                     </div>
@@ -495,22 +579,23 @@ function Dashboard() {
              {/* Paquetes de Monedas */}
              <div className="glass-effect rounded-3xl p-8 border-gradient">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-8">
-                    <Coins size={24} className="text-yellow-500" />
+                    <Coins size={24} className="text-yellow-800" />
                     Obtener más créditos
                 </h2>
                 <div className="grid md:grid-cols-3 gap-6">
                     {coinPackages.map((pkg) => (
-                        <div key={pkg.name} className="bg-slate-900 rounded-2xl p-8 border border-slate-800 hover:border-indigo-600/50 transition-all hover-lift">
+                        <div key={pkg.name} className="bg-slate-900 rounded-2xl p-8 border border-slate-800 hover:border-blue-700/50 transition-all hover-lift">
                             <div className={`w-full h-20 bg-gradient-to-r ${pkg.color} rounded-xl flex items-center justify-center mb-6`}>
                                 <Coins size={40} className="text-white" />
                             </div>
                             <h3 className="text-xl font-black text-white mb-2">{pkg.label}</h3>
-                            <p className="text-3xl font-black text-yellow-500 mb-6">+{pkg.coins.toLocaleString()} 🪙</p>
+                            <p className="text-3xl font-black text-yellow-800 mb-6">+{pkg.coins.toLocaleString()} 🪙</p>
+                            <p className="text-xs text-slate-500 mb-4 uppercase tracking-widest">{pkg.price}</p>
                             <button
                                 onClick={() => handleBuyCoins(pkg.name)}
                                 className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all bg-gradient-to-r ${pkg.color} text-white hover:opacity-90`}
                             >
-                                Obtener
+                                Obtener por WhatsApp
                             </button>
                         </div>
                     ))}
@@ -521,13 +606,13 @@ function Dashboard() {
              <div className="glass-effect rounded-3xl p-8 border-gradient">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <Calendar size={24} className="text-indigo-400" />
+                        <Calendar size={24} className="text-blue-400" />
                         Información de Perfil
                     </h2>
                     {!(user?.ingresoColegio || user?.añoIngreso) && (
                         <button
                             onClick={() => setShowAnioForm(true)}
-                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient text-sm"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-700 to-red-700 text-white rounded-xl font-medium hover:from-blue-800 hover:to-red-800 transition-all hover-lift border-gradient text-sm"
                         >
                             Completar Perfil
                         </button>
@@ -539,7 +624,7 @@ function Dashboard() {
                         <h3 className="text-lg font-bold text-white mb-2">Nombre de Usuario</h3>
                         <p className="text-slate-400">
                             {user?.displayName ? (
-                                <span className="text-indigo-400 font-bold">{user.displayName}</span>
+                                <span className="text-blue-400 font-bold">{user.displayName}</span>
                             ) : (
                                 <span className="text-slate-500">No establecido</span>
                             )}
@@ -547,7 +632,7 @@ function Dashboard() {
                         {!user?.displayName && (
                             <button
                                 onClick={() => setShowDisplayNameForm(true)}
-                                className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                                className="mt-2 text-xs text-blue-400 hover:text-indigo-300 font-medium"
                             >
                                 Establecer nombre
                             </button>
@@ -558,7 +643,7 @@ function Dashboard() {
                         <h3 className="text-lg font-bold text-white mb-2">Año de Ingreso</h3>
                         <p className="text-slate-400">
                             {user?.ingresoColegio || user?.añoIngreso ? (
-                                <span className="text-indigo-400 font-bold">{user?.ingresoColegio || user?.añoIngreso}</span>
+                                <span className="text-blue-400 font-bold">{user?.ingresoColegio || user?.añoIngreso}</span>
                             ) : (
                                 <span className="text-slate-500">No especificado</span>
                             )}
@@ -604,22 +689,13 @@ function Dashboard() {
 
 // --- APP COMPONENT ---
 export default function App() {
-  const [showCookieConsent, setShowCookieConsent] = useState(false);
-
-  const handleCookieAccept = () => {
-    setShowCookieConsent(false);
-  };
-
-  const handleCookieReject = () => {
-    setShowCookieConsent(false);
-  };
-
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/foro" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
+          <Route path="/mensajes" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/ranking" element={<ProtectedRoute><TeacherRanking /></ProtectedRoute>} />
           <Route path="/ranking/:id" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />
           <Route path="/objetos-perdidos" element={<ProtectedRoute><LostFound /></ProtectedRoute>} />
@@ -635,13 +711,10 @@ export default function App() {
           <Route path="/terminos" element={<TerminosCondiciones />} />
           <Route path="/privacidad" element={<PoliticaPrivacidad />} />
           <Route path="/cookies" element={<PoliticaCookies />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
-        
-        {/* Cookie Consent Banner */}
-        <CookieConsent 
-          onAccept={handleCookieAccept} 
-          onReject={handleCookieReject} 
-        />
+
+        <CookieConsent onAccept={() => {}} onReject={() => {}} />
       </BrowserRouter>
     </AuthProvider>
   );

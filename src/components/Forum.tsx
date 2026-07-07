@@ -25,6 +25,7 @@ export default function Forum() {
   });
   const [listPage, setListPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState('');
 
   const fetchPosts = async (page = 1, append = false) => {
     setLoading(true);
@@ -60,6 +61,7 @@ export default function Forum() {
   };
 
   const handleCreatePost = async () => {
+    setError('');
     const res = await apiFetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -69,10 +71,14 @@ export default function Forum() {
       setIsCreating(false);
       setNewPost({ title: '', content: '', category: 'General' });
       fetchPosts(1, false);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || 'No se pudo publicar. Intenta de nuevo.');
     }
   };
 
   const handleAddComment = async () => {
+    setError('');
     const res = await apiFetch(`/api/posts/${selectedPost._id}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -83,6 +89,9 @@ export default function Forum() {
         const cRes = await apiFetch(`/api/posts/${selectedPost._id}`);
         const cData = await cRes.json();
         setComments(cData.comments);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || 'No se pudo enviar el comentario.');
     }
   };
 
@@ -91,7 +100,7 @@ export default function Forum() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900/50 p-8 rounded-[3rem] border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter">
-            Foro <span className="text-indigo-500">Comunal</span>
+            Foro <span className="text-blue-500">Comunal</span>
           </h2>
           <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em] leading-loose">
             Espacio abierto para el debate, consultas y <br /> convivencia estudiantil COAR.
@@ -99,11 +108,17 @@ export default function Forum() {
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 transition-all flex items-center gap-3 shadow-xl"
+          className="bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-800 transition-all flex items-center gap-3 shadow-xl"
         >
           <Plus size={20} /> Nueva Publicación
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-6 py-4 text-red-400 text-sm font-medium">
+          {error}
+        </div>
+      )}
 
       <AnimatePresence>
         {isCreating && (
@@ -117,7 +132,7 @@ export default function Forum() {
                 <input 
                     type="text" 
                     placeholder="Título de la publicación" 
-                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-blue-700"
                     value={newPost.title}
                     onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
                 />
@@ -135,7 +150,7 @@ export default function Forum() {
             </div>
             <textarea 
                 placeholder="Escribe el contenido aquí..." 
-                className="w-full bg-slate-950 border border-slate-800 rounded-[2rem] px-6 py-6 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500 h-40 resize-none"
+                className="w-full bg-slate-950 border border-slate-800 rounded-[2rem] px-6 py-6 text-sm text-white outline-none focus:ring-2 focus:ring-blue-700 h-40 resize-none"
                 value={newPost.content}
                 onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
             />
@@ -143,7 +158,7 @@ export default function Forum() {
               <button onClick={() => setIsCreating(false)} className="px-6 py-3 text-slate-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</button>
               <button 
                 onClick={handleCreatePost}
-                className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20"
+                className="bg-blue-700 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/20"
               >
                 Publicar Ahora
               </button>
@@ -156,12 +171,12 @@ export default function Forum() {
         <div className="p-6 bg-slate-950/20 border-b border-slate-800">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6 text-xs font-bold uppercase tracking-widest">
-              <button className="text-indigo-400 border-b-2 border-indigo-500 pb-1">Más recientes</button>
+              <button className="text-blue-400 border-b-2 border-blue-700 pb-1">Más recientes</button>
               <button 
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className={cn(
                     "flex items-center gap-2 pb-1 transition-colors",
-                    isFilterOpen ? "text-indigo-400" : "text-slate-500 hover:text-slate-200"
+                    isFilterOpen ? "text-blue-400" : "text-slate-500 hover:text-slate-200"
                 )}
               >
                 <Filter size={14} /> Filtros Avanzados
@@ -172,7 +187,7 @@ export default function Forum() {
               <input 
                 type="text" 
                 placeholder="Buscar por palabra clave..." 
-                className="w-full bg-slate-950 border border-slate-800 rounded-full pl-10 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-200" 
+                className="w-full bg-slate-950 border border-slate-800 rounded-full pl-10 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-700 text-slate-200" 
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
               />
@@ -239,9 +254,9 @@ export default function Forum() {
                     <img src={post.author?.picture || ''} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors leading-snug">{post.title}</h3>
+                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors leading-snug">{post.title}</h3>
                     <p className="text-xs text-slate-500 flex items-center gap-2 font-medium mt-1">
-                      Por <span className="text-indigo-400/80 font-bold">
+                      Por <span className="text-blue-400/80 font-bold">
                         Anónimo · Promo {post.author.ingresoColegio || post.author.añoIngreso || 'Desconocido'}
                       </span> • {new Date(post.createdAt).toLocaleDateString()}
                     </p>
@@ -259,7 +274,7 @@ export default function Forum() {
                   <Eye size={16} />
                   <span className="text-xs font-bold">{post.views}</span>
                 </div>
-                <div className="flex items-center gap-2 text-indigo-400">
+                <div className="flex items-center gap-2 text-blue-400">
                   <MessageCircle size={16} />
                   <span className="text-xs font-bold">{post.views > 0 ? Math.floor(post.views / 2) : 0} comentarios</span>
                 </div>
@@ -306,7 +321,7 @@ export default function Forum() {
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">{selectedPost.title}</h2>
-                            <p className="text-xs text-slate-500 font-bold uppercase">De <span className="text-indigo-400">Anónimo · Promo {selectedPost.author.ingresoColegio || selectedPost.author.añoIngreso || 'Desconocido'}</span> • {new Date(selectedPost.createdAt).toLocaleString()}</p>
+                            <p className="text-xs text-slate-500 font-bold uppercase">De <span className="text-blue-400">Anónimo · Promo {selectedPost.author.ingresoColegio || selectedPost.author.añoIngreso || 'Desconocido'}</span> • {new Date(selectedPost.createdAt).toLocaleString()}</p>
                         </div>
                     </div>
                     <button onClick={() => setSelectedPost(null)} className="p-3 hover:bg-slate-800 rounded-2xl text-slate-500">
@@ -322,7 +337,7 @@ export default function Forum() {
 
                 <div className="space-y-8">
                   <h4 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
-                    <MessageSquare size={18} className="text-indigo-500" /> Respuestas de la comunidad
+                    <MessageSquare size={18} className="text-blue-500" /> Respuestas de la comunidad
                   </h4>
                   
                   <div className="space-y-4">
@@ -345,14 +360,14 @@ export default function Forum() {
                   <div className="pt-8 border-t border-slate-800/50 space-y-4">
                     <textarea 
                         placeholder="Añade un comentario constructivo..." 
-                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500 h-24 resize-none"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-sm text-white outline-none focus:ring-2 focus:ring-blue-700 h-24 resize-none"
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                     />
                     <div className="flex justify-end">
                         <button 
                             onClick={handleAddComment}
-                            className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20"
+                            className="bg-blue-700 text-white px-8 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/20"
                         >
                             Comentar
                         </button>

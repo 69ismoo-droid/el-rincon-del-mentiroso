@@ -47,7 +47,7 @@ export default function VerifyOTP() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/verify', {
+      const response = await fetch('/api/auth/verify-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export default function VerifyOTP() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/resend-otp', {
+      const response = await fetch('/api/auth/resend-code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export default function VerifyOTP() {
 
       if (response.ok) {
         setError('');
-        setRemainingAttempts(data.remainingAttempts || 3);
+        setRemainingAttempts(data.remainingResends ?? 3);
         setBlockedUntil(null);
         alert('Nuevo código enviado a tu correo. Revisa tu bandeja de entrada.');
       } else if (response.status === 429) {
@@ -131,7 +131,7 @@ export default function VerifyOTP() {
       <div className="min-h-screen gradient-bg flex items-center justify-center px-4">
         <div className="glass-effect rounded-3xl shadow-2xl border-gradient p-8 max-w-md w-full">
           <div className="text-center">
-            <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
               <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
             <h1 className="text-2xl font-black text-white tracking-tighter uppercase mb-4">
@@ -184,7 +184,7 @@ export default function VerifyOTP() {
             </button>
 
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
                 <Mail className="text-white" size={40} />
               </div>
               <h1 className="text-3xl font-black text-white tracking-tighter uppercase mb-4">
@@ -205,7 +205,7 @@ export default function VerifyOTP() {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="tu.nombre@cusco.coar.edu.pe"
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -221,7 +221,7 @@ export default function VerifyOTP() {
                   placeholder="123456"
                   maxLength={6}
                   className={`w-full px-4 py-4 bg-slate-800 border rounded-xl text-white text-center text-2xl font-bold tracking-widest placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                    fieldErrors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-indigo-500 focus:border-transparent'
+                    fieldErrors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-blue-600 focus:border-transparent'
                   }`}
                   required
                 />
@@ -237,7 +237,7 @@ export default function VerifyOTP() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Verificando...' : 'Verificar Código'}
               </button>
@@ -245,8 +245,8 @@ export default function VerifyOTP() {
 
             <div className="mt-6 text-center space-y-3">
               {blockedUntil ? (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                  <p className="text-amber-400 text-sm font-medium flex items-center justify-center gap-2">
+                <div className="bg-amber-800/10 border border-amber-800/20 rounded-xl p-4">
+                  <p className="text-amber-700 text-sm font-medium flex items-center justify-center gap-2">
                     <AlertCircle size={16} />
                     Bloqueado temporalmente
                   </p>
@@ -261,11 +261,11 @@ export default function VerifyOTP() {
                     <button
                       onClick={handleResendOTP}
                       disabled={resending}
-                      className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                      className="text-blue-400 hover:text-indigo-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
                     >
                       {resending ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                           Reenviando...
                         </>
                       ) : (
@@ -277,8 +277,8 @@ export default function VerifyOTP() {
                     </button>
                   </p>
                   {remainingAttempts < 3 && (
-                    <p className="text-amber-400 text-xs">
-                      {remainingAttempts} intentos restantes
+                    <p className="text-amber-700 text-xs">
+                      {remainingAttempts} reenvío{remainingAttempts === 1 ? '' : 's'} restante{remainingAttempts === 1 ? '' : 's'} esta hora
                     </p>
                   )}
                 </>

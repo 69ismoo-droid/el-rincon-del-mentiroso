@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, Trophy, Plus, Search, X } from 'lucide-react';
 import { useAuth } from '../App';
-import { cn, apiFetch } from '../lib/utils';
+import { cn, apiFetch, isAdminRole } from '../lib/utils';
 import { Link } from 'react-router-dom';
 
 interface Teacher {
@@ -65,20 +65,20 @@ export default function TeacherRanking() {
       <div className="bg-slate-900/50 p-12 rounded-[3.5rem] border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-8 shadow-2xl">
         <div className="space-y-3">
           <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter">
-            Ranking de <span className="text-yellow-500">Excelencia</span>
+            Ranking de <span className="text-yellow-800">Excelencia</span>
           </h2>
           <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs leading-loose">
             Reconocimiento a la labor docente COAR basada <br /> en el feedback constructivo de los estudiantes.
           </p>
         </div>
         <div className="flex flex-col gap-4">
-          <div className="w-24 h-24 bg-yellow-500/10 rounded-[2.5rem] flex items-center justify-center border border-yellow-500/20 shadow-2xl shadow-yellow-500/20">
-            <Trophy size={48} className="text-yellow-500" />
+          <div className="w-24 h-24 bg-yellow-800/10 rounded-[2.5rem] flex items-center justify-center border border-yellow-800/20 shadow-2xl shadow-yellow-800/20">
+            <Trophy size={48} className="text-yellow-800" />
           </div>
-          {["admin", "superadmin"].includes(user?.role) && (
+          {isAdminRole(user?.role) && (
             <button
               onClick={() => setShowAddTeacher(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-yellow-700 hover:to-orange-700 transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-900 to-orange-600 text-white rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-yellow-700 hover:to-orange-700 transition-all"
             >
               <Plus size={18} />
               Agregar Profesor
@@ -116,7 +116,7 @@ export default function TeacherRanking() {
                   value={newTeacher.name}
                   onChange={(e) => setNewTeacher({ ...newTeacher, name: e.target.value })}
                   placeholder="Prof. Juan Pérez"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-800"
                 />
               </div>
               <div>
@@ -128,7 +128,7 @@ export default function TeacherRanking() {
                   value={newTeacher.subject}
                   onChange={(e) => setNewTeacher({ ...newTeacher, subject: e.target.value })}
                   placeholder="Matemáticas"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-800"
                 />
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function TeacherRanking() {
               <button
                 onClick={handleAddTeacher}
                 disabled={adding}
-                className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50 transition-all"
+                className="bg-gradient-to-r from-yellow-900 to-orange-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50 transition-all"
               >
                 {adding ? "Agregando..." : "Agregar Profesor"}
               </button>
@@ -153,7 +153,7 @@ export default function TeacherRanking() {
 
       {loading ? (
         <div className="text-center py-20">
-          <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-yellow-800 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">
             Cargando ranking...
           </p>
@@ -172,9 +172,9 @@ export default function TeacherRanking() {
                 <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center font-black text-2xl text-white italic">
                   {teacher.name.charAt(0)}
                 </div>
-                <div className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-500/20">
-                  <Star size={14} className="fill-yellow-500 text-yellow-500" />
-                  <span className="text-xs font-black text-yellow-500">
+                <div className="flex items-center gap-2 bg-yellow-800/10 px-3 py-1.5 rounded-full border border-yellow-800/20">
+                  <Star size={14} className="fill-yellow-800 text-yellow-800" />
+                  <span className="text-xs font-black text-yellow-800">
                     {teacher.rating.toFixed(1)}
                   </span>
                 </div>
@@ -182,7 +182,7 @@ export default function TeacherRanking() {
               <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2">
                 {teacher.name}
               </h3>
-              <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
+              <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
                 {teacher.subject}
               </p>
 
@@ -192,7 +192,7 @@ export default function TeacherRanking() {
                 </span>
                 <Link
                   to={`/ranking/${teacher._id}`}
-                  className="text-[10px] font-black text-white uppercase tracking-widest bg-slate-800 px-4 py-2 rounded-xl group-hover:bg-yellow-600 transition-all"
+                  className="text-[10px] font-black text-white uppercase tracking-widest bg-slate-800 px-4 py-2 rounded-xl group-hover:bg-yellow-900 transition-all"
                 >
                   Ver Perfil
                 </Link>

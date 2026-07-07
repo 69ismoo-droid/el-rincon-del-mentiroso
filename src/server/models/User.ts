@@ -19,8 +19,9 @@ const UserSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   otpCode: { type: String, select: false },
   otpExpires: { type: Date, select: false },
+  otpFailedAttempts: { type: Number, default: 0, select: false },
   otpResendCount: { type: Number, default: 0, select: false },
-  otpResendBlockedUntil: { type: Date, select: false },
+  otpResendWindowStart: { type: Date, select: false },
   
   // Perfil
   nombreCompleto: { type: String, required: false, default: 'Pendiente' },

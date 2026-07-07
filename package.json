@@ -48,7 +48,6 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^8.0.7",
     "react-router-dom": "^6.15.0",
-    "resend": "^6.16.0",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
     "tailwind-merge": "^1.14.0",

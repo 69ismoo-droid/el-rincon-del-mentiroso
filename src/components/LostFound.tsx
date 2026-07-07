@@ -48,11 +48,11 @@ export default function LostFound() {
                         <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-4">{item.title}</h3>
                         <div className="space-y-3">
                             <div className="flex items-center gap-3 text-slate-500">
-                                <MapPin size={16} className="text-indigo-500" />
+                                <MapPin size={16} className="text-blue-600" />
                                 <span className="text-xs font-bold uppercase">{item.location}</span>
                             </div>
                             <div className="flex items-center gap-3 text-slate-500">
-                                <Calendar size={16} className="text-indigo-500" />
+                                <Calendar size={16} className="text-blue-600" />
                                 <span className="text-xs font-bold uppercase">{new Date(item.createdAt).toLocaleDateString()}</span>
                             </div>
                         </div>

@@ -214,7 +214,7 @@ export default function AdminPanel() {
       <div className="bg-slate-900/50 p-12 rounded-[3.5rem] border border-slate-800 flex justify-between items-center shadow-2xl">
         <div className="space-y-3">
           <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter">
-            Panel de <span className="text-indigo-500">Control</span>
+            Panel de <span className="text-blue-700">Control</span>
           </h1>
           <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs">
             {canAdmin
@@ -222,22 +222,22 @@ export default function AdminPanel() {
               : "Moderación del foro."}
           </p>
         </div>
-        <div className="w-24 h-24 bg-indigo-600/10 rounded-[2.5rem] flex items-center justify-center border border-indigo-600/20">
-          <ShieldAlert size={48} className="text-indigo-500" />
+        <div className="w-24 h-24 bg-blue-700/10 rounded-[2.5rem] flex items-center justify-center border border-blue-700/20">
+          <ShieldAlert size={48} className="text-blue-700" />
         </div>
       </div>
 
       {canAdmin && (
         <>
           {error && (
-            <p className="text-amber-500 text-sm font-bold px-4">
+            <p className="text-amber-800 text-sm font-bold px-4">
               No se pudieron cargar las estadísticas: {error}
             </p>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
-              <Users size={32} className="text-indigo-500" />
+              <Users size={32} className="text-blue-700" />
               <p className="text-4xl font-black text-white">
                 {stats?.users ?? "—"}
               </p>
@@ -255,7 +255,7 @@ export default function AdminPanel() {
               </p>
             </div>
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
-              <ShieldAlert size={32} className="text-yellow-500" />
+              <ShieldAlert size={32} className="text-yellow-800" />
               <p className="text-4xl font-black text-white">
                 {stats?.posts ?? "—"}
               </p>
@@ -264,7 +264,7 @@ export default function AdminPanel() {
               </p>
             </div>
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
-              <Trophy size={32} className="text-purple-500" />
+              <Trophy size={32} className="text-red-600" />
               <p className="text-4xl font-black text-white">
                 {stats?.bets ?? "—"}
               </p>
@@ -283,7 +283,7 @@ export default function AdminPanel() {
             onClick={() => setActiveTab("forum")}
             className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm uppercase tracking-widest transition-all ${
               activeTab === "forum"
-                ? "bg-indigo-600 text-white"
+                ? "bg-blue-700 text-white"
                 : "text-slate-400 hover:bg-slate-800"
             }`}
           >
@@ -293,7 +293,7 @@ export default function AdminPanel() {
             onClick={() => setActiveTab("users")}
             className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm uppercase tracking-widest transition-all ${
               activeTab === "users"
-                ? "bg-indigo-600 text-white"
+                ? "bg-blue-700 text-white"
                 : "text-slate-400 hover:bg-slate-800"
             }`}
           >
@@ -303,7 +303,7 @@ export default function AdminPanel() {
             onClick={() => setActiveTab("bets")}
             className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm uppercase tracking-widest transition-all ${
               activeTab === "bets"
-                ? "bg-indigo-600 text-white"
+                ? "bg-blue-700 text-white"
                 : "text-slate-400 hover:bg-slate-800"
             }`}
           >
@@ -318,7 +318,7 @@ export default function AdminPanel() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2">
-                <MessageSquare className="text-indigo-400" size={28} />
+                <MessageSquare className="text-blue-400" size={28} />
                 Moderación del foro
               </h2>
               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">
@@ -379,7 +379,7 @@ export default function AdminPanel() {
                   onClick={() => void loadModPosts(p)}
                   className={`w-10 h-10 rounded-lg font-bold text-sm ${
                     p === modPage
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-blue-700 text-white"
                       : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                   }`}
                 >
@@ -394,7 +394,7 @@ export default function AdminPanel() {
       {canAdmin && activeTab === "users" && (
         <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 space-y-6">
           <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2">
-            <Users className="text-indigo-400" size={28} />
+            <Users className="text-blue-400" size={28} />
             Gestión de Usuarios
           </h2>
           {usersErr && (
@@ -442,7 +442,7 @@ export default function AdminPanel() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <Coins size={16} className="text-yellow-500" />
+                        <Coins size={16} className="text-yellow-800" />
                         <input
                           type="number"
                           value={u.credits}
@@ -486,7 +486,7 @@ export default function AdminPanel() {
       {canAdmin && activeTab === "bets" && (
         <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 space-y-6">
           <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2">
-            <Trophy className="text-indigo-400" size={28} />
+            <Trophy className="text-blue-400" size={28} />
             Gestión de Apuestas
           </h2>
           {betsErr && (
@@ -505,8 +505,8 @@ export default function AdminPanel() {
                   <div className="flex items-center gap-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${
                       b.status === "open" ? "bg-green-500/10 text-green-400" :
-                      b.status === "closed" ? "bg-yellow-500/10 text-yellow-400" :
-                      "bg-purple-500/10 text-purple-400"
+                      b.status === "closed" ? "bg-yellow-800/10 text-yellow-700" :
+                      "bg-red-600/10 text-red-400"
                     }`}>
                       {b.status}
                     </span>
@@ -526,7 +526,7 @@ export default function AdminPanel() {
                       {b.options.map((opt, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-slate-900 p-3 rounded-xl">
                           <span className="text-white font-medium">{opt.name}</span>
-                          <span className="text-yellow-500 font-bold flex items-center gap-1">
+                          <span className="text-yellow-800 font-bold flex items-center gap-1">
                             <Coins size={14} /> {opt.pool}
                           </span>
                         </div>
@@ -553,7 +553,7 @@ export default function AdminPanel() {
                       </select>
                       <button
                         onClick={() => updateBet(b._id, { status: "closed" })}
-                        className="w-full bg-yellow-500/10 text-yellow-400 py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-yellow-500/20"
+                        className="w-full bg-yellow-800/10 text-yellow-700 py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-yellow-800/20"
                       >
                         Cerrar apuestas
                       </button>

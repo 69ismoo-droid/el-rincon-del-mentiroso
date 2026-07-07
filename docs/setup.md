@@ -23,11 +23,11 @@ Para que el proyecto funcione en cualquier laptop y esté listo para producción
   - Obtener la connection string
   - **Importante**: Configura IP whitelist a `0.0.0.0/0` para permitir acceso desde cualquier lugar
 
-- **Resend** (Envío de emails)
-  - [Crear cuenta gratuita](https://resend.com)
-  - Crear API key en [resend.com/api-keys](https://resend.com/api-keys)
-  - En desarrollo usa `onboarding@resend.dev` (gratis)
-  - Para producción, configura tu propio dominio
+- **Brevo** (Envío de emails)
+  - [Crear cuenta gratuita](https://www.brevo.com)
+  - Ir a **Configuración → SMTP y API → Claves SMTP y API**
+  - Crear una clave SMTP (comienza con `xsmtpsib-`)
+  - Verificar el dominio remitente (ej. `cusco.coar.edu.pe`) en **Remitentes y dominios**
 
 ## 🔧 Instalación Paso a Paso
 
@@ -68,14 +68,19 @@ SESSION_SECRET=genera_una_clave_segura_de_al_menos_32_caracteres
 # Dominios de email permitidos
 ALLOWED_EMAIL_DOMAINS=cusco.coar.edu.pe
 
-# API Key de Resend para emails
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Email Brevo (SMTP)
+BREVO_SMTP_HOST=smtp-relay.brevo.com
+BREVO_SMTP_PORT=587
+BREVO_SMTP_USER=tu-email@ejemplo.com
+BREVO_SMTP_KEY=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+BREVO_FROM_EMAIL=noreply@cusco.coar.edu.pe
+BREVO_FROM_NAME=Foro COAR
 ```
 
 **Nota para producción:**
 - `MONGODB_URI`: Usa la connection string de MongoDB Atlas (no localhost)
 - `SESSION_SECRET`: Genera uno único con `npm run generate:secret`
-- `RESEND_API_KEY`: Obtén tu API key de Resend
+- `BREVO_SMTP_KEY`, `BREVO_SMTP_USER`, `BREVO_FROM_EMAIL`: Obtén la clave SMTP en [app.brevo.com](https://app.brevo.com)
 
 #### Variables Opcionales
 
@@ -106,14 +111,15 @@ npm run generate:secret
 
 Copia el resultado y pégalo en la variable `SESSION_SECRET` de tu archivo `.env`.
 
-### 5. Configurar Resend
+### 5. Configurar Brevo
 
-1. Ve a [resend.com/api-keys](https://resend.com/api-keys)
-2. Crea una nueva API key
-3. Copia la API key (comienza con `re_`)
-4. Pégala en la variable `RESEND_API_KEY` de tu `.env`
+1. Ve a [app.brevo.com](https://app.brevo.com) e inicia sesión
+2. En **Configuración → SMTP y API → Claves SMTP y API**, crea una nueva clave SMTP
+3. Copia la clave (comienza con `xsmtpsib-`) y pégala en `BREVO_SMTP_KEY`
+4. En `BREVO_SMTP_USER` usa el email de tu cuenta Brevo
+5. En **Remitentes y dominios**, verifica el dominio o email que usarás en `BREVO_FROM_EMAIL`
 
-**Nota**: Durante el desarrollo, Resend usa `onboarding@resend.dev` como remitente gratuito. Para producción, configura tu propio dominio en Resend.
+**Nota**: En desarrollo, si no configuras Brevo, los correos se simulan en la consola del servidor.
 
 ### 6. Iniciar MongoDB
 
@@ -159,13 +165,13 @@ npm start
 
 ## 🐛 Solución de Problemas
 
-### Error: "RESEND_API_KEY no está configurada"
+### Error: "BREVO_SMTP_KEY ... obligatoria en producción"
 
-**Causa**: La variable `RESEND_API_KEY` no está en tu archivo `.env`
+**Causa**: Las variables de Brevo no están en tu archivo `.env`
 
 **Solución**:
 1. Abre tu archivo `.env`
-2. Agrega: `RESEND_API_KEY=re_tu_api_key_aqui`
+2. Agrega las variables `BREVO_SMTP_KEY`, `BREVO_SMTP_USER` y `BREVO_FROM_EMAIL`
 3. Reinicia el servidor
 
 ### Error: "Connection refused" en MongoDB
@@ -262,7 +268,7 @@ docker run -p 3002:3002 --env-file .env coar-community
 - Configura `NODE_ENV=production`
 - Usa HTTPS en producción
 - Restringe `ALLOWED_EMAIL_DOMAINS` a dominios institucionales
-- Configura tu propio dominio en Resend (no uses `onboarding@resend.dev` en producción)
+- Verifica tu dominio remitente en Brevo (`BREVO_FROM_EMAIL`)
 
 ## 📞 Soporte
 

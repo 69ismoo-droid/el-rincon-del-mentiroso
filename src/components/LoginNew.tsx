@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginSchema, type LoginFormData } from '../lib/validation';
+import { apiFetch } from '../lib/utils';
+import { useAuth } from '../App';
 
 export default function LoginNew() {
   const navigate = useNavigate();
+  const { refresh } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -36,19 +39,19 @@ export default function LoginNew() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        window.location.href = '/';
+        await refresh();
+        navigate('/', { replace: true });
       } else {
         if (data.needsVerification) {
           setError('Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.');
@@ -70,7 +73,7 @@ export default function LoginNew() {
           <div className="p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-700 to-red-700 rounded-3xl mx-auto flex items-center justify-center shadow-2xl mb-6 border-gradient">
                 <User className="text-white" size={40} />
               </div>
               <h1 className="text-3xl font-black text-white tracking-tighter uppercase mb-4">
@@ -95,7 +98,7 @@ export default function LoginNew() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="tu.nombre@cusco.coar.edu.pe"
                     className={`w-full pl-12 pr-4 py-3 bg-slate-800 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                      fieldErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-indigo-500 focus:border-transparent'
+                      fieldErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-blue-700 focus:border-transparent'
                     }`}
                     required
                   />
@@ -115,7 +118,7 @@ export default function LoginNew() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="Tu contraseña"
                     className={`w-full pl-12 pr-12 py-3 bg-slate-800 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                      fieldErrors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-indigo-500 focus:border-transparent'
+                      fieldErrors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-blue-700 focus:border-transparent'
                     }`}
                     required
                   />
@@ -139,7 +142,7 @@ export default function LoginNew() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-indigo-700 hover:to-purple-700 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-blue-700 to-red-700 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:from-blue-800 hover:to-red-800 transition-all hover-lift border-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -176,12 +179,18 @@ export default function LoginNew() {
                 </Link>
               </div>
               
-              <div className="border-t border-slate-700 pt-4">
+              <div className="border-t border-slate-700 pt-4 space-y-3">
+                <p className="text-slate-500 text-sm">
+                  ¿Olvidaste tu contraseña?{' '}
+                  <span className="text-slate-400">
+                    Contacta a un administrador del foro para restablecerla.
+                  </span>
+                </p>
                 <p className="text-slate-500 text-sm">
                   ¿No tienes cuenta?{' '}
                   <button
                     onClick={() => navigate('/register')}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                    className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
                   >
                     Regístrate aquí
                   </button>
