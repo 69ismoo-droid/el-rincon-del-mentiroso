@@ -47,6 +47,10 @@ class MailService {
     }
   }
 
+  isConfigured(): boolean {
+    return this.transporter !== null;
+  }
+
   async sendMail({ to, subject, html }: SendMailOptions): Promise<void> {
     if (!this.transporter) {
       console.warn(`[mail dev] Simulado → ${to} | ${subject}`);

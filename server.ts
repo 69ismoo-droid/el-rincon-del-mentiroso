@@ -15,6 +15,7 @@ import {
   getPublicUrl,
   isProductionEnv,
   shouldUseSecureSessionCookies,
+  validateEnvOrExit,
 } from "./src/server/config/env.js";
 import { logger } from "./src/server/lib/logger.js";
 import { HttpError } from "./src/server/lib/httpError.js";
@@ -73,7 +74,7 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use((req, res, next) => {
+app.use((req: any, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
