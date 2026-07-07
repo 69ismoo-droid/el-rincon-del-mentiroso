@@ -8,7 +8,7 @@ interface SendMailOptions {
   html: string;
 }
 
-class MailService {
+export class MailService {
   private transporter: Transporter | null;
   private fromAddress: string;
 

@@ -9,27 +9,6 @@ export function isProductionEnv(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-/** Valida las variables de entorno críticas o termina el proceso. */
-export function validateEnvOrExit(): void {
-  const critical = [
-    'MONGODB_URI',
-    'SESSION_SECRET'
-  ];
-
-  if (isProductionEnv()) {
-    critical.push('BREVO_SMTP_KEY', 'BREVO_SMTP_USER', 'BREVO_FROM_EMAIL');
-  }
-
-  const missing = critical.filter(key => !process.env[key]?.trim());
-
-  if (missing.length > 0) {
-    console.error('\n❌ ERROR: Faltan variables de entorno críticas:');
-    missing.forEach(key => console.error(`   - ${key}`));
-    console.error('\nPor favor, configúralas en tu archivo .env o en el panel de control.\n');
-    if (isProductionEnv()) process.exit(1);
-  }
-}
-
 /** URL pública del sitio (Render inyecta RENDER_EXTERNAL_URL automáticamente). */
 export function getPublicUrl(): string {
   const explicit = process.env.PUBLIC_URL?.trim();

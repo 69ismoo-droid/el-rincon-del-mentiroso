@@ -15,8 +15,8 @@ import {
   getPublicUrl,
   isProductionEnv,
   shouldUseSecureSessionCookies,
-  validateEnvOrExit,
 } from "./src/server/config/env.js";
+import { validateEnvOrExit } from "./src/server/config/validateEnv.js";
 import { logger } from "./src/server/lib/logger.js";
 import { HttpError } from "./src/server/lib/httpError.js";
 
