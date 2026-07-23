@@ -470,6 +470,19 @@ router.patch("/notifications/read", ...authed, async (req: any, res) => {
   }
 });
 
+router.post("/notifications/mark-all-read", ...authed, async (req: any, res) => {
+  try {
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+    await Notification.updateMany(
+      { recipient: user._id, read: false },
+      { read: true }
+    );
+    res.json({ message: "Notifications marked as read" });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 // --- BETS (créditos / predicciones) ---
 router.get("/bets/events", ...authed, async (_req: any, res) => {
   try {

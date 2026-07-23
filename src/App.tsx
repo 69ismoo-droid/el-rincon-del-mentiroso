@@ -136,13 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const markAsRead = async () => {
     if (!user) return;
     try {
-      await apiFetch('/api/notifications/mark-all-read', {
-        method: 'POST',
+      await apiFetch("/api/notifications/read", {
+        method: "PATCH",
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.error('Failed to mark notifications as read:', err);
+      console.error("Failed to mark notifications as read:", err);
     }
   };
 
