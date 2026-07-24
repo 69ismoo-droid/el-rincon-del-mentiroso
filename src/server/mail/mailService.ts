@@ -36,13 +36,8 @@ export class MailService {
       });
     } else {
       this.transporter = null;
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error(
-          'BREVO_SMTP_KEY, BREVO_SMTP_USER y BREVO_FROM_EMAIL son obligatorias en producción'
-        );
-      }
       console.warn(
-        '[mail] Brevo no configurado — los correos se simularán en consola (solo desarrollo)'
+        '[mail] Brevo no configurado — los correos se simularán en consola'
       );
     }
   }
