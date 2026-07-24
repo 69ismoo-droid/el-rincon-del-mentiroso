@@ -27,20 +27,13 @@ export function validateEnvOrExit(): void {
       errors.push('SESSION_SECRET no puede ser el valor de ejemplo. Genera uno con npm run generate:secret.');
     }
 
-    if (!process.env.BREVO_SMTP_KEY?.trim()) {
-      errors.push('BREVO_SMTP_KEY es obligatoria en producción.');
-    } else if (isPlaceholderSmtpKey(process.env.BREVO_SMTP_KEY)) {
+    // Brevo es opcional en producción
+    if (process.env.BREVO_SMTP_KEY?.trim() && isPlaceholderSmtpKey(process.env.BREVO_SMTP_KEY)) {
       errors.push('BREVO_SMTP_KEY parece un placeholder. Usa tu clave SMTP real de Brevo.');
     }
 
-    if (!process.env.BREVO_SMTP_USER?.trim()) {
-      errors.push('BREVO_SMTP_USER es obligatoria en producción.');
-    } else if (isPlaceholderSmtpUser(process.env.BREVO_SMTP_USER)) {
+    if (process.env.BREVO_SMTP_USER?.trim() && isPlaceholderSmtpUser(process.env.BREVO_SMTP_USER)) {
       errors.push('BREVO_SMTP_USER parece un placeholder. Usa el email de tu cuenta Brevo.');
-    }
-
-    if (!process.env.BREVO_FROM_EMAIL?.trim()) {
-      errors.push('BREVO_FROM_EMAIL es obligatoria en producción.');
     }
 
     const publicUrl = getPublicUrl();
