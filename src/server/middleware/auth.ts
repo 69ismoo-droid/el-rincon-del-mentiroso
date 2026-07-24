@@ -14,11 +14,13 @@ export const requireDb: RequestHandler = (req, res, next) => {
 export const requireAuth = routeAsync(async (req, res, next) => {
   const userId = (req.session as any).userId;
   if (!userId) {
+    console.warn(`[auth] No autorizado: ${req.method} ${req.path}`);
     res.status(401).json({ error: "No autorizado" });
     return;
   }
   const user = await User.findById(userId);
   if (!user) {
+    console.warn(`[auth] No autorizado (usuario no encontrado): ${req.method} ${req.path}`);
     res.status(401).json({ error: "No autorizado" });
     return;
   }
