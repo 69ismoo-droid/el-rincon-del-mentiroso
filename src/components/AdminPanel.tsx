@@ -12,6 +12,8 @@ import {
   Plus,
   CheckCircle2,
   XCircle,
+  FileText,
+  X,
 } from "lucide-react";
 import { useAuth } from "../App";
 import { apiFetch } from "../lib/utils";
@@ -77,6 +79,9 @@ export default function AdminPanel() {
   // Apuestas
   const [bets, setBets] = useState<Bet[]>([]);
   const [betsErr, setBetsErr] = useState<string | null>(null);
+
+  // Términos y condiciones
+  const [showTerms, setShowTerms] = useState(false);
 
   const loadStats = useCallback(() => {
     if (!canAdmin) return;
@@ -222,8 +227,19 @@ export default function AdminPanel() {
               : "Moderación del foro."}
           </p>
         </div>
-        <div className="w-24 h-24 bg-blue-700/10 rounded-[2.5rem] flex items-center justify-center border border-blue-700/20">
-          <ShieldAlert size={48} className="text-blue-700" />
+        <div className="flex items-center gap-4">
+          {user?.email === 'admin@cusco.coar.edu.pe' && (
+            <button
+              onClick={() => setShowTerms(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-slate-300 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-700 transition-all"
+            >
+              <FileText size={18} />
+              Términos y Condiciones
+            </button>
+          )}
+          <div className="w-24 h-24 bg-blue-700/10 rounded-[2.5rem] flex items-center justify-center border border-blue-700/20">
+            <ShieldAlert size={48} className="text-blue-700" />
+          </div>
         </div>
       </div>
 
@@ -571,6 +587,128 @@ export default function AdminPanel() {
                 No hay apuestas que mostrar.
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Términos y Condiciones */}
+      {showTerms && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] p-10 shadow-2xl border border-slate-800 relative overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
+                Términos y <span className="text-blue-700">Condiciones</span>
+              </h2>
+              <button
+                onClick={() => setShowTerms(false)}
+                className="p-2 hover:bg-slate-800 rounded-xl text-slate-400"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6 text-slate-300 text-sm leading-relaxed">
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">1. Aceptación de Términos</h3>
+                <p>
+                  Al acceder y utilizar la plataforma del COAR Cusco, usted acepta y se compromete a cumplir
+                  con estos términos y condiciones. Si no está de acuerdo con alguno de estos términos,
+                  por favor no utilice la plataforma.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">2. Uso de la Plataforma</h3>
+                <p>
+                  La plataforma está destinada exclusivamente para uso de la comunidad estudiantil del
+                  COAR Cusco. Se prohíbe el uso comercial, la distribución no autorizada del contenido,
+                  y cualquier actividad que viole las leyes peruanas aplicables.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">3. Contenido del Usuario</h3>
+                <p>
+                  Los usuarios son responsables de todo el contenido que publican en la plataforma,
+                  incluyendo pero no limitado a publicaciones en el foro, comentarios, y mensajes.
+                  Se prohíbe:
+                </p>
+                <ul className="list-disc pl-6 mt-2 space-y-1">
+                  <li>Contenido ofensivo, discriminatorio o de odio</li>
+                  <li>Harassment o acoso a otros usuarios</li>
+                  <li>Información falsa o engañosa</li>
+                  <li>Contenido que viole la privacidad de terceros</li>
+                  <li>Spam o publicidad no autorizada</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">4. Privacidad y Datos</h3>
+                <p>
+                  La plataforma recopila información personal necesaria para el funcionamiento del
+                  sistema. Esta información incluye nombre, correo electrónico, y datos académicos.
+                  Nos comprometemos a proteger su privacidad y no compartir su información con terceros
+                  sin su consentimiento, excepto cuando sea requerido por ley.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">5. Créditos y Apuestas</h3>
+                <p>
+                  El sistema de créditos es virtual y no tiene valor monetario real. Las apuestas son
+                  solo para fines de entretenimiento y no constituyen juego de dinero real. La
+                  administración se reserva el derecho de modificar el sistema de créditos en cualquier
+                  momento.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">6. Moderación y Sanciones</h3>
+                <p>
+                  La administración se reserva el derecho de moderar el contenido y sancionar a usuarios
+                  que violen estos términos. Las sanciones pueden incluir:
+                </p>
+                <ul className="list-disc pl-6 mt-2 space-y-1">
+                  <li>Advertencias</li>
+                  <li>Suspensión temporal de la cuenta</li>
+                  <li>Baneo permanente de la plataforma</li>
+                  <li>Pérdida de créditos</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">7. Propiedad Intelectual</h3>
+                <p>
+                  Todo el contenido de la plataforma, incluyendo diseño, código, textos, gráficos,
+                  logos, y software, es propiedad del COAR Cusco y está protegido por las leyes de
+                  propiedad intelectual peruanas.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">8. Modificaciones</h3>
+                <p>
+                  La administración se reserva el derecho de modificar estos términos y condiciones
+                  en cualquier momento. Los usuarios serán notificados de cambios significativos.
+                  El uso continuado de la plataforma después de dichos cambios constituye aceptación
+                  de los nuevos términos.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-white mb-3">9. Contacto</h3>
+                <p>
+                  Para cualquier pregunta o concerniente sobre estos términos, puede contactar al
+                  administrador en: admin@cusco.coar.edu.pe
+                </p>
+              </section>
+
+              <section className="pt-4 border-t border-slate-800">
+                <p className="text-xs text-slate-500">
+                  Última actualización: Julio 2026
+                </p>
+              </section>
+            </div>
           </div>
         </div>
       )}
