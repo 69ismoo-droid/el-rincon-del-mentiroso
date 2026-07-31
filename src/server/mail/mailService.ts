@@ -13,31 +13,28 @@ export class MailService {
   private fromAddress: string;
 
   constructor() {
-    const smtpKey = process.env.BREVO_SMTP_KEY?.trim();
-    const smtpUser = process.env.BREVO_SMTP_USER?.trim();
-    const fromEmail = process.env.BREVO_FROM_EMAIL?.trim();
-    const fromName = process.env.BREVO_FROM_NAME?.trim() || 'Foro COAR';
+    const smtpHost = process.env.SMTP_HOST?.trim();
+    const smtpPort = process.env.SMTP_PORT?.trim();
+    const smtpUser = process.env.SMTP_USER?.trim();
+    const smtpPass = process.env.SMTP_PASS?.trim();
+    const emailFrom = process.env.EMAIL_FROM?.trim();
 
-    this.fromAddress = fromEmail
-      ? fromName
-        ? `"${fromName}" <${fromEmail}>`
-        : fromEmail
-      : '';
+    this.fromAddress = emailFrom || '';
 
-    if (smtpKey && smtpUser && fromEmail) {
+    if (smtpHost && smtpPort && smtpUser && smtpPass && emailFrom) {
       this.transporter = nodemailer.createTransport({
-        host: process.env.BREVO_SMTP_HOST?.trim() || 'smtp-relay.brevo.com',
-        port: Number(process.env.BREVO_SMTP_PORT) || 587,
-        secure: false,
+        host: smtpHost,
+        port: Number(smtpPort),
+        secure: false, // TLS para puerto 587
         auth: {
           user: smtpUser,
-          pass: smtpKey,
+          pass: smtpPass,
         },
       });
     } else {
       this.transporter = null;
       console.warn(
-        '[mail] Brevo no configurado — los correos se simularán en consola'
+        '[mail] SMTP no configurado — los correos se simularán en consola'
       );
     }
   }
