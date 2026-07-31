@@ -139,8 +139,8 @@ export default function Messages() {
                 selectedChat?.partner._id === chat.partner._id ? "bg-blue-700 shadow-lg shadow-blue-700/20" : "hover:bg-slate-800"
               )}
             >
-              <div className="w-12 h-12 rounded-2xl border border-slate-700 overflow-hidden shrink-0">
-                <img src={chat.partner.picture || ''} alt="" className="w-full h-full object-cover" />
+              <div className="w-12 h-12 rounded-2xl border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0">
+                <MessageCircle size={20} className="text-slate-400" />
               </div>
               <div className="flex-1 text-left min-w-0">
                 <div className="flex justify-between items-center mb-1">
@@ -165,8 +165,8 @@ export default function Messages() {
           <>
             <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl border border-slate-700 overflow-hidden shadow-lg">
-                        <img src={selectedChat.partner.picture || ''} alt="" className="w-full h-full object-cover" />
+                    <div className="w-14 h-14 rounded-2xl border border-slate-700 bg-slate-800 flex items-center justify-center shadow-lg">
+                        <MessageCircle size={24} className="text-slate-400" />
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">{selectedChat.partner.name}</h3>

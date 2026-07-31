@@ -186,8 +186,7 @@ Obtiene información del usuario autenticado.
     "role": "user",
     "isVerified": true,
     "credits": 100,
-    "bio": "Bio del usuario",
-    "picture": "url-de-imagen"
+    "bio": "Bio del usuario"
   }
 }
 ```
@@ -313,7 +312,7 @@ Obtiene lista de publicaciones con filtros y paginación.
       "title": "Título",
       "content": "Contenido",
       "category": "General",
-      "author": { "name": "...", "picture": "...", "role": "..." },
+      "author": { "name": "...", "role": "..." },
       "createdAt": "2024-01-01T00:00:00.000Z",
       "views": 10
     }
@@ -448,8 +447,8 @@ Obtiene todos los mensajes del usuario.
     {
       "_id": "...",
       "content": "Mensaje",
-      "sender": { "name": "...", "picture": "..." },
-      "recipient": { "name": "...", "picture": "..." },
+      "sender": { "name": "..." },
+      "recipient": { "name": "..." },
       "createdAt": "..."
     }
   ],
@@ -535,7 +534,7 @@ Obtiene las notificaciones del usuario.
   {
     "_id": "...",
     "recipient": "...",
-    "sender": { "name": "...", "picture": "..." },
+    "sender": { "name": "..." },
     "type": "comment",
     "content": "Juan comentó en tu publicación",
     "read": false,

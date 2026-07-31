@@ -96,7 +96,6 @@ export async function getCurrentUser(req: Request): Promise<Record<string, unkno
     isVerified: user.isVerified,
     credits: user.credits,
     bio: user.bio,
-    picture: user.picture,
   };
 }
 
