@@ -49,7 +49,7 @@ export default function TeacherProfile() {
     try {
       setSubmitting(true);
       setError(null);
-      const res = await apiFetch(`/api/teacher-ratings/${id}`, {
+      const res = await apiFetch(`/api/teachers/${id}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

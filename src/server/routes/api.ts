@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import { User } from "../models/User.js";
 import { Post, Comment } from "../models/Forum.js";
 import { TeacherRating, Bet, LostItem, News } from "../models/Community.js";
-import { Message } from "../models/Message.js";
 import { Notification } from "../models/Notification.js";
 import { escapeRegex } from "../lib/escapeRegex.js";
 import { isValidObjectId } from "../lib/ids.js";
@@ -20,7 +19,6 @@ const router = express.Router();
 const MAX_POST_TITLE = 280;
 const MAX_POST_BODY = 50_000;
 const MAX_COMMENT = 10_000;
-const MAX_MESSAGE = 10_000;
 
 const requireDb: express.RequestHandler = (req: any, res, next) => {
   if (mongoose.connection.readyState !== 1) {
@@ -157,7 +155,7 @@ router.get("/posts", ...authed, async (req: any, res) => {
     const { page, limit, skip } = parsePagination(req.query, 20, 50);
     const [items, total] = await Promise.all([
       Post.find(filter)
-        .populate("author", "name picture role ingresoColegio")
+        .populate("author", "name role ingresoColegio")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -219,7 +217,7 @@ router.get("/posts/:id", ...authed, async (req: any, res) => {
     }
     const post = await Post.findById(req.params.id).populate(
       "author",
-      "name picture role ingresoColegio"
+      "name role ingresoColegio"
     );
     if (!post) {
       res.status(404).json({ error: "Post no encontrado" });
@@ -228,7 +226,7 @@ router.get("/posts/:id", ...authed, async (req: any, res) => {
     post.views += 1;
     await post.save();
     const comments = await Comment.find({ post: post._id })
-      .populate("author", "name picture role ingresoColegio")
+      .populate("author", "name role ingresoColegio")
       .sort({ createdAt: 1 });
     res.json({ post, comments });
   } catch (err) {
@@ -321,134 +319,12 @@ router.post("/posts/:id/comments", ...authed, async (req: any, res) => {
   }
 });
 
-// --- MESSAGING ---
-router.get("/messages", ...authed, async (req: any, res) => {
-  try {
-    const user = req.user as { _id: mongoose.Types.ObjectId };
-    const { page, limit, skip } = parsePagination(req.query, 30, 80);
-    const baseFilter = {
-      $or: [{ sender: user._id }, { recipient: user._id }],
-    };
-    const [items, total] = await Promise.all([
-      Message.find(baseFilter)
-        .populate("sender recipient", "name picture")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Message.countDocuments(baseFilter),
-    ]);
-    res.json({
-      items,
-      total,
-      page,
-      pageSize: limit,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
-    });
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-router.get("/messages/thread/:partnerId", ...authed, async (req: any, res) => {
-  try {
-    if (!isValidObjectId(req.params.partnerId)) {
-      res.status(400).json({ error: "ID inválido" });
-      return;
-    }
-    const user = req.user as { _id: mongoose.Types.ObjectId };
-    const partnerId = req.params.partnerId;
-    const { page, limit, skip } = parsePagination(req.query, 30, 60);
-    const threadFilter = {
-      $or: [
-        { sender: user._id, recipient: partnerId },
-        { sender: partnerId, recipient: user._id },
-      ],
-    };
-    const [items, total] = await Promise.all([
-      Message.find(threadFilter)
-        .populate("sender recipient", "name picture")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Message.countDocuments(threadFilter),
-    ]);
-    res.json({
-      items,
-      total,
-      page,
-      pageSize: limit,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
-    });
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-router.post("/messages", ...authed, async (req: any, res) => {
-  try {
-    const recipientRaw = req.body?.recipient;
-    const content =
-      typeof req.body?.content === "string" ? req.body.content.trim() : "";
-
-    if (!content) {
-      res.status(400).json({ error: "Mensaje vacío" });
-      return;
-    }
-    if (content.length > MAX_MESSAGE) {
-      res.status(400).json({ error: "Mensaje demasiado largo" });
-      return;
-    }
-    if (typeof recipientRaw !== "string" || !isValidObjectId(recipientRaw)) {
-      res.status(400).json({ error: "Destinatario inválido" });
-      return;
-    }
-
-    const user = req.user as { _id: mongoose.Types.ObjectId; name: string };
-    if (recipientRaw === user._id.toString()) {
-      res.status(400).json({ error: "No puedes enviarte un mensaje a ti mismo" });
-      return;
-    }
-
-    const recipientUser = await User.findById(recipientRaw);
-    if (!recipientUser) {
-      res.status(404).json({ error: "Usuario no encontrado" });
-      return;
-    }
-
-    const msg = await Message.create({
-      recipient: recipientRaw,
-      content,
-      sender: user._id,
-    });
-
-    if (recipientRaw !== user._id.toString()) {
-      const notif = await Notification.create({
-        recipient: recipientRaw,
-        sender: user._id,
-        type: "message",
-        content: `${user.name} te envió un mensaje privado.`,
-      });
-
-      const recipientSocket = req.userSockets.get(recipientRaw);
-      if (recipientSocket) {
-        req.io.to(recipientSocket).emit("notification", notif);
-      }
-    }
-
-    res.json(msg);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
 // --- NOTIFICATIONS ---
 router.get("/notifications", ...authed, async (req: any, res) => {
   try {
     const user = req.user as { _id: mongoose.Types.ObjectId };
     const notifs = await Notification.find({ recipient: user._id })
-      .populate("sender", "name picture")
+      .populate("sender", "name")
       .sort({ createdAt: -1 })
       .limit(20);
     res.json(notifs);
@@ -799,7 +675,7 @@ router.get("/admin/forum/posts", ...modChain, async (req: any, res) => {
     }
     const [items, total] = await Promise.all([
       Post.find(filter)
-        .populate("author", "name email picture")
+        .populate("author", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -951,9 +827,54 @@ router.delete("/teachers/:id", ...authed, requireRole("admin", "superadmin"), as
     if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
     }
-    
+
     await TeacherRating.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/teachers/:id/review", ...authed, async (req: any, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    const { rating, comment } = req.body;
+    const user = req.user as { _id: mongoose.Types.ObjectId; name: string };
+
+    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating debe ser entre 1 y 5" });
+    }
+
+    const teacher = await TeacherRating.findById(req.params.id);
+    if (!teacher) {
+      return res.status(404).json({ error: "Profesor no encontrado" });
+    }
+
+    // Verificar si el usuario ya votó
+    const existingReview = teacher.reviews?.find((r: any) => r.user?.toString() === user._id.toString());
+    if (existingReview) {
+      return res.status(400).json({ error: "Ya has calificado a este profesor" });
+    }
+
+    const review = {
+      user: user._id,
+      score: rating,
+      comment: comment || '',
+      date: new Date(),
+    };
+
+    teacher.reviews = teacher.reviews || [];
+    teacher.reviews.push(review);
+
+    // Recalcular rating promedio
+    const totalRating = teacher.reviews.reduce((sum: number, r: any) => sum + r.score, 0);
+    teacher.rating = totalRating / teacher.reviews.length;
+
+    await teacher.save();
+    res.json(teacher);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
@@ -972,6 +893,29 @@ router.get("/lost-found", ...authed, async (req: any, res) => {
   }
 });
 
+router.post("/lost-found", ...authed, async (req: any, res) => {
+  try {
+    const { title, description, location } = req.body;
+    const user = req.user as { _id: mongoose.Types.ObjectId };
+
+    if (!title || !description || !location) {
+      return res.status(400).json({ error: "Título, descripción y ubicación son obligatorios" });
+    }
+
+    const item = await LostItem.create({
+      title,
+      description,
+      location,
+      founder: user._id,
+      status: 'lost'
+    });
+
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 // --- USER PROFILE ---
 router.patch("/user/display-name", ...authed, async (req: any, res) => {
   try {
@@ -979,6 +923,18 @@ router.patch("/user/display-name", ...authed, async (req: any, res) => {
 
     if (!req.user) {
       res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+
+    // Verificar si ya ha cambiado el nombre de usuario
+    const user = await User.findById((req.user as any)._id).select('+displayNameChanged');
+    if (!user) {
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
+    }
+
+    if (user.displayNameChanged) {
+      res.status(403).json({ error: "Solo puedes cambiar tu nombre de usuario una vez" });
       return;
     }
 
@@ -992,7 +948,10 @@ router.patch("/user/display-name", ...authed, async (req: any, res) => {
       return;
     }
 
-    await User.findByIdAndUpdate((req.user as any)._id, { displayName });
+    await User.findByIdAndUpdate((req.user as any)._id, {
+      displayName,
+      displayNameChanged: true
+    });
     res.json({ ok: true, displayName });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

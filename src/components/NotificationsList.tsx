@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../App';
-import { Bell, Clock, Trash2, CheckCircle } from 'lucide-react';
+import { Bell, Clock, Trash2, CheckCircle, User } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 
@@ -36,8 +36,8 @@ export default function NotificationsList() {
                   !notif.read && "bg-blue-600/5 border-l-4 border-l-blue-600"
                 )}
               >
-                <div className="w-14 h-14 rounded-2xl border border-slate-700 overflow-hidden shrink-0 shadow-lg group-hover:scale-105 transition-transform">
-                  <img src={notif.sender?.picture || ""} alt="" className="w-full h-full object-cover" />
+                <div className="w-14 h-14 rounded-2xl border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                  <User size={24} className="text-slate-400" />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">

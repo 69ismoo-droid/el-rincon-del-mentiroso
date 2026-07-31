@@ -23,7 +23,6 @@ import { HttpError } from "./src/server/lib/httpError.js";
 import apiRoutes from "./src/server/routes/api.js";
 import authRoutes from "./src/server/routes/auth.js";
 import verificationRoutes from "./src/server/routes/verification.js";
-import uploadRoutes from "./src/server/routes/upload.js";
 import { mailService } from "./src/server/mail/mailService.js";
 
 dotenv.config();
@@ -230,7 +229,6 @@ async function startServer() {
   app.use("/api/auth", authLimiter);
   app.use("/api/auth", authRoutes);
   app.use("/api/auth", verificationRoutes);
-  app.use("/api", uploadRoutes);
   app.use("/api", apiRoutes);
 
   if (!isProd) {

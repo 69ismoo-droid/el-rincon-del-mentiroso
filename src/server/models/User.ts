@@ -26,9 +26,9 @@ const UserSchema = new mongoose.Schema({
   // Perfil
   nombreCompleto: { type: String, required: false, default: 'Pendiente' },
   displayName: { type: String, required: false, default: '' },
+  displayNameChanged: { type: Boolean, default: false },
   añoIngreso: { type: Number, required: false, default: new Date().getFullYear() },
   ingresoColegioChanged: { type: Boolean, default: false },
-  picture: { type: String },
   bio: { type: String, default: '¡Orgullosamente COAR!' },
   
   // Sistema

@@ -19,6 +19,7 @@ export default function NewsList() {
   const [showAddNews, setShowAddNews] = useState(false);
   const [newNews, setNewNews] = useState({ title: '', content: '', category: 'ACADEMICO' });
   const [adding, setAdding] = useState(false);
+  const [expandedNews, setExpandedNews] = useState<string | null>(null);
 
   useEffect(() => {
     loadNews();
@@ -225,15 +226,18 @@ export default function NewsList() {
                   <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-slate-400 text-sm leading-relaxed line-clamp-3">
-                    {item.content}
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    {expandedNews === item._id ? item.content : `${item.content.substring(0, 200)}...`}
                   </p>
                   <div className="flex justify-between items-center pt-6 border-t border-slate-800/50">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2">
                       <Calendar size={14} /> {new Date(item.createdAt).toLocaleDateString()}
                     </span>
-                    <button className="text-blue-400 font-black text-xs uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
-                      Leer más <ArrowRight size={16} />
+                    <button
+                      onClick={() => setExpandedNews(expandedNews === item._id ? null : item._id)}
+                      className="text-blue-400 font-black text-xs uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform"
+                    >
+                      {expandedNews === item._id ? 'Leer menos' : 'Leer más'} <ArrowRight size={16} />
                     </button>
                   </div>
                 </div>

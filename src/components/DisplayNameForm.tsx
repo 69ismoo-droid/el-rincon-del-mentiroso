@@ -44,6 +44,8 @@ export default function DisplayNameForm({ onClose }: DisplayNameFormProps) {
       if (response.ok) {
         await refresh();
         onClose();
+      } else if (response.status === 403) {
+        setError('Solo puedes cambiar tu nombre de usuario una vez');
       } else {
         setError(data.error || 'Error al actualizar el nombre de usuario');
       }

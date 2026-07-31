@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Plus, Search, Filter, MessageCircle, Clock, LayoutDashboard, Eye, X } from 'lucide-react';
+import { MessageSquare, Plus, Search, Filter, MessageCircle, Clock, LayoutDashboard, Eye, X, User } from 'lucide-react';
 import { useAuth } from '../App';
 import { cn, apiFetch } from '../lib/utils';
 
@@ -250,8 +250,8 @@ export default function Forum() {
             >
               <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl border border-slate-700 overflow-hidden shrink-0">
-                    <img src={post.author?.picture || ''} alt="" className="w-full h-full object-cover" />
+                  <div className="w-12 h-12 rounded-xl border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0">
+                    <User size={20} className="text-slate-400" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors leading-snug">{post.title}</h3>
@@ -316,8 +316,8 @@ export default function Forum() {
               <div className="p-8 border-b border-slate-800 bg-slate-950/30">
                 <div className="flex justify-between items-start gap-4">
                     <div className="flex gap-4 items-center">
-                        <div className="w-14 h-14 rounded-2xl border border-slate-700 overflow-hidden shrink-0 shadow-lg">
-                            <img src={selectedPost.author.picture} alt="" className="w-full h-full object-cover" />
+                        <div className="w-14 h-14 rounded-2xl border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0 shadow-lg">
+                            <User size={24} className="text-slate-400" />
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">{selectedPost.title}</h2>
@@ -343,8 +343,8 @@ export default function Forum() {
                   <div className="space-y-4">
                     {comments.map((comment) => (
                       <div key={comment._id} className="bg-slate-950/50 p-6 rounded-3xl border border-slate-800/50 flex gap-4">
-                         <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-slate-700">
-                           <img src={comment.author.picture} alt="" className="w-full h-full object-cover" />
+                         <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700">
+                           <User size={16} className="text-slate-400" />
                          </div>
                          <div className="flex-1">
                             <div className="flex justify-between items-center mb-2">

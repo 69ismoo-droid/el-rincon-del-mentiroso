@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { io } from 'socket.io-client';
-import { 
-  MessageSquare, 
+import {
+  MessageSquare,
   Trophy,
   Coins,
   Search, 
@@ -28,7 +28,6 @@ import Register from './components/Register';
 import LoginNew from './components/LoginNew';
 import VerifyOTP from './components/VerifyOTP';
 import CompleteProfile from './components/CompleteProfile';
-import Messages from './components/Messages';
 import AdminPanel from './components/AdminPanel';
 import NotificationsList from './components/NotificationsList';
 import Betting from './components/Betting';
@@ -56,16 +55,16 @@ interface User {
   isVerified: boolean;
   credits: number;
   bio: string;
-  picture: string;
 }
 
 interface Notification {
   _id: string;
+  type: string;
   content: string;
   read: boolean;
   createdAt: Date;
   sender?: {
-    picture: string;
+    name: string;
   };
 }
 
@@ -274,14 +273,8 @@ function NotificationCenter() {
                         !notif.read && "bg-blue-600/5"
                       )}
                     >
-                      <div className="w-10 h-10 rounded-xl border border-slate-700 overflow-hidden shrink-0">
-                        {notif.sender?.picture ? (
-                          <img src={notif.sender.picture} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                            <User size={16} className="text-slate-400" />
-                          </div>
-                        )}
+                      <div className="w-10 h-10 rounded-xl border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0">
+                        <User size={16} className="text-slate-400" />
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className="text-sm font-bold text-slate-200 leading-tight mb-1">{notif.content}</p>
@@ -321,7 +314,6 @@ function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { name: 'Foro', icon: MessageSquare, path: '/foro' },
-    { name: 'Mensajes', icon: MessageCircle, path: '/mensajes' },
     { name: 'Profesores', icon: Trophy, path: '/ranking' },
     { name: 'Top 10 Monedas', icon: Coins, path: '/leaderboard' },
     { name: 'Objetos Perdidos', icon: Search, path: '/objetos-perdidos' },
@@ -464,14 +456,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-4 md:gap-6">
             <div className="flex items-center gap-3 px-3 md:px-4 py-2 glass-effect rounded-2xl hover-lift">
-              <div className="w-8 h-8 rounded-lg overflow-hidden border-2 border-blue-700/30">
-                {user?.picture ? (
-                  <img src={user.picture} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                    <User size={16} className="text-slate-400" />
-                  </div>
-                )}
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center border-2 border-blue-700/30">
+                <User size={16} className="text-slate-400" />
               </div>
               <div className="hidden sm:block">
                 <p className="text-xs font-black text-white uppercase tracking-tighter truncate max-w-[120px]">{user?.displayName || user?.nombreCompleto || user?.name || 'Usuario'}</p>
@@ -695,7 +681,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/foro" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
-          <Route path="/mensajes" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/ranking" element={<ProtectedRoute><TeacherRanking /></ProtectedRoute>} />
           <Route path="/ranking/:id" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />
           <Route path="/objetos-perdidos" element={<ProtectedRoute><LostFound /></ProtectedRoute>} />

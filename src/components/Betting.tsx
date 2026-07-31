@@ -30,6 +30,10 @@ export default function Betting() {
   const [newEventOptions, setNewEventOptions] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState<BetEvent | null>(null);
+  const [betAmount, setBetAmount] = useState('');
+  const [selectedOption, setSelectedOption] = useState('');
+  const [placingBet, setPlacingBet] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -85,6 +89,57 @@ export default function Betting() {
       setError('Error de conexión al crear la apuesta.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handlePlaceBet = async () => {
+    if (!selectedEvent || !selectedOption || !betAmount) {
+      setError('Selecciona una opción y un monto');
+      return;
+    }
+
+    const amount = parseInt(betAmount);
+    if (isNaN(amount) || amount < 1) {
+      setError('Monto inválido');
+      return;
+    }
+
+    if ((user?.credits || 0) < amount) {
+      setError('Créditos insuficientes');
+      return;
+    }
+
+    setPlacingBet(true);
+    setError('');
+    try {
+      const res = await apiFetch('/api/bets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: selectedEvent.event,
+          amount,
+          prediction: selectedOption,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedEvent(null);
+        setSelectedOption('');
+        setBetAmount('');
+        await loadData();
+        // Refresh user credits
+        if (user) {
+          user.credits = data.credits;
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'No se pudo realizar la apuesta');
+      }
+    } catch {
+      setError('Error de conexión al apostar');
+    } finally {
+      setPlacingBet(false);
     }
   };
 
@@ -181,6 +236,14 @@ export default function Betting() {
                       )}
                     </div>
                   </div>
+                  {bet.status === 'open' && (
+                    <button
+                      onClick={() => setSelectedEvent(bet)}
+                      className="px-6 py-3 bg-gradient-to-r from-yellow-900 to-orange-600 text-white rounded-2xl font-bold text-sm uppercase tracking-widest hover:from-yellow-700 hover:to-orange-700 transition-all"
+                    >
+                      Apostar
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -261,6 +324,72 @@ export default function Betting() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedEvent && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-slate-900 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl border border-slate-800 relative"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Apostar en <span className="text-yellow-800">{selectedEvent.event}</span></h3>
+                <button type="button" onClick={() => setSelectedEvent(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400" aria-label="Cerrar">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Selecciona tu predicción</label>
+                  <div className="space-y-3">
+                    {selectedEvent.options?.map((option) => (
+                      <button
+                        key={option.name}
+                        onClick={() => setSelectedOption(option.name)}
+                        className={`w-full p-4 rounded-2xl font-bold text-left transition-all ${
+                          selectedOption === option.name
+                            ? 'bg-gradient-to-r from-yellow-900 to-orange-600 text-white border-2 border-yellow-600'
+                            : 'bg-slate-950 text-slate-400 border-2 border-slate-800 hover:border-slate-600'
+                        }`}
+                      >
+                        {option.name} - Pool: {option.pool} créditos
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Monto a apostar</label>
+                  <input
+                    type="number"
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(e.target.value)}
+                    placeholder="Ej: 10"
+                    min="1"
+                    max={user?.credits || 0}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 font-bold text-white outline-none focus:ring-2 focus:ring-yellow-800 transition-all placeholder:text-slate-700"
+                    required
+                  />
+                  <p className="text-xs text-slate-500">Saldo disponible: {user?.credits?.toLocaleString() || 0} créditos</p>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button type="button" onClick={() => setSelectedEvent(null)} className="flex-1 py-4 font-bold text-slate-500 hover:text-slate-300 transition-colors uppercase tracking-widest text-xs">Cancelar</button>
+                  <button
+                    onClick={handlePlaceBet}
+                    disabled={placingBet || !selectedOption || !betAmount}
+                    className="flex-1 bg-gradient-to-r from-yellow-900 to-orange-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:from-yellow-700 hover:to-orange-700 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {placingBet ? 'Apostando...' : 'Confirmar apuesta'}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
