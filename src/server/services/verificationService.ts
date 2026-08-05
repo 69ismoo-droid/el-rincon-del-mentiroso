@@ -10,6 +10,7 @@ import {
   RESEND_WINDOW_MS,
 } from '../utils/otp.js';
 import type { ResendCodeBody, VerifyEmailBody } from '../schemas/authSchemas.js';
+import { logger } from '../lib/logger.js';
 
 const OTP_SELECT_FIELDS =
   '+otpCode +otpExpires +otpFailedAttempts +otpResendCount +otpResendWindowStart';
@@ -124,7 +125,8 @@ export async function resendVerificationCode(input: ResendCodeBody): Promise<Res
 
   try {
     await mailService.sendVerificationCode(email, otpCode, true);
-  } catch {
+  } catch (error) {
+    logger.error('ERROR REAL DE BREVO AL ENVIAR CORREO DE VERIFICACIÓN (reenvío)', { error });
     throw new HttpError(
       500,
       'No se pudo enviar el correo de verificación. Verifica tu configuración de Brevo.'

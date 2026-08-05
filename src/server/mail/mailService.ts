@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { buildVerificationEmailHtml } from './templates/verificationEmail.js';
+import { logger } from '../lib/logger.js';
 
 interface SendMailOptions {
   to: string;
@@ -57,6 +58,7 @@ export class MailService {
         html,
       });
     } catch (error: unknown) {
+      logger.error('ERROR REAL DE BREVO AL ENVIAR CORREO', { error });
       const err = error as { message?: string };
       throw new Error(`No se pudo enviar el correo: ${err.message ?? 'error desconocido'}`);
     }

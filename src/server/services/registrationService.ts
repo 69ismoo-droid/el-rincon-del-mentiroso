@@ -4,6 +4,7 @@ import { HttpError } from '../lib/httpError.js';
 import { mailService } from '../mail/mailService.js';
 import { generateOTPCode, getOTPExpiryDate } from '../utils/otp.js';
 import type { RegisterBody } from '../schemas/authSchemas.js';
+import { logger } from '../lib/logger.js';
 
 export interface RegisterResult {
   message: string;
@@ -38,7 +39,8 @@ export async function registerUser(input: RegisterBody): Promise<RegisterResult>
 
   try {
     await mailService.sendVerificationCode(email, otpCode);
-  } catch {
+  } catch (error) {
+    logger.error('ERROR REAL DE BREVO AL ENVIAR CORREO DE VERIFICACIÓN (registro)', { error });
     await User.deleteOne({ email });
     throw new HttpError(
       500,
