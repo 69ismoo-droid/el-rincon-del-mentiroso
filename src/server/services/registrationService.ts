@@ -40,11 +40,11 @@ export async function registerUser(input: RegisterBody): Promise<RegisterResult>
   try {
     await mailService.sendVerificationCode(email, otpCode);
   } catch (error) {
-    logger.error('ERROR REAL DE BREVO AL ENVIAR CORREO DE VERIFICACIÓN (registro)', { error });
+    logger.error('ERROR AL ENVIAR CORREO DE VERIFICACIÓN (registro)', { error });
     await User.deleteOne({ email });
     throw new HttpError(
       500,
-      'No se pudo enviar el correo de verificación. Verifica tu configuración de Brevo.'
+      'No se pudo enviar el correo de verificación. Verifica tu configuración de Brevo (API Key o SMTP).'
     );
   }
 
