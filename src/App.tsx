@@ -40,6 +40,8 @@ import Leaderboard from './components/Leaderboard';
 import TeacherProfile from './components/TeacherProfile';
 import DisplayNameForm from './components/DisplayNameForm';
 import NotFound from './components/NotFound';
+import Logo from './components/Logo';
+import Footer from './components/Footer';
 import { Calendar } from 'lucide-react';
 
 // --- AUTH CONTEXT ---
@@ -449,9 +451,8 @@ function Layout({ children }: { children: React.ReactNode }) {
             >
               <Menu size={24} />
             </button>
-            <Link to="/" className="md:hidden w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center">
-              <span className="font-black text-white">C</span>
-            </Link>
+            <Logo size="sm" className="md:hidden" />
+            <Logo size="md" className="hidden md:block" />
           </div>
 
           <div className="flex items-center gap-4 md:gap-6">
@@ -475,6 +476,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-y-auto p-4 md:p-12 no-scrollbar pb-24 md:pb-12">
           {children}
         </div>
+
+        <Footer />
       </main>
     </div>
   );
