@@ -1,5 +1,10 @@
-import { Filter } from 'bad-words';
-import badWordsEs from 'bad-words-es';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const badWords = require('bad-words');
+const badWordsEs = require('bad-words-es');
+
+const { Filter } = badWords;
 
 // Inicializar filtros de inglés y español
 const englishFilter = new Filter();
