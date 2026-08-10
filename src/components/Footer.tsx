@@ -57,7 +57,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => window.open('mailto:report@forocoar.com?subject=Reporte de Contenido', '_blank')}
+                  onClick={() => window.open('mailto:foro2026coar@outlook.com?subject=Reporte de Contenido', '_blank')}
                   className="flex items-center gap-2 text-[#94a3b8] hover:text-red-400 transition-colors text-sm group"
                 >
                   <Flag size={16} className="group-hover:scale-110 transition-transform" />
