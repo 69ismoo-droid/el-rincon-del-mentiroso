@@ -6,6 +6,7 @@ import { TeacherRating, Bet, LostItem, News } from "../models/Community.js";
 import { Notification } from "../models/Notification.js";
 import { escapeRegex } from "../lib/escapeRegex.js";
 import { isValidObjectId } from "../lib/ids.js";
+import { parsePagination } from "../lib/pagination.js";
 import { isPostCategory } from "../constants/forum.js";
 import { requireAuth, requireActiveUser, requireRole } from "../middleware/auth.js";
 import { routeAsync } from "../middleware/routeAsync.js";
