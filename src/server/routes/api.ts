@@ -7,12 +7,9 @@ import { Notification } from "../models/Notification.js";
 import { escapeRegex } from "../lib/escapeRegex.js";
 import { isValidObjectId } from "../lib/ids.js";
 import { isPostCategory } from "../constants/forum.js";
-import {
-  requireAuth,
-  requireActiveUser,
-  requireRole,
-} from "../middleware/auth.js";
-import { parsePagination } from "../lib/pagination.js";
+import { requireAuth, requireActiveUser, requireRole } from "../middleware/auth.js";
+import { routeAsync } from "../middleware/routeAsync.js";
+import { validarContenidoLimpio } from "../middleware/validarContenido.js";
 
 const router = express.Router();
 
@@ -174,7 +171,7 @@ router.get("/posts", ...authed, async (req: any, res) => {
   }
 });
 
-router.post("/posts", ...authed, async (req: any, res) => {
+router.post("/posts", ...authed, validarContenidoLimpio(['title', 'content']), async (req: any, res) => {
   try {
     const body = req.body as Record<string, unknown>;
     const title = typeof body.title === "string" ? body.title.trim() : "";
