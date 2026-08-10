@@ -242,9 +242,9 @@ export default function Forum() {
         </div>
 
         <div className="divide-y divide-slate-800/50">
-          {posts.map((post) => (
-            <div 
-              key={post._id} 
+          {posts.filter(Boolean).map((post) => (
+            <div
+              key={post._id}
               className="p-8 hover:bg-slate-800/20 transition-all cursor-pointer group"
               onClick={() => handlePostClick(post)}
             >
@@ -257,7 +257,7 @@ export default function Forum() {
                     <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors leading-snug">{post.title}</h3>
                     <p className="text-xs text-slate-500 flex items-center gap-2 font-medium mt-1">
                       Por <span className="text-blue-400/80 font-bold">
-                        Anónimo · Promo {post.author.ingresoColegio || post.author.añoIngreso || 'Desconocido'}
+                        Anónimo · Promo {post.author?.ingresoColegio || post.author?.añoIngreso || 'Desconocido'}
                       </span> • {new Date(post.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -321,7 +321,7 @@ export default function Forum() {
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">{selectedPost.title}</h2>
-                            <p className="text-xs text-slate-500 font-bold uppercase">De <span className="text-blue-400">Anónimo · Promo {selectedPost.author.ingresoColegio || selectedPost.author.añoIngreso || 'Desconocido'}</span> • {new Date(selectedPost.createdAt).toLocaleString()}</p>
+                            <p className="text-xs text-slate-500 font-bold uppercase">De <span className="text-blue-400">Anónimo · Promo {selectedPost.author?.ingresoColegio || selectedPost.author?.añoIngreso || 'Desconocido'}</span> • {new Date(selectedPost.createdAt).toLocaleString()}</p>
                         </div>
                     </div>
                     <button onClick={() => setSelectedPost(null)} className="p-3 hover:bg-slate-800 rounded-2xl text-slate-500">
